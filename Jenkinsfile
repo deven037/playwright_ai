@@ -6,264 +6,272 @@
 // Jenkins   : http://localhost:8080
 // Repo      : https://github.com/deven037/playwright_ai.git
 //
-// NOTE:
-// Keep .env inside project root and add it to .gitignore
+// Credentials Strategy:
+// Reads .env from local machine and copies into Jenkins workspace
 // ============================================================
 
 pipeline {
 
-  agent any
+    agent any
 
-  // ── Parameters ─────────────────────────────────────────────
-  parameters {
+    // ── Parameters ─────────────────────────────────────────────
+    parameters {
 
-    choice(
-      name: 'SUITE',
-      choices: ['regression', 'smoke', 'sanity', 'all'],
-      description: 'Test suite to execute'
-    )
+        choice(
+            name: 'SUITE',
+            choices: ['regression', 'smoke', 'sanity', 'all'],
+            description: 'Test suite to execute'
+        )
 
-    string(
-      name: 'SPEC',
-      defaultValue: '',
-      description: 'Optional: specific spec file e.g. tests/login.spec.ts'
-    )
+        string(
+            name: 'SPEC',
+            defaultValue: '',
+            description: 'Optional: specific spec file e.g. tests/login.spec.ts'
+        )
 
-    string(
-      name: 'GREP',
-      defaultValue: '',
-      description: 'Optional: grep tag filter e.g. @login'
-    )
+        string(
+            name: 'GREP',
+            defaultValue: '',
+            description: 'Optional: grep tag filter e.g. @login'
+        )
 
-    booleanParam(
-      name: 'CLEAN_REPORTS',
-      defaultValue: true,
-      description: 'Delete previous reports before running'
-    )
-  }
-
-  // ── Environment ────────────────────────────────────────────
-  environment {
-
-    CI        = 'true'
-    HEADLESS  = 'true'
-    BROWSER   = 'chromium'
-    TIMEOUT   = '30000'
-    RETRIES   = '2'
-    WORKERS   = '4'
-
-    NODE_HOME = 'C:/Program Files/nodejs'
-
-    PATH = "C:/Program Files/nodejs;C:/Program Files/Git/cmd;${env.PATH}"
-  }
-
-  // ── Options ────────────────────────────────────────────────
-  options {
-
-    buildDiscarder(logRotator(
-      numToKeepStr: '10',
-      artifactNumToKeepStr: '10'
-    ))
-
-    timeout(time: 60, unit: 'MINUTES')
-
-    disableConcurrentBuilds()
-
-    timestamps()
-  }
-
-  // ── Stages ─────────────────────────────────────────────────
-  stages {
-
-    // ── 1. Checkout ──────────────────────────────────────────
-    stage('Checkout') {
-
-      steps {
-
-        echo '================================================'
-        echo 'Checking out source code from GitHub'
-        echo '================================================'
-
-        checkout scm
-
-        bat 'git log --oneline -1'
-      }
+        booleanParam(
+            name: 'CLEAN_REPORTS',
+            defaultValue: true,
+            description: 'Delete previous reports before running'
+        )
     }
 
-    // ── 2. Load .env ─────────────────────────────────────────
-    stage('Load .env') {
+    // ── Environment ────────────────────────────────────────────
+    environment {
 
-      steps {
+        CI        = 'true'
+        HEADLESS  = 'true'
+        BROWSER   = 'chromium'
+        TIMEOUT   = '30000'
+        RETRIES   = '2'
+        WORKERS   = '4'
 
-        echo '================================================'
-        echo 'Loading credentials from .env file'
-        echo '================================================'
+        NODE_HOME = 'C:\\Program Files\\nodejs'
 
-        bat """
-          if not exist ".env" (
-            echo .env file not found in project root
-            exit /b 1
-          )
-
-          echo .env file loaded successfully
-        """
-      }
+        PATH = "C:\\Program Files\\nodejs;C:\\Program Files\\Git\\cmd;${env.PATH}"
     }
 
-    // ── 3. Verify Tools ──────────────────────────────────────
-    stage('Verify Tools') {
+    // ── Options ────────────────────────────────────────────────
+    options {
 
-      steps {
+        buildDiscarder(logRotator(
+            numToKeepStr: '10',
+            artifactNumToKeepStr: '10'
+        ))
 
-        echo 'Verifying Node.js and npm versions'
+        timeout(time: 60, unit: 'MINUTES')
 
-        bat 'node --version'
+        disableConcurrentBuilds()
 
-        bat 'npm --version'
-      }
+        timestamps()
     }
 
-    // ── 4. Install Dependencies ──────────────────────────────
-    stage('Install Dependencies') {
+    // ── Stages ─────────────────────────────────────────────────
+    stages {
 
-      steps {
+        // ── Checkout ───────────────────────────────────────────
+        stage('Checkout') {
 
-        echo '================================================'
-        echo 'Installing npm dependencies'
-        echo '================================================'
+            steps {
 
-        bat 'npm ci'
-      }
-    }
+                echo '================================================'
+                echo 'Checking out source code from GitHub'
+                echo '================================================'
 
-    // ── 5. Install Playwright Browsers ───────────────────────
-    stage('Install Browsers') {
+                checkout scm
 
-      steps {
-
-        echo 'Installing Playwright Chromium browser'
-
-        bat 'npx playwright install chromium'
-      }
-    }
-
-    // ── 6. Clean Reports ─────────────────────────────────────
-    stage('Clean Reports') {
-
-      when {
-        expression {
-          return params.CLEAN_REPORTS == true
+                bat 'git log --oneline -1'
+            }
         }
-      }
 
-      steps {
+        // ── Load .env ──────────────────────────────────────────
+        stage('Load .env') {
 
-        echo 'Cleaning previous reports and test-results'
+            steps {
 
-        bat 'if exist test-results rmdir /s /q test-results'
+                echo '================================================'
+                echo 'Loading credentials from local .env file'
+                echo '================================================'
 
-        bat 'if exist reports rmdir /s /q reports'
+                bat """
+                    if not exist "C:\\Users\\user\\Desktop\\playwright_ai\\.env" (
+                        echo .env file not found
+                        exit /b 1
+                    )
 
-        bat 'if exist logs rmdir /s /q logs'
+                    copy "C:\\Users\\user\\Desktop\\playwright_ai\\.env" ".env"
 
-        bat 'if exist auth rmdir /s /q auth'
-      }
-    }
-
-    // ── 7. Run Tests ─────────────────────────────────────────
-    stage('Run Tests') {
-
-      steps {
-
-        echo '================================================'
-        echo "Suite  : ${params.SUITE}"
-        echo "Spec   : ${params.SPEC ?: '(all)'}"
-        echo "Grep   : ${params.GREP ?: '(none)'}"
-        echo '================================================'
-
-        script {
-
-          def cmd = 'npx playwright test --project=chromium --workers=4'
-
-          // Specific spec file takes priority
-          if (params.SPEC?.trim()) {
-            cmd += " ${params.SPEC.trim()}"
-          }
-
-          // Grep filter
-          if (params.GREP?.trim()) {
-
-            cmd += " --grep \"${params.GREP.trim()}\""
-
-          } else if (params.SUITE != 'all') {
-
-            cmd += " --grep @${params.SUITE}"
-          }
-
-          echo "Command: ${cmd}"
-
-          bat cmd
+                    echo .env copied successfully
+                """
+            }
         }
-      }
+
+        // ── Verify Tools ───────────────────────────────────────
+        stage('Verify Tools') {
+
+            steps {
+
+                echo '================================================'
+                echo 'Verifying Node.js and npm versions'
+                echo '================================================'
+
+                bat 'node --version'
+
+                bat 'npm --version'
+            }
+        }
+
+        // ── Install Dependencies ───────────────────────────────
+        stage('Install Dependencies') {
+
+            steps {
+
+                echo '================================================'
+                echo 'Installing npm dependencies'
+                echo '================================================'
+
+                bat 'npm ci'
+            }
+        }
+
+        // ── Install Browsers ───────────────────────────────────
+        stage('Install Browsers') {
+
+            steps {
+
+                echo '================================================'
+                echo 'Installing Playwright Chromium browser'
+                echo '================================================'
+
+                bat 'npx playwright install chromium'
+            }
+        }
+
+        // ── Clean Reports ──────────────────────────────────────
+        stage('Clean Reports') {
+
+            when {
+                expression {
+                    return params.CLEAN_REPORTS == true
+                }
+            }
+
+            steps {
+
+                echo '================================================'
+                echo 'Cleaning previous reports and test-results'
+                echo '================================================'
+
+                bat 'if exist test-results rmdir /s /q test-results'
+
+                bat 'if exist reports rmdir /s /q reports'
+
+                bat 'if exist logs rmdir /s /q logs'
+
+                bat 'if exist auth rmdir /s /q auth'
+            }
+        }
+
+        // ── Run Tests ──────────────────────────────────────────
+        stage('Run Tests') {
+
+            steps {
+
+                echo '================================================'
+                echo "Suite  : ${params.SUITE}"
+                echo "Spec   : ${params.SPEC ?: '(all)'}"
+                echo "Grep   : ${params.GREP ?: '(none)'}"
+                echo '================================================'
+
+                script {
+
+                    def cmd = 'npx playwright test --project=chromium --workers=4'
+
+                    // Specific spec file
+                    if (params.SPEC?.trim()) {
+                        cmd += " ${params.SPEC.trim()}"
+                    }
+
+                    // Grep filter
+                    if (params.GREP?.trim()) {
+
+                        cmd += " --grep \"${params.GREP.trim()}\""
+
+                    } else if (params.SUITE != 'all') {
+
+                        cmd += " --grep @${params.SUITE}"
+                    }
+
+                    echo "Executing Command: ${cmd}"
+
+                    bat cmd
+                }
+            }
+        }
     }
-  }
 
-  // ── Post Actions ───────────────────────────────────────────
-  post {
+    // ── Post Actions ──────────────────────────────────────────
+    post {
 
-    always {
+        always {
 
-      echo '================================================'
-      echo 'Publishing reports and archiving artifacts'
-      echo '================================================'
+            echo '================================================'
+            echo 'Publishing reports and archiving artifacts'
+            echo '================================================'
 
-      // JUnit XML Report
-      junit(
-        testResults: 'reports/junit/results.xml',
-        allowEmptyResults: true
-      )
+            // JUnit XML Report
+            junit(
+                testResults: 'reports/junit/results.xml',
+                allowEmptyResults: true
+            )
 
-      // Custom HTML Report
-      publishHTML(target: [
-        allowMissing: true,
-        alwaysLinkToLastBuild: true,
-        keepAll: true,
-        reportDir: 'reports/custom-report',
-        reportFiles: 'summary.html',
-        reportName: 'Playwright Custom Report'
-      ])
+            // Playwright HTML Report
+            publishHTML([
+                reportName: 'Playwright HTML Report',
+                reportDir: 'reports/html-report',
+                reportFiles: 'index.html',
+                keepAll: true,
+                alwaysLinkToLastBuild: true,
+                allowMissing: true
+            ])
 
-      // Playwright HTML Report
-      publishHTML(target: [
-        allowMissing: true,
-        alwaysLinkToLastBuild: true,
-        keepAll: true,
-        reportDir: 'reports/html-report',
-        reportFiles: 'index.html',
-        reportName: 'Playwright HTML Report'
-      ])
+            // Custom HTML Report
+            publishHTML([
+                reportName: 'Playwright Custom Report',
+                reportDir: 'reports/custom-report',
+                reportFiles: 'summary.html',
+                keepAll: true,
+                alwaysLinkToLastBuild: true,
+                allowMissing: true
+            ])
 
-      // Archive artifacts
-      archiveArtifacts(
-        artifacts: 'test-results/**/*,reports/json-report/results.json',
-        allowEmptyArchive: true,
-        fingerprint: true
-      )
+            // Archive Reports & Artifacts
+            archiveArtifacts(
+                artifacts: 'reports/**,test-results/**',
+                fingerprint: true,
+                allowEmptyArchive: true
+            )
+        }
+
+        success {
+
+            echo 'BUILD PASSED - All tests completed successfully.'
+        }
+
+        failure {
+
+            echo 'BUILD FAILED - Check Playwright reports above.'
+        }
+
+        unstable {
+
+            echo 'BUILD UNSTABLE - Some tests failed after retries.'
+        }
     }
-
-    success {
-
-      echo 'BUILD PASSED - All tests completed successfully.'
-    }
-
-    failure {
-
-      echo 'BUILD FAILED - Check Playwright reports above.'
-    }
-
-    unstable {
-
-      echo 'BUILD UNSTABLE - Some tests failed after retries.'
-    }
-  }
 }
