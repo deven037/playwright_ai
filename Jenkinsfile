@@ -5,11 +5,20 @@
 // Workers   : 4 (auto-capped to test count by Playwright)
 // Jenkins   : http://localhost:8080
 // Repo      : https://github.com/deven037/playwright_ai.git
+//
+// Credentials strategy:
+//   Reads directly from .env file on the local machine.
+//   .env is gitignored and never committed — stays private.
+//   Path: C:\Users\user\Desktop\playwright_ai\.env
 // ============================================================
+
+// ── .env file location on the local machine ────────────────
+// This path is where your .env permanently lives (outside repo).
+// Jenkins copies it into the workspace before running tests.
+def ENV_FILE_PATH = 'C:\\Users\\user\\Desktop\\playwright_ai\\.env'
 
 pipeline {
 
-  // ── Agent ──────────────────────────────────────────────────
   agent any
 
   // ── Parameters ─────────────────────────────────────────────
@@ -36,23 +45,19 @@ pipeline {
     )
   }
 
-  // ── Environment ────────────────────────────────────────────
+  // ── CI-level env overrides ─────────────────────────────────
+  // Only CI flags and tooling paths here.
+  // App credentials (BASE_URL, APP_USERNAME, APP_PASSWORD)
+  // are loaded from the .env file in the Load Env stage.
   environment {
-    CI           = 'true'
-    HEADLESS     = 'true'
-    BROWSER      = 'chromium'
-    TIMEOUT      = '30000'
-    RETRIES      = '2'
-    WORKERS      = '4'
-
-    // Credentials — pulled from Jenkins Credentials Store
-    BASE_URL     = credentials('PLAYWRIGHT_BASE_URL')
-    APP_USERNAME = credentials('PLAYWRIGHT_USERNAME')
-    APP_PASSWORD = credentials('PLAYWRIGHT_PASSWORD')
-
-    // Node.js path — explicit for Jenkins Windows service context
-    NODE_HOME    = 'C:\\Program Files\\nodejs'
-    PATH         = "C:\\Program Files\\nodejs;C:\\Program Files\\Git\\cmd;${env.PATH}"
+    CI        = 'true'
+    HEADLESS  = 'true'
+    BROWSER   = 'chromium'
+    TIMEOUT   = '30000'
+    RETRIES   = '2'
+    WORKERS   = '4'
+    NODE_HOME = 'C:\\Program Files\\nodejs'
+    PATH      = "C:\\Program Files\\nodejs;C:\\Program Files\\Git\\cmd;${env.PATH}"
   }
 
   // ── Options ────────────────────────────────────────────────
@@ -77,7 +82,49 @@ pipeline {
       }
     }
 
-    // ── 2. Verify Tools ──────────────────────────────────────
+    // ── 2. Load .env ──────────────────────────────────────────
+    // Copies .env from the local machine into the workspace so
+    // dotenv (EnvManager) can read it at test runtime.
+    // Also parses it here to expose vars to subsequent bat steps.
+    stage('Load .env') {
+      steps {
+        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+        echo '  Loading credentials from local .env file'
+        echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
+        script {
+          // Verify .env exists on the machine
+          def envFile = new File(ENV_FILE_PATH)
+          if (!envFile.exists()) {
+            error ".env file not found at: ${ENV_FILE_PATH}\nPlease ensure the .env file exists on this machine."
+          }
+
+          // Copy .env into workspace so dotenv picks it up at runtime
+          bat "copy \"${ENV_FILE_PATH}\" \".env\""
+
+          // Parse .env and inject each key=value into the pipeline env
+          // so bat commands in later stages also see them if needed
+          envFile.eachLine { line ->
+            line = line.trim()
+            // Skip blank lines and comments
+            if (line && !line.startsWith('#')) {
+              def parts = line.split('=', 2)
+              if (parts.length == 2) {
+                def key   = parts[0].trim()
+                def value = parts[1].trim()
+                env."${key}" = value
+              }
+            }
+          }
+
+          echo "  BASE_URL     : ${env.BASE_URL}"
+          echo "  APP_USERNAME : ${env.APP_USERNAME}"
+          echo "  APP_PASSWORD : [hidden]"
+          echo "  .env loaded and copied to workspace"
+        }
+      }
+    }
+
+    // ── 3. Verify Tools ──────────────────────────────────────
     stage('Verify Tools') {
       steps {
         echo '  Verifying Node.js and npm versions'
@@ -86,7 +133,7 @@ pipeline {
       }
     }
 
-    // ── 3. Install Dependencies ──────────────────────────────
+    // ── 4. Install Dependencies ──────────────────────────────
     stage('Install Dependencies') {
       steps {
         echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
@@ -96,26 +143,29 @@ pipeline {
       }
     }
 
-    // ── 4. Install Playwright Browsers ───────────────────────
+    // ── 5. Install Playwright Browsers ───────────────────────
     stage('Install Browsers') {
       steps {
-        echo '  Installing Playwright Chromium browser + deps'
+        echo '  Installing Playwright Chromium browser'
         bat 'npx playwright install chromium --with-deps'
       }
     }
 
-    // ── 5. Clean Reports ─────────────────────────────────────
+    // ── 6. Clean Reports ─────────────────────────────────────
     stage('Clean Reports') {
       when {
         expression { return params.CLEAN_REPORTS == true }
       }
       steps {
         echo '  Cleaning previous reports and test-results'
-        bat 'npm run clean || exit 0'
+        bat 'if exist test-results rmdir /s /q test-results'
+        bat 'if exist reports rmdir /s /q reports'
+        bat 'if exist logs rmdir /s /q logs'
+        bat 'if exist auth rmdir /s /q auth'
       }
     }
 
-    // ── 6. Run Tests ─────────────────────────────────────────
+    // ── 7. Run Tests ─────────────────────────────────────────
     stage('Run Tests') {
       steps {
         echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
@@ -126,7 +176,7 @@ pipeline {
         script {
           def cmd = 'npx playwright test --project=chromium --workers=4'
 
-          // Specific spec file overrides everything
+          // Specific spec file takes priority over suite/grep
           if (params.SPEC?.trim()) {
             cmd += " ${params.SPEC.trim()}"
           }
@@ -150,16 +200,16 @@ pipeline {
 
     always {
       echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
-      echo '  Publishing test reports and archiving artifacts'
+      echo '  Publishing reports and archiving artifacts'
       echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'
 
-      // JUnit XML — powers Jenkins test trend graph
+      // JUnit XML — test trend graph in Jenkins
       junit(
         testResults:       'reports/junit/results.xml',
         allowEmptyResults: true
       )
 
-      // Custom HTML Summary — visible directly on Jenkins job page
+      // Custom dark HTML summary report
       publishHTML(target: [
         allowMissing:          true,
         alwaysLinkToLastBuild: true,
@@ -179,7 +229,7 @@ pipeline {
         reportName:            'Playwright HTML Report'
       ])
 
-      // Archive screenshots, videos, traces, JSON
+      // Archive screenshots, videos, traces, JSON report
       archiveArtifacts(
         artifacts:         'test-results/**/*,reports/json-report/results.json',
         allowEmptyArchive: true,
@@ -192,7 +242,7 @@ pipeline {
     }
 
     failure {
-      echo '❌  BUILD FAILED — One or more tests failed. Check reports above.'
+      echo '❌  BUILD FAILED — Check Playwright Custom Report above.'
     }
 
     unstable {
