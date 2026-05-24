@@ -9,7 +9,7 @@ import { test, expect } from '../../src/fixtures/PageFixtures';
  */
 test.describe('@feature - Login Feature', () => {
 
-  test.only('@feature TC_LOGIN_001 — Valid user should login successfully with correct credentials',
+  test('@feature TC_LOGIN_001 — Valid user should login successfully with correct credentials',
     async ({ loginPage }) => {
 
       // ── Arrange ────────────────────────────────────────────────────────────
