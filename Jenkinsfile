@@ -2,18 +2,13 @@
 // Jenkinsfile — Playwright AI Framework
 // OS        : Windows (uses bat blocks)
 // Browser   : Chromium only
-// Workers   : 4 (auto-capped to test count by Playwright)
+// Workers   : 4
 // Jenkins   : http://localhost:8080
 // Repo      : https://github.com/deven037/playwright_ai.git
 //
-// Credentials strategy:
-//   Reads directly from .env file on the local machine.
-//   .env is gitignored and never committed — stays private.
-//   Path: C:/Users/user/Desktop/playwright_ai/.env
+// NOTE:
+// Keep .env inside project root and add it to .gitignore
 // ============================================================
-
-// ── .env file location on the local machine ────────────────
-def ENV_FILE_PATH = "C:/Users/user/Desktop/playwright_ai/.env"
 
 pipeline {
 
@@ -101,19 +96,17 @@ pipeline {
       steps {
 
         echo '================================================'
-        echo 'Loading credentials from local .env file'
+        echo 'Loading credentials from .env file'
         echo '================================================'
 
         bat """
-          if not exist "${ENV_FILE_PATH}" (
-            echo .env file not found
+          if not exist ".env" (
+            echo .env file not found in project root
             exit /b 1
           )
 
-          copy "${ENV_FILE_PATH}" ".env"
+          echo .env file loaded successfully
         """
-
-        echo '.env copied successfully'
       }
     }
 
