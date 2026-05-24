@@ -24,10 +24,10 @@ interface ISuiteEntry {
 }
 
 /**
- * CustomReporter — CI/Local aware Playwright reporter.
+ * CustomReporter - CI/Local aware Playwright reporter.
  *
  * Local mode : Full ANSI color output, dark HTML summary report.
- * CI mode    : Plain text console (no ANSI — Jenkins renders raw),
+ * CI mode    : Plain text console (no ANSI - Jenkins renders raw),
  *              HTML report enriched with Jenkins build metadata
  *              (BUILD_NUMBER, BUILD_URL, GIT_BRANCH, JOB_NAME).
  */
@@ -42,7 +42,7 @@ class CustomReporter implements Reporter {
   private readonly reportDir = path.resolve('reports', 'custom-report');
   private readonly isCI      = !!process.env.CI;
 
-  // ─── ANSI codes (only applied when NOT on CI) ─────────────────────────────
+  // --- ANSI codes (only applied when NOT on CI) -----------------------------
   private c(code: string): string { return this.isCI ? '' : code; }
   private get RESET()  { return this.c('\x1b[0m');  }
   private get GREEN()  { return this.c('\x1b[32m'); }
@@ -52,7 +52,7 @@ class CustomReporter implements Reporter {
   private get BOLD()   { return this.c('\x1b[1m');  }
   private get DIM()    { return this.c('\x1b[2m');  }
 
-  // ─── Jenkins environment metadata ────────────────────────────────────────
+  // --- Jenkins environment metadata ----------------------------------------
   private get jenkinsMeta() {
     return {
       buildNumber: process.env.BUILD_NUMBER ?? 'N/A',
@@ -64,7 +64,7 @@ class CustomReporter implements Reporter {
     };
   }
 
-  // ─── Lifecycle ────────────────────────────────────────────────────────────
+  // --- Lifecycle ------------------------------------------------------------
 
   onBegin(config: FullConfig, suite: Suite): void {
     if (!fs.existsSync(this.reportDir)) {
@@ -72,10 +72,10 @@ class CustomReporter implements Reporter {
     }
     this.startTime = Date.now();
 
-    const sep = '━'.repeat(50);
+    const sep = '='.repeat(50);
     console.log('');
     console.log(`${this.BOLD}${this.CYAN}${sep}${this.RESET}`);
-    console.log(`${this.BOLD}${this.CYAN}  🎭  PLAYWRIGHT AI FRAMEWORK — EXECUTION STARTED${this.RESET}`);
+    console.log(`${this.BOLD}${this.CYAN}    PLAYWRIGHT AI FRAMEWORK - EXECUTION STARTED${this.RESET}`);
     console.log(`${this.BOLD}${this.CYAN}${sep}${this.RESET}`);
     console.log(`${this.DIM}  Workers  : ${config.workers}`);
     console.log(`  Retries  : ${config.projects[0]?.retries ?? 0}`);
@@ -95,20 +95,20 @@ class CustomReporter implements Reporter {
     if (!this.currentSuite || this.currentSuite.name !== suiteName) {
       this.currentSuite = { name: suiteName, tests: [] };
       this.suites.push(this.currentSuite);
-      console.log(`${this.BOLD}  📂  ${suiteName}${this.RESET}`);
+      console.log(`${this.BOLD}    ${suiteName}${this.RESET}`);
     }
-    // On CI use plain newline (no \r overwrite — Jenkins buffers lines)
+    // On CI use plain newline (no \r overwrite - Jenkins buffers lines)
     if (this.isCI) {
-      console.log(`     ⏳  ${test.title}`);
+      console.log(`     [RUN]  ${test.title}`);
     } else {
-      process.stdout.write(`${this.DIM}     ⏳  ${test.title}${this.RESET}`);
+      process.stdout.write(`${this.DIM}     [RUN]  ${test.title}${this.RESET}`);
     }
   }
 
   onTestEnd(test: TestCase, result: TestResult): void {
-    const icon = result.status === 'passed'  ? '✅' :
-                 result.status === 'failed'  ? '❌' :
-                 result.status === 'skipped' ? '⏭️ ' : '⏱️ ';
+    const icon = result.status === 'passed'  ? '[PASS]' :
+                 result.status === 'failed'  ? '[FAIL]' :
+                 result.status === 'skipped' ? '[SKIP] ' : '[TIME] ';
 
     const colorStart = result.status === 'passed'  ? this.GREEN  :
                        result.status === 'failed'  ? this.RED    :
@@ -138,28 +138,28 @@ class CustomReporter implements Reporter {
     };
     if (this.currentSuite) this.currentSuite.tests.push(entry);
 
-    // Error snippet — always plain (readable in both Jenkins and terminal)
+    // Error snippet - always plain (readable in both Jenkins and terminal)
     if (result.status === 'failed' && result.error?.message) {
       const snippet = result.error.message.split('\n').slice(0, 4).join('\n');
-      console.log(`${this.RED}       💬  ${snippet}${this.RESET}`);
+      console.log(`${this.RED}         ${snippet}${this.RESET}`);
     }
   }
 
   onEnd(result: FullResult): void {
     const totalDuration = ((Date.now() - this.startTime) / 1000).toFixed(2);
     const total         = this.totalPassed + this.totalFailed + this.totalSkipped;
-    const sep           = '━'.repeat(50);
+    const sep           = '='.repeat(50);
 
     console.log('');
     console.log(`${this.BOLD}${this.CYAN}${sep}${this.RESET}`);
-    console.log(`${this.BOLD}${this.CYAN}  📊  EXECUTION SUMMARY${this.RESET}`);
+    console.log(`${this.BOLD}${this.CYAN}    EXECUTION SUMMARY${this.RESET}`);
     console.log(`${this.BOLD}${this.CYAN}${sep}${this.RESET}`);
     console.log(`  Total    : ${total}`);
     console.log(`  ${this.GREEN}Passed   : ${this.totalPassed}${this.RESET}`);
     console.log(`  ${this.RED}Failed   : ${this.totalFailed}${this.RESET}`);
     console.log(`  ${this.YELLOW}Skipped  : ${this.totalSkipped}${this.RESET}`);
     console.log(`  Duration : ${totalDuration}s`);
-    console.log(`  Status   : ${result.status === 'passed' ? `${this.GREEN}✅ PASSED` : `${this.RED}❌ FAILED`}${this.RESET}`);
+    console.log(`  Status   : ${result.status === 'passed' ? `${this.GREEN}[PASS] PASSED` : `${this.RED}[FAIL] FAILED`}${this.RESET}`);
     console.log(`${this.BOLD}${this.CYAN}${sep}${this.RESET}`);
     console.log('');
 
@@ -167,7 +167,7 @@ class CustomReporter implements Reporter {
     this.writeHtmlReport(totalDuration, result.status, total);
   }
 
-  // ─── JSON Report ─────────────────────────────────────────────────────────
+  // --- JSON Report ---------------------------------------------------------
 
   private writeJsonReport(duration: string, status: string, total: number): void {
     const report = {
@@ -187,31 +187,31 @@ class CustomReporter implements Reporter {
     };
     const filePath = path.join(this.reportDir, 'report.json');
     fs.writeFileSync(filePath, JSON.stringify(report, null, 2), 'utf-8');
-    console.log(`  📄  JSON  : ${filePath}`);
+    console.log(`    JSON  : ${filePath}`);
   }
 
-  // ─── HTML Report ─────────────────────────────────────────────────────────
+  // --- HTML Report ---------------------------------------------------------
 
   private writeHtmlReport(duration: string, status: string, total: number): void {
     const passRate    = total > 0 ? ((this.totalPassed / total) * 100).toFixed(1) : '0.0';
     const statusColor = status === 'passed' ? '#22c55e' : '#ef4444';
     const meta        = this.jenkinsMeta;
 
-    // Jenkins metadata banner — only rendered on CI
+    // Jenkins metadata banner - only rendered on CI
     const jenkinsBanner = this.isCI ? `
     <div class="jenkins-banner">
-      <span>🏗️ <strong>${meta.jobName}</strong></span>
+      <span><strong>${meta.jobName}</strong></span>
       <span>Build <strong>#${meta.buildNumber}</strong></span>
       <span>Branch <strong>${meta.gitBranch}</strong></span>
       <span>Commit <strong>${meta.gitCommit.substring(0, 8)}</strong></span>
       <span>Node <strong>${meta.nodeName}</strong></span>
-      ${meta.buildUrl ? `<a href="${meta.buildUrl}" target="_blank">🔗 Open in Jenkins</a>` : ''}
+      ${meta.buildUrl ? `<a href="${meta.buildUrl}" target="_blank">Open in Jenkins</a>` : ''}
     </div>` : '';
 
     const suiteRows = this.suites.map((suite) => {
       const testRows = suite.tests.map((t) => {
         const color = t.status === 'passed' ? '#22c55e' : t.status === 'skipped' ? '#f59e0b' : '#ef4444';
-        const icon  = t.status === 'passed' ? '✅' : t.status === 'skipped' ? '⏭️' : '❌';
+        const icon  = t.status === 'passed' ? '[PASS]' : t.status === 'skipped' ? '[SKIP]' : '[FAIL]';
         const errRow = t.error
           ? `<tr><td colspan="4"><div class="error">${t.error.replace(/</g, '&lt;').split('\n').slice(0, 3).join('<br>')}</div></td></tr>`
           : '';
@@ -223,7 +223,7 @@ class CustomReporter implements Reporter {
           <td>${t.retries}</td>
         </tr>${errRow}`;
       }).join('');
-      return `<tr class="suite-row"><td colspan="4">📂 ${suite.name}</td></tr>${testRows}`;
+      return `<tr class="suite-row"><td colspan="4">${suite.name}</td></tr>${testRows}`;
     }).join('');
 
     const html = `<!DOCTYPE html>
@@ -231,7 +231,7 @@ class CustomReporter implements Reporter {
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Playwright AI — ${this.isCI ? `Build #${meta.buildNumber}` : 'Local Run'}</title>
+  <title>Playwright AI - ${this.isCI ? `Build #${meta.buildNumber}` : 'Local Run'}</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;padding:2rem}
@@ -262,14 +262,14 @@ class CustomReporter implements Reporter {
   </style>
 </head>
 <body>
-  <h1>🎭 Playwright AI Framework</h1>
+  <h1>Playwright AI Framework</h1>
   <div class="sub">
     Generated: ${new Date().toLocaleString()}
     &nbsp;|&nbsp; Duration: ${duration}s
-    &nbsp;|&nbsp; Mode: ${this.isCI ? '🏗️ CI (Jenkins)' : '💻 Local'}
+    &nbsp;|&nbsp; Mode: ${this.isCI ? 'CI (Jenkins)' : 'Local'}
   </div>
   ${jenkinsBanner}
-  <div class="status-badge">${status === 'passed' ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}</div>
+  <div class="status-badge">${status === 'passed' ? '[PASS] ALL TESTS PASSED' : '[FAIL] SOME TESTS FAILED'}</div>
   <div class="cards">
     <div class="card total">  <div class="num">${total}</div>               <div class="lbl">Total</div></div>
     <div class="card passed"> <div class="num">${this.totalPassed}</div>    <div class="lbl">Passed</div></div>
@@ -286,7 +286,7 @@ class CustomReporter implements Reporter {
 
     const filePath = path.join(this.reportDir, 'summary.html');
     fs.writeFileSync(filePath, html, 'utf-8');
-    console.log(`  🌐  HTML  : ${filePath}\n`);
+    console.log(`    HTML  : ${filePath}\n`);
   }
 }
 

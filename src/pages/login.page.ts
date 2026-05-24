@@ -2,7 +2,7 @@ import { Page, Locator, expect } from '@playwright/test';
 import { BasePage } from '../core/BasePage';
 
 /**
- * LoginPage — Page Object for the Login module.
+ * LoginPage - Page Object for the Login module.
  *
  * Extends BasePage (inherits navigation, helpers, logger, env).
  *
@@ -15,14 +15,14 @@ import { BasePage } from '../core/BasePage';
  */
 export class LoginPage extends BasePage {
 
-  // ─── Page URL ──────────────────────────────────────────────────────────────
+  // --- Page URL --------------------------------------------------------------
   private static readonly PAGE_PATH = 'index.php?rt=account/login';
 
   constructor(page: Page) {
     super(page);
   }
 
-  // ─── Private Locators ──────────────────────────────────────────────────────
+  // --- Private Locators ------------------------------------------------------
 
   private get usernameInput(): Locator {
     return this.page.locator('#loginFrm_loginname');
@@ -57,7 +57,7 @@ export class LoginPage extends BasePage {
     return this.page.locator('#customer_menu_top .menu_text');
   }
 
-  /** Logoff link — only visible after successful login */
+  /** Logoff link - only visible after successful login */
   private get logoffLink(): Locator {
     return this.page.locator('#customer_menu_top li a[href*="logout"]');
   }
@@ -70,15 +70,15 @@ export class LoginPage extends BasePage {
     return this.page.locator('#loginFrm');
   }
 
-  // ─── Abstract Method Implementation ───────────────────────────────────────
+  // --- Abstract Method Implementation ---------------------------------------
 
   async waitForPageLoad(): Promise<void> {
     this.logger.step('Waiting for Login page to load');
     await this.loginSection.waitFor({ state: 'visible', timeout: 15000 });
-    this.logger.info('✅  Login page loaded');
+    this.logger.info('[PASS]  Login page loaded');
   }
 
-  // ─── Public Navigation ─────────────────────────────────────────────────────
+  // --- Public Navigation -----------------------------------------------------
 
   async goto(): Promise<void> {
     this.logger.step('Navigating to Login page');
@@ -86,7 +86,7 @@ export class LoginPage extends BasePage {
     await this.waitForPageLoad();
   }
 
-  // ─── Public Actions ────────────────────────────────────────────────────────
+  // --- Public Actions --------------------------------------------------------
 
   async enterUsername(username: string): Promise<void> {
     this.logger.step(`Enter username: ${username}`);
@@ -126,7 +126,7 @@ export class LoginPage extends BasePage {
     await this.login(this.env.username, this.env.password);
   }
 
-  // ─── Public Assertions ─────────────────────────────────────────────────────
+  // --- Public Assertions -----------------------------------------------------
 
   /**
    * Asserts successful login:
@@ -137,7 +137,7 @@ export class LoginPage extends BasePage {
     this.logger.step('Assert login was successful');
     await expect(this.page).toHaveURL(/account\/account/, { timeout: 15000 });
     await expect(this.welcomeMessage).toBeVisible({ timeout: 10000 });
-    this.logger.info('✅  Login success assertion passed');
+    this.logger.info('[PASS]  Login success assertion passed');
   }
 
   async assertLoginError(expectedMessage?: string): Promise<void> {
@@ -146,22 +146,22 @@ export class LoginPage extends BasePage {
     if (expectedMessage) {
       await expect(this.loginErrorAlert).toContainText(expectedMessage);
     }
-    this.logger.info('✅  Login error assertion passed');
+    this.logger.info('[PASS]  Login error assertion passed');
   }
 
   async assertOnLoginPage(): Promise<void> {
     this.logger.step('Assert currently on Login page');
     await expect(this.loginSection).toBeVisible({ timeout: 10000 });
-    this.logger.info('✅  Login page assertion passed');
+    this.logger.info('[PASS]  Login page assertion passed');
   }
 
   async assertLogoffVisible(): Promise<void> {
     this.logger.step('Assert Logoff link is visible');
     await expect(this.logoffLink).toBeVisible({ timeout: 10000 });
-    this.logger.info('✅  Logoff link assertion passed');
+    this.logger.info('[PASS]  Logoff link assertion passed');
   }
 
-  // ─── Public Getters ────────────────────────────────────────────────────────
+  // --- Public Getters --------------------------------------------------------
 
   async getErrorMessage(): Promise<string> {
     return this.helpers.getText(this.loginErrorAlert);

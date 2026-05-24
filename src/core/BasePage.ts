@@ -4,7 +4,7 @@ import { Helpers } from '../utils/Helpers';
 import { EnvManager } from '../utils/EnvManager';
 
 /**
- * BasePage — Abstract base class for all Page Object classes.
+ * BasePage - Abstract base class for all Page Object classes.
  *
  * Every page class MUST extend BasePage.
  * Provides shared infrastructure: page, helpers, logger, env, and common methods.
@@ -27,12 +27,12 @@ export abstract class BasePage {
   }
 
   /**
-   * Abstract method — every page must implement its own load verification.
+   * Abstract method - every page must implement its own load verification.
    * Called automatically to confirm the page has loaded correctly.
    */
   abstract waitForPageLoad(): Promise<void>;
 
-  // ─── Common Navigation ───────────────────────────────────────────────────
+  // --- Common Navigation ---------------------------------------------------
 
   /** Navigate to the application base URL */
   async navigateToBase(): Promise<void> {
@@ -47,7 +47,7 @@ export abstract class BasePage {
     await this.page.goto(url, { waitUntil: 'networkidle' });
   }
 
-  // ─── Common Utilities ────────────────────────────────────────────────────
+  // --- Common Utilities ----------------------------------------------------
 
   async getPageTitle(): Promise<string> {
     return this.page.title();

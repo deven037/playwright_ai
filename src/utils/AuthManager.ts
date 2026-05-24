@@ -8,7 +8,7 @@ import { ICredentials } from '../types';
 const AUTH_FILE = path.resolve('auth', 'storageState.json');
 
 /**
- * AuthManager — Handles authentication and session management.
+ * AuthManager - Handles authentication and session management.
  * Supports storageState reuse to avoid repeated logins.
  */
 export class AuthManager {
@@ -47,14 +47,14 @@ export class AuthManager {
   /** Saves browser context storage state to file */
   public async saveSession(context: BrowserContext): Promise<void> {
     await context.storageState({ path: AUTH_FILE });
-    this.logger.info('💾  Auth session saved to storageState.json');
+    this.logger.info('  Auth session saved to storageState.json');
   }
 
   /** Clears saved session file */
   public clearSession(): void {
     if (fs.existsSync(AUTH_FILE)) {
       fs.unlinkSync(AUTH_FILE);
-      this.logger.info('🗑️   Auth session cleared.');
+      this.logger.info('  Auth session cleared.');
     }
   }
 
@@ -69,6 +69,6 @@ export class AuthManager {
     await page.locator('#loginFrm_password').fill(creds.password);
     await page.locator("//button[@title='Login']").click();
     await page.waitForLoadState('networkidle');
-    this.logger.info('✅  Login successful');
+    this.logger.info('[PASS]  Login successful');
   }
 }
