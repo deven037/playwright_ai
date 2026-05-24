@@ -1,0 +1,34 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Playwright outputs
+test-results/
+playwright-report/
+reports/
+*.zip
+
+# Auth state
+auth/
+storageState.json
+
+# Logs
+logs/
+*.log
+
+# TypeScript
+dist/
+*.js.map
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

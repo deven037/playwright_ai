@@ -1,0 +1,30 @@
+{
+  "name": "playwright-ai-framework",
+  "version": "1.0.0",
+  "description": "Production-grade Playwright Automation Framework with TypeScript",
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:regression": "playwright test --grep @regression",
+    "test:sanity": "playwright test --grep @sanity",
+    "test:headed": "playwright test --headed",
+    "test:debug": "DEBUG_MODE=true playwright test --workers=1",
+    "test:ci": "cross-env CI=true playwright test --project=chromium",
+    "test:ui": "playwright test --ui",
+    "report": "playwright show-report reports/html-report",
+    "report:custom": "start reports/custom-report/summary.html",
+    "codegen": "playwright codegen",
+    "clean": "rimraf test-results reports logs auth"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "winston": "^3.13.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "@types/node": "^20.14.0",
+    "cross-env": "^7.0.3",
+    "rimraf": "^5.0.7",
+    "typescript": "^5.4.5"
+  }
+}
