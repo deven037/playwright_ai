@@ -26,7 +26,7 @@ reporter: [
   ['list'],
 
   ['html', {
-    outputFolder: 'reports/html-report',
+    outputFolder: 'playwright-report',
     open: 'never'
   }],
 
