@@ -17,7 +17,7 @@ pipeline {
     parameters {
         choice(
             name: 'SUITE',
-            choices: ['regression', 'smoke', 'sanity', 'all'],
+            choices: ['regression', 'smoke', 'sanity', 'feature', 'e2e', 'all'],
             description: 'Test suite to execute'
         )
 
