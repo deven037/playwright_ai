@@ -6,15 +6,15 @@ const env = EnvManager.getInstance();
 export default defineConfig({
   // ─── Test Directory ───────────────────────────────────────────────
   testDir: './tests',
-  testMatch: '**/*.spec.ts',
+  testMatch: '**/*.test.ts',
 
   // ─── Global Settings ──────────────────────────────────────────────
   timeout: env.timeout,
   expect: { timeout: 10000 },
-  fullyParallel: false,
+  fullyParallel: true,
   forbidOnly: !!process.env.CI,
   // retries: process.env.CI ? 2 : env.retries,
-  workers: process.env.CI ? 1 : env.workers,
+  workers: process.env.CI ? 4 : env.workers,
 
   // ─── Global Setup / Teardown ──────────────────────────────────────
   globalSetup: './global-setup.ts',

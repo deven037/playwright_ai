@@ -25,7 +25,7 @@ export interface ICredentials {
 export interface ITestInfo {
   title: string;
   module: string;
-  tags: string[];
+  tags: TestTag[];
   description?: string;
 }
 
@@ -47,3 +47,4 @@ export interface ISuiteResult {
 
 // ─── Wait Strategy ────────────────────────────────────────────────────────────
 export type WaitStrategy = 'visible' | 'hidden' | 'attached' | 'detached';
+export type TestTag = 'smoke' | 'regression' | 'feature' | 'sanity' | 'e2e';
