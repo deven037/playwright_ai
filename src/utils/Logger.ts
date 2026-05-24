@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 /**
- * Logger — Singleton wrapper around Winston for structured logging.
+ * Logger - Singleton wrapper around Winston for structured logging.
  * Outputs to both console and rotating log files.
  */
 export class Logger {
@@ -56,6 +56,6 @@ export class Logger {
   public debug(message: string): void { this.logger.debug(message); }
 
   public step(stepName: string): void {
-    this.logger.info(`  ▶  STEP: ${stepName}`);
+    this.logger.info(`  >  STEP: ${stepName}`);
   }
 }
