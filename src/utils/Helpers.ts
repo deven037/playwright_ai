@@ -3,7 +3,7 @@ import { Logger } from './Logger';
 import { WaitStrategy } from '../types';
 
 /**
- * Helpers — Collection of reusable utility methods for test automation.
+ * Helpers - Collection of reusable utility methods for test automation.
  * Provides wrappers for common Playwright actions with logging.
  */
 export class Helpers {
@@ -11,14 +11,14 @@ export class Helpers {
 
   constructor(private readonly page: Page) {}
 
-  // ─── Navigation ───────────────────────────────────────────────────────────
+  // --- Navigation -----------------------------------------------------------
 
   async navigateTo(url: string): Promise<void> {
     this.logger.step(`Navigate to: ${url}`);
     await this.page.goto(url, { waitUntil: 'networkidle' });
   }
 
-  // ─── Actions ─────────────────────────────────────────────────────────────
+  // --- Actions -------------------------------------------------------------
 
   async click(locator: Locator, description = ''): Promise<void> {
     this.logger.step(`Click: ${description || locator.toString()}`);
@@ -43,7 +43,7 @@ export class Helpers {
     await locator.setInputFiles(filePath);
   }
 
-  // ─── Waits ────────────────────────────────────────────────────────────────
+  // --- Waits ----------------------------------------------------------------
 
   async waitForElement(locator: Locator, state: WaitStrategy = 'visible', timeout = 15000): Promise<void> {
     await locator.waitFor({ state, timeout });
@@ -54,7 +54,7 @@ export class Helpers {
     await this.page.waitForURL(urlPattern, { timeout: 30000 });
   }
 
-  // ─── Assertions ───────────────────────────────────────────────────────────
+  // --- Assertions -----------------------------------------------------------
 
   async assertVisible(locator: Locator, message?: string): Promise<void> {
     this.logger.step(`Assert visible: ${message ?? ''}`);
@@ -75,11 +75,11 @@ export class Helpers {
     await expect(this.page).toHaveTitle(expected);
   }
 
-  // ─── Utilities ────────────────────────────────────────────────────────────
+  // --- Utilities ------------------------------------------------------------
 
   async takeScreenshot(name: string): Promise<void> {
     await this.page.screenshot({ path: `test-results/screenshots/${name}.png`, fullPage: true });
-    this.logger.info(`📸  Screenshot saved: ${name}.png`);
+    this.logger.info(`  Screenshot saved: ${name}.png`);
   }
 
   async scrollToElement(locator: Locator): Promise<void> {

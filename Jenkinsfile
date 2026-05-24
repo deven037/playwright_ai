@@ -1,5 +1,5 @@
 // ============================================================
-// Jenkinsfile — Playwright AI Framework
+// Jenkinsfile - Playwright AI Framework
 // OS        : Windows (uses bat blocks)
 // Browser   : Chromium only
 // Workers   : 4
@@ -13,7 +13,7 @@
 pipeline {
     agent any
 
-    // ── Parameters ─────────────────────────────────────────────
+    // -- Parameters ---------------------------------------------
     parameters {
         choice(
             name: 'SUITE',
@@ -40,7 +40,7 @@ pipeline {
         )
     }
 
-    // ── Environment ────────────────────────────────────────────
+    // -- Environment --------------------------------------------
     environment {
         CI        = 'true'
         HEADLESS  = 'true'
@@ -54,7 +54,7 @@ pipeline {
         PATH = "C:\\Program Files\\nodejs;C:\\Program Files\\Git\\cmd;${env.PATH}"
     }
 
-    // ── Options ────────────────────────────────────────────────
+    // -- Options ------------------------------------------------
     options {
         buildDiscarder(logRotator(
             numToKeepStr: '10',
@@ -68,9 +68,9 @@ pipeline {
         timestamps()
     }
 
-    // ── Stages ─────────────────────────────────────────────────
+    // -- Stages -------------------------------------------------
     stages {
-        // ── Checkout ───────────────────────────────────────────
+        // -- Checkout -------------------------------------------
         stage('Checkout') {
       steps {
         echo '================================================'
@@ -83,7 +83,7 @@ pipeline {
       }
         }
 
-        // ── Load .env ──────────────────────────────────────────
+        // -- Load .env ------------------------------------------
         stage('Load .env') {
       steps {
         echo '================================================'
@@ -103,7 +103,7 @@ pipeline {
       }
         }
 
-        // ── Verify Tools ───────────────────────────────────────
+        // -- Verify Tools ---------------------------------------
         stage('Verify Tools') {
       steps {
         echo '================================================'
@@ -116,7 +116,7 @@ pipeline {
       }
         }
 
-        // ── Install Dependencies ───────────────────────────────
+        // -- Install Dependencies -------------------------------
         stage('Install Dependencies') {
       steps {
         echo '================================================'
@@ -127,7 +127,7 @@ pipeline {
       }
         }
 
-        // ── Install Browsers ───────────────────────────────────
+        // -- Install Browsers -----------------------------------
         stage('Install Browsers') {
       steps {
         echo '================================================'
@@ -138,7 +138,7 @@ pipeline {
       }
         }
 
-        // ── Clean Reports ──────────────────────────────────────
+        // -- Clean Reports --------------------------------------
         stage('Clean Reports') {
       when {
         expression {
@@ -161,7 +161,7 @@ pipeline {
       }
         }
 
-        // ── Run Tests ──────────────────────────────────────────
+        // -- Run Tests ------------------------------------------
         stage('Run Tests') {
       steps {
         echo '================================================'
@@ -193,7 +193,7 @@ pipeline {
         }
     }
 
-    // ── Post Actions ──────────────────────────────────────────
+    // -- Post Actions ------------------------------------------
     post {
         always {
       echo '================================================'

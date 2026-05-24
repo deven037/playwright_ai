@@ -1,28 +1,28 @@
 import { test, expect } from '../../src/fixtures/PageFixtures';
 
 /**
- * Login Module — Test Suite
+ * Login Module - Test Suite
  *
  * Tags    : @smoke @regression @login
  * Fixture : loginPage (unauthenticated context, injected via PageFixtures)
- * Pattern : Fixture-based page injection — no manual instantiation in tests
+ * Pattern : Fixture-based page injection - no manual instantiation in tests
  */
 test.describe('@feature - Login Feature', () => {
 
-  test('@feature TC_LOGIN_001 — Valid user should login successfully with correct credentials',
+  test('@feature TC_LOGIN_001 - Valid user should login successfully with correct credentials',
     async ({ loginPage }) => {
 
-      // ── Arrange ────────────────────────────────────────────────────────────
+      // -- Arrange ------------------------------------------------------------
       await loginPage.goto();
 
-      // ── Act ────────────────────────────────────────────────────────────────
+      // -- Act ----------------------------------------------------------------
       await loginPage.loginWithDefaultCredentials();
 
-      // ── Assert ─────────────────────────────────────────────────────────────
+      // -- Assert -------------------------------------------------------------
       await loginPage.assertLoginSuccess();
     });
 
-  test('@feature TC_LOGIN_002 — User should see error message with invalid credentials',
+  test('@feature TC_LOGIN_002 - User should see error message with invalid credentials',
     async ({loginPage}) => {
 
       await loginPage.goto();

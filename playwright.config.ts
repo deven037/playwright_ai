@@ -4,11 +4,11 @@ import { EnvManager } from './src/utils/EnvManager';
 const env = EnvManager.getInstance();
 
 export default defineConfig({
-  // ─── Test Directory ───────────────────────────────────────────────
+  // --- Test Directory -----------------------------------------------
   testDir: './tests',
   testMatch: '**/*.test.ts',
 
-  // ─── Global Settings ──────────────────────────────────────────────
+  // --- Global Settings ----------------------------------------------
   timeout: env.timeout,
   expect: { timeout: 10000 },
   fullyParallel: true,
@@ -16,35 +16,35 @@ export default defineConfig({
   // retries: process.env.CI ? 2 : env.retries,
   workers: process.env.CI ? 4 : env.workers,
 
-  // ─── Global Setup / Teardown ──────────────────────────────────────
+  // --- Global Setup / Teardown --------------------------------------
   globalSetup: './global-setup.ts',
   globalTeardown: './global-teardown.ts',
 
- // ─── Reporters ────────────────────────────────────────────────────
-reporter: [
+  // --- Reporters ----------------------------------------------------
+  reporter: [
 
-  ['list'],
+    ['list'],
 
-  ['html', {
-    outputFolder: 'playwright-report',
-    open: 'never'
-  }],
+    ['html', {
+      outputFolder: 'playwright-report',
+      open: 'never'
+    }],
 
-  ['json', {
-    outputFile: 'reports/json-report/results.json'
-  }],
+    ['json', {
+      outputFile: 'reports/json-report/results.json'
+    }],
 
-  ['junit', {
-    outputFile: 'reports/junit/results.xml'
-  }],
+    ['junit', {
+      outputFile: 'reports/junit/results.xml'
+    }],
 
-  ['./src/reporters/CustomReporter.ts'],
-],
+    ['./src/reporters/CustomReporter.ts'],
+  ],
 
-// ─── Output ───────────────────────────────────────────────────────
-outputDir: 'test-results',
+  // --- Output -------------------------------------------------------
+  outputDir: 'test-results',
 
-  // ─── Shared Use Options ───────────────────────────────────────────
+  // --- Shared Use Options -------------------------------------------
   use: {
     baseURL: env.baseUrl,
     headless: env.headless,
@@ -58,7 +58,7 @@ outputDir: 'test-results',
     ignoreHTTPSErrors: true,
   },
 
-  // ─── Projects ─────────────────────────────────────────────────────
+  // --- Projects -----------------------------------------------------
   projects: [
     {
       name: 'chromium',

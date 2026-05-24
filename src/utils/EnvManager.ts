@@ -7,7 +7,7 @@ import { IEnvConfig } from '../types';
 dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
 
 /**
- * EnvManager — Singleton class for centralized environment configuration.
+ * EnvManager - Singleton class for centralized environment configuration.
  * Reads from .env file and exposes typed accessors.
  * Never hardcodes credentials.
  *
@@ -17,7 +17,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
 export class EnvManager implements IEnvConfig {
   private static instance: EnvManager;
 
-  // ─── Private backing fields ──────────────────────────────────────────────
+  // --- Private backing fields ----------------------------------------------
   private readonly _baseUrl: string;
   private readonly _username: string;
   private readonly _password: string;
@@ -48,7 +48,7 @@ export class EnvManager implements IEnvConfig {
     return EnvManager.instance;
   }
 
-  // ─── Public Accessors ────────────────────────────────────────────────────
+  // --- Public Accessors ----------------------------------------------------
   get baseUrl():  string  { return this._baseUrl;  }
   get username(): string  { return this._username; }
   get password(): string  { return this._password; }

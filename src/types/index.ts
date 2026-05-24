@@ -2,7 +2,7 @@
  * Shared TypeScript interfaces and types for the automation framework.
  */
 
-// ─── Environment Configuration ────────────────────────────────────────────────
+// --- Environment Configuration ------------------------------------------------
 export interface IEnvConfig {
   baseUrl: string;
   username: string;
@@ -15,13 +15,13 @@ export interface IEnvConfig {
   workers: number;
 }
 
-// ─── User Credentials ─────────────────────────────────────────────────────────
+// --- User Credentials ---------------------------------------------------------
 export interface ICredentials {
   username: string;
   password: string;
 }
 
-// ─── Test Metadata ────────────────────────────────────────────────────────────
+// --- Test Metadata ------------------------------------------------------------
 export interface ITestInfo {
   title: string;
   module: string;
@@ -29,7 +29,7 @@ export interface ITestInfo {
   description?: string;
 }
 
-// ─── Custom Reporter Types ────────────────────────────────────────────────────
+// --- Custom Reporter Types ----------------------------------------------------
 export interface ITestResult {
   title: string;
   status: 'passed' | 'failed' | 'skipped' | 'timedOut';
@@ -45,6 +45,6 @@ export interface ISuiteResult {
   endTime?: Date;
 }
 
-// ─── Wait Strategy ────────────────────────────────────────────────────────────
+// --- Wait Strategy ------------------------------------------------------------
 export type WaitStrategy = 'visible' | 'hidden' | 'attached' | 'detached';
 export type TestTag = 'smoke' | 'regression' | 'feature' | 'sanity' | 'e2e';

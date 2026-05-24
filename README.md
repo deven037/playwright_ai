@@ -1,30 +1,30 @@
-# 🎭 Playwright AI Framework
+# Playwright AI Framework
 
 Production-grade end-to-end automation framework built with **Playwright + TypeScript**.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 playwright_ai/
-├── src/
-│   ├── core/           # BasePage (abstract OOP base)
-│   ├── fixtures/       # BaseFixtures + PageFixtures (page injection)
-│   ├── pages/          # Page Object classes
-│   ├── reporters/      # Custom CI/Local aware reporter
-│   ├── types/          # Shared TypeScript interfaces
-│   └── utils/          # EnvManager, AuthManager, Logger, Helpers
-├── tests/              # Spec files
-├── global-setup.ts
-├── global-teardown.ts
-├── playwright.config.ts
-└── Jenkinsfile
++-- src/
+|   +-- core/           # BasePage (abstract OOP base)
+|   +-- fixtures/       # BaseFixtures + PageFixtures (page injection)
+|   +-- pages/          # Page Object classes
+|   +-- reporters/      # Custom CI/Local aware reporter
+|   +-- types/          # Shared TypeScript interfaces
+|   +-- utils/          # EnvManager, AuthManager, Logger, Helpers
++-- tests/              # Spec files
++-- global-setup.ts
++-- global-teardown.ts
++-- playwright.config.ts
++-- Jenkinsfile
 ```
 
 ---
 
-## ⚙️ Setup
+## Setup
 
 ```bash
 # 1. Clone the repo
@@ -44,14 +44,14 @@ cp .env.example .env
 
 ---
 
-## ▶️ Running Tests
+## Running Tests
 
 ```bash
 npm test                    # Run all tests
 npm run test:smoke          # @smoke tests only
 npm run test:regression     # @regression tests only
 npm run test:headed         # Headed browser (visible)
-npm run test:debug          # Debug mode — 1 worker, headed
+npm run test:debug          # Debug mode - 1 worker, headed
 npm run test:ci             # CI simulation locally
 npm run report              # Open Playwright HTML report
 npm run clean               # Clear results, reports, logs
@@ -59,18 +59,18 @@ npm run clean               # Clear results, reports, logs
 
 ---
 
-## 🏷️ Tagging Strategy
+## Tagging Strategy
 
 | Tag | Purpose |
 |---|---|
-| `@smoke` | Critical path — fast feedback |
+| `@smoke` | Critical path - fast feedback |
 | `@regression` | Full coverage |
 | `@sanity` | Post-deploy quick checks |
 | `@login`, `@cart`, etc. | Module-specific runs |
 
 ---
 
-## 🏗️ Jenkins Pipeline
+## Jenkins Pipeline
 
 The `Jenkinsfile` supports parameterized runs:
 
@@ -81,11 +81,11 @@ The `Jenkinsfile` supports parameterized runs:
 | `GREP` | Tag/pattern filter |
 | `CLEAN_REPORTS` | Wipe previous reports before run |
 
-Credentials are managed via **Jenkins Credentials Store** — never hardcoded.
+Credentials are managed via **Jenkins Credentials Store** - never hardcoded.
 
 ---
 
-## 🔑 Environment Variables
+## Environment Variables
 
 | Variable | Description |
 |---|---|
@@ -100,7 +100,7 @@ Credentials are managed via **Jenkins Credentials Store** — never hardcoded.
 
 ---
 
-## 📊 Reports
+## Reports
 
 | Report | Location |
 |---|---|

@@ -7,18 +7,18 @@ import * as path from 'path';
 const logger = Logger.getInstance();
 
 async function globalSetup(config: FullConfig): Promise<void> {
-  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-  logger.info('🚀  PLAYWRIGHT AI FRAMEWORK — GLOBAL SETUP STARTED');
-  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('==================================================');
+  logger.info('  PLAYWRIGHT AI FRAMEWORK - GLOBAL SETUP STARTED');
+  logger.info('==================================================');
 
   // Validate environment
   const env = EnvManager.getInstance();
   env.validate();
-  logger.info(`🌐  BASE_URL   : ${env.baseUrl}`);
-  logger.info(`🖥️   BROWSER    : ${env.browser}`);
-  logger.info(`👁️   HEADLESS   : ${env.headless}`);
-  // logger.info(`🔁  RETRIES    : ${env.retries}`);
-  logger.info(`👷  WORKERS    : ${env.workers}`);
+  logger.info(`  BASE_URL  : ${env.baseUrl}`);
+  logger.info(`  BROWSER   : ${env.browser}`);
+  logger.info(`  HEADLESS  : ${env.headless}`);
+  // logger.info(`  RETRIES    : ${env.retries}`);
+  logger.info(`  WORKERS   : ${env.workers}`);
 
   // Ensure output directories exist
   const dirs = [
@@ -32,12 +32,12 @@ async function globalSetup(config: FullConfig): Promise<void> {
     const fullPath = path.resolve(dir);
     if (!fs.existsSync(fullPath)) {
       fs.mkdirSync(fullPath, { recursive: true });
-      logger.info(`📁  Created directory: ${dir}`);
+      logger.info(`  Created directory: ${dir}`);
     }
   });
 
-  logger.info('✅  Global setup completed successfully.');
-  logger.info('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  logger.info('[PASS]  Global setup completed successfully.');
+  logger.info('==================================================');
 }
 
 export default globalSetup;
