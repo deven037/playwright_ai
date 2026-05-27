@@ -1,5 +1,6 @@
 import { base_test, BaseFixtures } from './BaseFixtures';
 import { LoginPage } from '../pages/login.page';
+import { HomePage } from '@pages/home.page';
 
 // --- Page Fixture Types -------------------------------------------------------
 // Add every new page object here as a new fixture type.
@@ -8,6 +9,7 @@ import { LoginPage } from '../pages/login.page';
 export type PageFixtures = {
   /** LoginPage - unauthenticated context (for login flow tests) */
   loginPage: LoginPage;
+  homePage: HomePage;
 };
 
 // --- Extended Test with Page Fixtures ----------------------------------------
@@ -23,6 +25,11 @@ export const test = base_test.extend<PageFixtures>({
     const loginPage = new LoginPage(unauthenticatedPage);
     await use(loginPage);
   },
+
+  homePage: async ({ unauthenticatedPage }, use) => {
+    const homePage = new HomePage(unauthenticatedPage);
+    await use(homePage);
+  }
 
   // -- Add new page fixtures below as modules grow ---------------------------
   // Example:
