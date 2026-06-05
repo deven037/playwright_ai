@@ -10,13 +10,15 @@ export class HomePage extends BasePage {
     waitForPageLoad(): Promise<void> {
         throw new Error("Method not implemented.");
     }
-    
-    // private get assessoriesMenu(): Locator {
-    //     return this.page.getByRole('link', { name: 'Apparel & accessories' });
-    // }
 
     async hoverOptionMenu(option: string): Promise<void> {
         const menuOption = this.page.getByRole('link', { name: option });
         await menuOption.hover();
+    }
+
+    async clickSubMenu(subOption: string): Promise<void> {
+        const subMenuOption = this.page.getByRole('link', { name: subOption });
+        await this.helpers.click(subMenuOption, `Click on submenu: ${subOption}`);
+        await this.page.waitForLoadState('networkidle');
     }
 }

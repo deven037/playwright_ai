@@ -8,6 +8,11 @@
 //
 // Credentials Strategy:
 // Reads .env from local machine and copies into Jenkins workspace
+
+// System.setProperty(
+//   "hudson.model.DirectoryBrowserSupport.CSP",
+//   ""
+// )
 // ============================================================
 
 pipeline {
