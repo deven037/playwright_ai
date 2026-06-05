@@ -4,51 +4,46 @@ import { EnvManager } from './src/utils/EnvManager';
 const env = EnvManager.getInstance();
 
 export default defineConfig({
-  // --- Test Directory -----------------------------------------------
   testDir: './tests',
   testMatch: '**/*.test.ts',
 
-  // --- Global Settings ----------------------------------------------
   timeout: env.timeout,
   expect: { timeout: 10000 },
+
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  // retries: process.env.CI ? 2 : env.retries,
   workers: process.env.CI ? 4 : env.workers,
 
-  // --- Global Setup / Teardown --------------------------------------
   globalSetup: './global-setup.ts',
   globalTeardown: './global-teardown.ts',
 
-  // --- Reporters ----------------------------------------------------
   reporter: [
-
     ['list'],
-
     ['html', {
       outputFolder: 'playwright-report',
-      open: 'never'
+      trace: 'on',
+      open: 'never',
+      attachmentsFolder: 'test-results/attachments'
     }],
-
     ['json', {
-      outputFile: 'reports/json-report/results.json'
+      outputFile: 'reports/json-report/results.json',
+      attachmentsFolder: 'test-results/attachments'
     }],
-
     ['junit', {
       outputFile: 'reports/junit/results.xml'
     }],
-
-    ['./src/reporters/CustomReporter.ts'],
+    ['./src/reporters/CustomReporter.ts', {
+      outputFile: 'reports/custom-report/results.txt',
+      trace: 'on',
+      attachmentsFolder: 'test-results/attachments'
+    }],
   ],
 
-  // --- Output -------------------------------------------------------
   outputDir: 'test-results',
 
-  // --- Shared Use Options -------------------------------------------
   use: {
     baseURL: env.baseUrl,
     headless: env.headless,
-    // slowMo: env.slowMo,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     trace: 'retain-on-failure',
@@ -58,23 +53,10 @@ export default defineConfig({
     ignoreHTTPSErrors: true,
   },
 
-  // --- Projects -----------------------------------------------------
   projects: [
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-    },
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
-    // {
-    //   name: 'mobile-chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // }
+    }
   ],
 });
