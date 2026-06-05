@@ -108,7 +108,7 @@ class CustomReporter implements Reporter {
   onTestEnd(test: TestCase, result: TestResult): void {
     const icon = result.status === 'passed'  ? '[PASS]' :
                  result.status === 'failed'  ? '[FAIL]' :
-                 result.status === 'skipped' ? '[SKIP] ' : '[TIME] ';
+                 result.status === 'skipped' ? '[SKIP] ' : '[FAIL]';
 
     const colorStart = result.status === 'passed'  ? this.GREEN  :
                        result.status === 'failed'  ? this.RED    :
@@ -125,8 +125,9 @@ class CustomReporter implements Reporter {
     }
 
     if (result.status === 'passed')  this.totalPassed++;
-    if (result.status === 'failed')  this.totalFailed++;
-    if (result.status === 'skipped') this.totalSkipped++;
+    else if (result.status === 'failed')  this.totalFailed++;
+    else if (result.status === 'skipped') this.totalSkipped++;
+    else this.totalFailed++; // Count other statuses (like timedOut) as failed
 
     const entry: ITestEntry = {
       title:     test.title,
