@@ -1,45 +1,76 @@
-import { base_test, BaseFixtures } from './BaseFixtures';
+import { test as base, Page, BrowserContext } from '@playwright/test';
+import { Logger } from '../utils/Logger';
+import { EnvManager } from '../utils/EnvManager';
 import { LoginPage } from '../pages/login.page';
 import { HomePage } from '@pages/home.page';
+import { ProductsPage } from '@pages/products.page';
+import { CartPage } from '@pages/cart.page';
+import { OrderConfirmationPage } from '@pages/orderConfirmation.page';
 
-// --- Page Fixture Types -------------------------------------------------------
-// Add every new page object here as a new fixture type.
-// Tests destructure exactly the pages they need - nothing more.
+const logger = Logger.getInstance();
+const env = EnvManager.getInstance();
 
-export type PageFixtures = {
-  /** LoginPage - unauthenticated context (for login flow tests) */
-  loginPage: LoginPage;
-  homePage: HomePage;
+// --- Custom Fixtures with Fresh Browser Context for Parallel Execution -----
+
+type FixturesWithContext = {
+  context: BrowserContext;
+  page: Page;
 };
 
-// --- Extended Test with Page Fixtures ----------------------------------------
-// Extends base_test (which carries unauthenticatedPage, authenticatedPage, helpers).
-// All page objects are instantiated here and injected via fixture.
-// Tests never instantiate page classes directly.
+export type PageFixtures = {
+  loginPage: LoginPage;
+  homePage: HomePage;
+  productPage: ProductsPage;
+  cartPage: CartPage;
+  orderConfirmationPage: OrderConfirmationPage;
+};
 
-export const test = base_test.extend<PageFixtures>({
+export const test = base.extend<FixturesWithContext & PageFixtures>({
+  // Fresh browser context for each test
+  context: async ({ browser }, use) => {
+    logger.info('Creating fresh browser context for test');
+    const context = await browser.newContext({
+      viewport: { width: 1920, height: 1080 },
+      ignoreHTTPSErrors: true,
+    });
+    
+    await use(context);
+    logger.info('Closing browser context after test');
+    await context.close();
+  },
 
-  // -- LoginPage -------------------------------------------------------------
-  // Uses unauthenticatedPage - login tests always start from a clean session.
-  loginPage: async ({ unauthenticatedPage }, use) => {
-    const loginPage = new LoginPage(unauthenticatedPage);
+  // Fresh page for each test from the context
+  page: async ({ context }, use) => {
+    logger.info('Creating fresh page in context');
+    const page = await context.newPage();
+    await use(page);
+  },
+
+  // Page fixtures using fresh page
+  loginPage: async ({ page }, use) => {
+    const loginPage = new LoginPage(page);
     await use(loginPage);
   },
 
-  homePage: async ({ unauthenticatedPage }, use) => {
-    const homePage = new HomePage(unauthenticatedPage);
+  homePage: async ({ page }, use) => {
+    const homePage = new HomePage(page);
     await use(homePage);
-  }
+  },
 
-  // -- Add new page fixtures below as modules grow ---------------------------
-  // Example:
-  // dashboardPage: async ({ authenticatedPage }, use) => {
-  //   await use(new DashboardPage(authenticatedPage));
-  // },
-  //
-  // productPage: async ({ authenticatedPage }, use) => {
-  //   await use(new ProductPage(authenticatedPage));
-  // },
+  productPage: async ({ page }, use) => {
+    const productPage = new ProductsPage(page);
+    await use(productPage);
+  },
+
+  cartPage: async ({ page }, use) => {
+    const cartPage = new CartPage(page);
+    await use(cartPage);
+  },
+
+  orderConfirmationPage: async ({ page }, use) => {
+    const orderConfirmationPage = new OrderConfirmationPage(page);
+    await use(orderConfirmationPage);
+  },
 });
 
 export { expect } from '@playwright/test';
