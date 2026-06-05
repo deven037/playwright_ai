@@ -7,7 +7,7 @@ test('@e2e TC_ACCESSORIES_001 - User should navigate to any of the sub menu and 
             productPage,
             cartPage,
             orderConfirmationPage,
-            sharedPage
+            page
       }) => {
             await loginPage.goto();
             await loginPage.loginWithDefaultCredentials();
@@ -16,7 +16,7 @@ test('@e2e TC_ACCESSORIES_001 - User should navigate to any of the sub menu and 
             await homePage.clickSubMenu('T-Shirts');
             await productPage.selectAndAddProductToCart();
             await cartPage.waitForPageLoad();
-            const pageUrl = sharedPage.url();
+            const pageUrl = page.url();
             const expectedUrl = await productPage.verifyCartPage();
             expect(expectedUrl).toContain(pageUrl);
             const amountOnCartPage = await cartPage.getTotalAmount();
