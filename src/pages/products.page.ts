@@ -33,99 +33,46 @@ export class ProductsPage extends BasePage {
     }
 
     private async isCartButtonEnabled(): Promise<boolean> {
-        const addToCartBtn = this.page.locator('.productpagecart');
-        const isDisabled = await addToCartBtn.isDisabled();
-        return !isDisabled;
+        const addToCartBtn = this.page.locator('.productpagecart').filter({ hasText: /Add to Cart/i });
+        return await addToCartBtn.isVisible() && await addToCartBtn.isEnabled();
     }
 
     async addToCart() {
-        const addToCartBtn = this.page.locator('.productpagecart');
+        const addToCartBtn = this.page.locator('.productpagecart').filter({ hasText: /Add to Cart/i });
         await this.helpers.click(addToCartBtn, "Add to Cart");
         await this.page.waitForLoadState('networkidle');
     }
 
     async selectAndAddProductToCart(): Promise<string> {
-    const products = this.page.locator(".prdocutname");
-    const productCount = await products.count();
-    const backBtn = this.page.locator(
-        'body > div > div:nth-child(2) > div:nth-child(2) > section > ul > li:nth-child(3) > a'
-    );
+        const products = this.page.locator('.prdocutname');
+        const productCount = await products.count();
+        const productLinks: { name: string; href: string }[] = [];
 
-    for (let i = 0; i < productCount; i++) {
-        try {
-            // Get product name BEFORE clicking (while still on products list)
-            const productName = await this.helpers.getText(products.nth(i));
+        for (let i = 0; i < productCount; i++) {
+            const product = products.nth(i);
+            const name = (await this.helpers.getText(product)).trim();
+            const href = await product.getAttribute('href');
 
-            // Click on the product to navigate to detail page
-            await this.helpers.click(
-                products.nth(i + 1),
-                `Product ${i + 1} - ${productName}`
-            );
-
-            await this.page.waitForLoadState('domcontentloaded');
-
-            // Check if add to cart button is enabled on the detail page
-            if (await this.isCartButtonEnabled()) {
-                this.logger.step(
-                    `Add to Cart button is ENABLED for product: ${productName}`
-                );
-
-                await this.takeScreenshot(`product_${i + 1}_enabled`);
-
-                await this.addToCart();
-
-                this.logger.info(
-                    `✓ Successfully added "${productName}" to cart`
-                );
-
-                return productName;
-            } else {
-                this.logger.warn(
-                    `Add to Cart button is DISABLED for product: ${productName}`
-                );
-
-                await this.takeScreenshot(`product_${i + 1}_disabled`);
-
-                // Go back and try next product
-                if (i < productCount - 1) {
-                    this.logger.step(
-                        `Going back to products list to try next product`
-                    );
-
-                    await this.helpers.click(backBtn, "Back Button");
-
-                    await this.page.waitForLoadState('networkidle');
-
-                    // Re-fetch products locator after going back
-                    const productsReloaded = this.page.locator(".prdocutname");
-
-                    await productsReloaded
-                        .first()
-                        .waitFor({ state: 'visible' });
-                }
-            }
-        } catch (error) {
-            this.logger.error(
-                `Error processing product ${i + 1}: ${error}`
-            );
-
-            if (i < productCount - 1) {
-                try {
-                    await this.helpers.click(backBtn, "Back Button");
-                    await this.page.waitForLoadState('networkidle');
-                } catch (backError) {
-                    this.logger.error(
-                        `Error clicking back button: ${backError}`
-                    );
-                }
+            if (name && href) {
+                productLinks.push({ name, href });
             }
         }
-    }
 
-    throw new Error(
-        'No product with enabled Add to Cart button found'
-    );
-}
+        for (const product of productLinks) {
+            await this.page.goto(product.href, { waitUntil: 'domcontentloaded' });
+
+            if (await this.isCartButtonEnabled()) {
+                this.logger.step(`Add to Cart button is enabled for product: ${product.name}`);
+                await this.addToCart();
+                this.logger.info(`Successfully added "${product.name}" to cart`);
+                return product.name;
+            }
+
+            this.logger.warn(`Skipping unavailable product: ${product.name}`);
+        }
+
+        throw new Error('No product with enabled Add to Cart button found');
+    }
 
     async verifyCartPage() {
         const url = await this.getCurrentUrl();
