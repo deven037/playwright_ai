@@ -6,6 +6,7 @@ import { HomePage } from '@pages/home.page';
 import { ProductsPage } from '@pages/products.page';
 import { CartPage } from '@pages/cart.page';
 import { OrderConfirmationPage } from '@pages/orderConfirmation.page';
+import { RegistrationPage } from '@pages/registration.page';
 
 const logger = Logger.getInstance();
 const env = EnvManager.getInstance();
@@ -23,6 +24,7 @@ export type PageFixtures = {
   productPage: ProductsPage;
   cartPage: CartPage;
   orderConfirmationPage: OrderConfirmationPage;
+  registrationPage: RegistrationPage;
 };
 
 export const test = base.extend<FixturesWithContext & PageFixtures>({
@@ -70,6 +72,11 @@ export const test = base.extend<FixturesWithContext & PageFixtures>({
   orderConfirmationPage: async ({ page }, use) => {
     const orderConfirmationPage = new OrderConfirmationPage(page);
     await use(orderConfirmationPage);
+  },
+
+  registrationPage: async ({ page }, use) => {
+    const registrationPage = new RegistrationPage(page);
+    await use(registrationPage);
   },
 });
 

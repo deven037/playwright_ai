@@ -41,7 +41,7 @@ export class LoginPage extends BasePage {
   }
 
   private get createAccountButton(): Locator {
-    return this.page.getByRole('link', { name: 'Continue' });
+    return this.page.getByRole('button', { name: /Continue/ });
   }
 
   private get loginErrorAlert(): Locator {
