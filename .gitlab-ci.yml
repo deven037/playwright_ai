@@ -1,0 +1,46 @@
+stages:
+  - test
+
+variables:
+  CI: "true"
+
+playwright-tests:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.55.0-jammy
+  timeout: 1h
+
+  before_script:
+    - npm ci
+
+  script:
+    - npx playwright install --with-deps chromium
+    - npm run test:ci
+
+  artifacts:
+    when: always
+    name: playwright-artifacts
+    paths:
+      - playwright-report/
+      - test-results/
+      - reports/
+    expire_in: 5 days
+
+  rules:
+    # Equivalent to:
+    # pull_request:
+    #   branches:
+    #     - main
+    #     - master
+    #     - develop
+    #   types:
+    #     - opened
+    #     - synchronize
+    #     - reopened
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" &&
+            ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" ||
+             $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" ||
+             $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop")'
+
+    # Equivalent to:
+    # workflow_dispatch:
+    - if: '$CI_PIPELINE_SOURCE == "web"'
