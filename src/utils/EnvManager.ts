@@ -19,6 +19,8 @@ export class EnvManager implements IEnvConfig {
 
   // --- Private backing fields ----------------------------------------------
   private readonly _baseUrl: string;
+  private readonly _apiBaseUrl: string;
+  private readonly _authApi: string;
   private readonly _username: string;
   private readonly _password: string;
   private readonly _headless: boolean;
@@ -30,6 +32,8 @@ export class EnvManager implements IEnvConfig {
 
   private constructor() {
     this._baseUrl   = process.env.BASE_URL      ?? '';
+    this._apiBaseUrl = process.env.API_BASE_URL ?? '';
+    this._authApi   = process.env.AUTH_API     ?? '';
     this._username  = process.env.APP_USERNAME  ?? '';  // APP_USERNAME avoids Windows USERNAME collision
     this._password  = process.env.APP_PASSWORD  ?? '';
     this._headless  = process.env.HEADLESS      === 'true';
@@ -50,6 +54,8 @@ export class EnvManager implements IEnvConfig {
 
   // --- Public Accessors ----------------------------------------------------
   get baseUrl():  string  { return this._baseUrl;  }
+  get apiBaseUrl(): string { return this._apiBaseUrl; }
+  get authApi(): string { return this._authApi; }
   get username(): string  { return this._username; }
   get password(): string  { return this._password; }
   get headless(): boolean { return this._headless; }

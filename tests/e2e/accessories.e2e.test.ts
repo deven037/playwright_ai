@@ -29,5 +29,4 @@ test('@e2e TC_ACCESSORIES_001 - User should navigate to any of the sub menu and 
             await orderConfirmationPage.invoiceLink();
             const amountOnInvoice = await orderConfirmationPage.getAmountOnInvoice();
             expect(amountOnInvoice).toBe(amountOnCartPage);
-            
 });
