@@ -26,21 +26,8 @@ playwright-tests:
     expire_in: 5 days
 
   rules:
-    # Equivalent to:
-    # pull_request:
-    #   branches:
-    #     - main
-    #     - master
-    #     - develop
-    #   types:
-    #     - opened
-    #     - synchronize
-    #     - reopened
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" &&
-            ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "main" ||
-             $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" ||
-             $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop")'
+    # Run from GitLab Pipeline Schedule
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
 
-    # Equivalent to:
-    # workflow_dispatch:
+    # Run when manually triggered from GitLab UI
     - if: '$CI_PIPELINE_SOURCE == "web"'
