@@ -24,6 +24,8 @@ playwright-tests:
       - test-results/
       - reports/
     expire_in: 5 days
+    reports:
+      junit: test-results/*.xml
 
   rules:
     # Run from GitLab Pipeline Schedule
