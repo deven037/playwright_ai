@@ -1,4 +1,4 @@
-import { BasePage } from "@core/BasePage";
+import { BasePage } from '../../core/BasePage';
 import { Page } from "@playwright/test";
 
 export class CrmLoginPage extends BasePage {
@@ -42,10 +42,8 @@ export class CrmLoginPage extends BasePage {
     }
 
     async loginWithDefaultCredentials() {
-        const email = process.env.NEWAPP_EMAIL || '';
-        const password = process.env.NEWAPP_PASSWORD || '';
-        await this.emailInput.fill(email);
-        await this.passwordInput.fill(password);
+        await this.enterEmail();
+        await this.enterPassword();
         await this.remeberMeCheckbox.uncheck();
         await this.loginButton.click();
     }
