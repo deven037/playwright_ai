@@ -1,4 +1,4 @@
-import { BasePage } from "@core/BasePage";
+import { BasePage } from '../../core/BasePage';
 import { Locator, Page } from "node_modules/playwright-core/types/types";
 
 export class HomePage extends BasePage {

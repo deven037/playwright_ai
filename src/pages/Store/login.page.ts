@@ -1,6 +1,5 @@
 import { Page, Locator, expect } from '@playwright/test';
-import { BasePage } from '../core/BasePage';
-
+import { BasePage } from '../../core/BasePage';
 /**
  * LoginPage - Page Object for the Login module.
  *

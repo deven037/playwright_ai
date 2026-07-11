@@ -1,5 +1,5 @@
 import { Locator, Page, expect } from '@playwright/test';
-import { BasePage } from '@core/BasePage';
+import { BasePage } from '../../core/BasePage';
 import { Helpers } from '@utils/Helpers';
 
 export interface RegistrationData {
