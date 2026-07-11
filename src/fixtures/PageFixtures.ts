@@ -1,10 +1,10 @@
 import { test as base } from './BaseFixtures';
-import { LoginPage } from '../pages/login.page';
-import { HomePage } from '@pages/home.page';
-import { ProductsPage } from '@pages/products.page';
-import { CartPage } from '@pages/cart.page';
-import { OrderConfirmationPage } from '@pages/orderConfirmation.page';
-import { RegistrationPage } from '@pages/registration.page';
+import { LoginPage } from '@pages/Store/login.page';
+import { HomePage } from '@pages/Store/home.page';
+import { ProductsPage } from '@pages/Store/products.page';
+import { CartPage } from '@pages/Store/cart.page';
+import { OrderConfirmationPage } from '@pages/Store/orderConfirmation.page';
+import { RegistrationPage } from '@pages/Store/registration.page';
 
 // Fresh browser context + page per test now come from BaseFixtures.
 // This file only wires up this app's Page Objects on top of it.
