@@ -30,6 +30,13 @@ export class EnvManager implements IEnvConfig {
   private readonly _retries: number;
   private readonly _workers: number;
 
+  // --- New application (SCAFFOLD) ------------------------------------------
+  // Rename NEWAPP_* once the real app name is known. Blank by default until
+  // NEWAPP_BASE_URL etc. are added to .env.
+  private readonly _newAppBaseUrl: string;
+  private readonly _newAppEmail: string;
+  private readonly _newAppPassword: string;
+
   private constructor() {
     this._baseUrl   = process.env.BASE_URL      ?? '';
     this._apiBaseUrl = process.env.API_BASE_URL ?? '';
@@ -42,6 +49,10 @@ export class EnvManager implements IEnvConfig {
     this._timeout   = parseInt(process.env.TIMEOUT  ?? '30000', 10);
     this._retries   = parseInt(process.env.RETRIES  ?? '1', 10);
     this._workers   = parseInt(process.env.WORKERS  ?? '2', 10);
+
+    this._newAppBaseUrl  = process.env.NEWAPP_BASE_URL ?? '';
+    this._newAppEmail = process.env.NEWAPP_EMAIL ?? '';
+    this._newAppPassword = process.env.NEWAPP_PASSWORD ?? '';
   }
 
   /** Returns the singleton instance */
@@ -64,6 +75,11 @@ export class EnvManager implements IEnvConfig {
   get timeout():  number  { return this._timeout;  }
   get retries():  number  { return this._retries;  }
   get workers():  number  { return this._workers;  }
+
+  // New application (SCAFFOLD) — rename once the real app name is known
+  get newAppBaseUrl():  string { return this._newAppBaseUrl;  }
+  get newAppEmail(): string { return this._newAppEmail; }
+  get newAppPassword(): string { return this._newAppPassword; }
 
   /** Validates all required env variables are present */
   public validate(): void {

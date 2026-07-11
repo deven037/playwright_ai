@@ -1,4 +1,4 @@
-import { test, expect } from '../../src/fixtures/PageFixtures';
+import { test, expect } from '../../../src/fixtures/PageFixtures';
 
 test('@e2e TC_REGISTRATION_CHECKOUT_001 - New user should register and complete an order',
   async ({

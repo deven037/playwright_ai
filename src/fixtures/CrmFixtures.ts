@@ -1,0 +1,55 @@
+import { CrmLoginPage } from '@pages/CRM/crm.login.page';
+import { test as base } from './BaseFixtures';
+import { DashboardPage } from '@pages/CRM/dashboard.page';
+// import { Logger } from '../utils/Logger'; // uncomment if you add logging here
+
+/**
+ * NewAppFixtures (SCAFFOLD)
+ *
+ * Page Object fixture wiring for the new application.
+ * Rename "NewApp"/"newApp" throughout this project once the real app
+ * name is known (this file, src/pages/newApp/, tests/newApp/, the
+ * NEWAPP_* env vars in EnvManager + .env.example, and the `test:newapp`
+ * script in package.json).
+ *
+ * TODO once the application URL/pages are known:
+ *   1. Build page objects under src/pages/newApp/ (extend BasePage —
+ *      see src/pages/newApp/README.md and src/pages/login.page.ts
+ *      for the pattern used by the existing app).
+ *   2. Import each page class below and add it to NewAppPageFixtures.
+ *   3. Register a fixture for each page, following PageFixtures.ts.
+ *
+ * Example (uncomment + adjust once you have a HomePage):
+ *
+ *   import { HomePage } from '../pages/newApp/home.page';
+ *
+ *   export type NewAppPageFixtures = {
+ *     homePage: HomePage;
+ *   };
+ *
+ *   export const test = base.extend<NewAppPageFixtures>({
+ *     homePage: async ({ page }, use) => {
+ *       await use(new HomePage(page));
+ *     },
+ *   });
+ */
+
+export type CRMPageFixtures = {
+  crmLoginPage: CrmLoginPage;
+  dashboardPage: DashboardPage;
+};
+
+export const test = base.extend<CRMPageFixtures>({
+  crmLoginPage: async ({ page }, use) => {
+    const crmLoginPage = new CrmLoginPage(page);
+    await use(crmLoginPage);
+  },
+
+  dashboardPage: async ({ page }, use) => {
+    const dashboardPage = new DashboardPage(page);
+    await use(dashboardPage);
+  }
+});
+
+export const crmTest = test;
+export { expect } from '@playwright/test';
