@@ -1,4 +1,4 @@
-import { test } from '../../src/fixtures/PageFixtures';
+import { test } from '../../../src/fixtures/PageFixtures';
 
 test.describe('@feature - Registration Feature', () => {
   test('@feature TC_REGISTRATION_001 - New user should register successfully with unique details',

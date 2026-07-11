@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { EnvManager } from "../../src/utils/EnvManager";
+import { EnvManager } from "../../../src/utils/EnvManager";
 
 const env = EnvManager.getInstance();
 

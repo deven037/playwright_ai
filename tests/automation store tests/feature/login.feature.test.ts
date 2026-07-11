@@ -1,4 +1,4 @@
-import { test, expect } from '../../src/fixtures/PageFixtures';
+import { test, expect } from '../../../src/fixtures/PageFixtures';
 
 /**
  * Login Module - Test Suite

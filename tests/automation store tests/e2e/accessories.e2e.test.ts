@@ -1,4 +1,4 @@
-import { test, expect } from '../../src/fixtures/PageFixtures';
+import { test, expect } from '../../../src/fixtures/PageFixtures';
 
 test('@e2e TC_ACCESSORIES_001 - User should navigate to any of the sub menu and add to cart',
       async ({
