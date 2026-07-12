@@ -45,8 +45,8 @@ export class Helpers {
 
   // --- Waits ----------------------------------------------------------------
 
-  async waitForElement(locator: Locator, state: WaitStrategy = 'visible', timeout = 15000): Promise<void> {
-    await locator.waitFor({ state, timeout });
+  async waitForElement(locator: Locator, state: WaitStrategy = 'visible'): Promise<void> {
+    await locator.waitFor({ state });
   }
 
   async waitForURL(urlPattern: string | RegExp): Promise<void> {
