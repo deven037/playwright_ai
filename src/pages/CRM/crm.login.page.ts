@@ -11,7 +11,12 @@ export class CrmLoginPage extends BasePage {
     }
 
     async goto() {
-        await this.page.goto(process.env.NEWAPP_BASE_URL || '');
+        const crmUrl = this.env.newAppBaseUrl?.trim();
+        if (!crmUrl) {
+            throw new Error('NEWAPP_BASE_URL is not configured. Set it in .env or CI environment variables.');
+        }
+
+        await this.page.goto(crmUrl);
         await this.page.waitForLoadState('networkidle');
     }
 
@@ -32,13 +37,23 @@ export class CrmLoginPage extends BasePage {
     }
 
     async enterEmail(){
+        const email = this.env.newAppEmail?.trim();
+        if (!email) {
+            throw new Error('NEWAPP_EMAIL is not configured. Set it in .env or CI environment variables.');
+        }
+
         this.logger.info('Entering email');
-        await this.helpers.fill(this.emailInput, process.env.NEWAPP_EMAIL || '', 'Email Input');
+        await this.helpers.fill(this.emailInput, email, 'Email Input');
     }
 
     async enterPassword(){
+        const password = this.env.newAppPassword?.trim();
+        if (!password) {
+            throw new Error('NEWAPP_PASSWORD is not configured. Set it in .env or CI environment variables.');
+        }
+
         this.logger.info('Entering password');
-        await this.helpers.fill(this.passwordInput, process.env.NEWAPP_PASSWORD || '', 'Password Input');
+        await this.helpers.fill(this.passwordInput, password, 'Password Input');
     }
 
     async loginWithDefaultCredentials() {
