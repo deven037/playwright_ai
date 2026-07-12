@@ -32,12 +32,12 @@ export class CartPage extends BasePage {
     async proceedToCheckout() {
         const checkoutBtn = this.page.locator('#cart_checkout2');
         await this.helpers.click(checkoutBtn, "Proceed to Checkout");
-        await this.page.waitForLoadState('networkidle');
+        await this.page.waitForLoadState('domcontentloaded');
     }
 
     async confirmOrder() {
         const confirmOrderBtn = this.page.locator('#checkout_btn');
         await this.helpers.click(confirmOrderBtn, "Confirm Order");
-        await this.page.waitForLoadState('networkidle');
+        await this.page.waitForLoadState('domcontentloaded');
     }
 }

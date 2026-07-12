@@ -29,7 +29,7 @@ export class OrderConfirmationPage extends BasePage {
         const invoiceLink = this.page.getByRole('link', { name: 'invoice page' });
         await this.helpers.click(invoiceLink, "Invoice Link");
         this.logger.info("Navigating to Invoice Page");
-        await this.page.waitForLoadState('networkidle');
+        await this.page.waitForLoadState('domcontentloaded');
     }
 
     async getAmountOnInvoice(): Promise<string> {
