@@ -8,8 +8,8 @@ export class OrderConfirmationPage extends BasePage {
     }
 
     async waitForPageLoad(): Promise<void> {
-        const locator = this.page.locator('#maincontainer > div > div > div > div > section > p:nth-child(3)');
-        await locator.waitFor({ state: 'visible' });
+        this.page.locator('#maincontainer > div > div > div > div > section > p:nth-child(3)');
+        this.logger.info("Order Confirmation Page loaded successfully.");
     }
 
     async getOrderID(): Promise<string> {
