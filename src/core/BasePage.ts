@@ -30,7 +30,7 @@ export abstract class BasePage {
    * Abstract method - every page must implement its own load verification.
    * Called automatically to confirm the page has loaded correctly.
    */
-  abstract waitForPageLoad(): Promise<void>;
+  abstract waitForPageLoad(): Promise<any>;
 
   // --- Common Navigation ---------------------------------------------------
 
