@@ -40,7 +40,7 @@ export class ProductsPage extends BasePage {
     async addToCart() {
         const addToCartBtn = this.page.locator('.productpagecart').filter({ hasText: /Add to Cart/i });
         await this.helpers.click(addToCartBtn, "Add to Cart");
-        await this.page.waitForLoadState('networkidle');
+        await this.page.waitForLoadState('domcontentloaded');
     }
 
     async selectAndAddProductToCart(): Promise<string> {
