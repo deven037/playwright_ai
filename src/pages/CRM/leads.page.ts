@@ -27,7 +27,7 @@ export class LeadsPage extends BasePage {
         await this.page.waitForLoadState('networkidle');
     }
 
-    async fillLeadDetails(statusCode: string, sourceOption: string, productName: string, leadEstVal: number) {
+    async fillLeadDetails(statusCode: string, sourceOption: string, leadEstVal: number, productName?: string, ) {
         const leadNameWithTimeStamps = `Lead_${Date.now()}`;
         const companyNameWithTimeStamps = `Company_${Date.now()}`;
         const phoneRandomNumber = Math.floor(Math.random() * 1000000000).toString();
@@ -49,10 +49,12 @@ export class LeadsPage extends BasePage {
         const leadStatusOption = this.page.getByRole('option', { name: statusCode });
         await this.helpers.click(leadStatusOption, 'Lead Status Option');
 
-        const productDropDown = this.page.locator("//button[@data-testid='lead-product']");
-        await this.helpers.click(productDropDown, 'Product Dropdown');    
-        const productsList = this.page.getByRole('option', { name: productName });
-        await this.helpers.click(productsList, 'Product Option');
+        if(productName) {
+            const productDropDown = this.page.locator("//button[@data-testid='lead-product']");
+            await this.helpers.click(productDropDown, 'Product Dropdown');    
+            const productsList = this.page.getByRole('option', { name: productName });
+            await this.helpers.click(productsList, 'Product Option');
+        }
 
         const sourceDropDown = this.page.locator("//button[@class='select-trigger']").nth(1);
         await this.helpers.click(sourceDropDown, 'Source Dropdown');
@@ -61,7 +63,9 @@ export class LeadsPage extends BasePage {
 
         const leadValue = this.page.locator("//input[@data-testid='lead-value']");
         await this.helpers.fill(leadValue, leadEstVal.toString(), 'Lead Value Input');
+    }
 
+    async createLead() {
         const createLeadBtn = this.page.locator("//div[@class='form-actions']/button").nth(1);
         await this.helpers.click(createLeadBtn, 'Create Lead Button');
         await this.page.waitForLoadState('networkidle');
@@ -89,5 +93,12 @@ export class LeadsPage extends BasePage {
         const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
         await this.helpers.waitForElement(name, 'visible');
         return await this.helpers.getText(name);
+    }
+
+    async getProductName() {
+        const product = this.page.locator("//button[@data-testid='lead-product']/span[1]");
+        const name = await this.helpers.getText(product);
+        console.log(`Product Name on Lead Form = ${name}`)
+        return name;
     }
 }

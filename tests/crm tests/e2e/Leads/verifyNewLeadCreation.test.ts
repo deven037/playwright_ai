@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test('@sanity Verify new lead creation - Should create a new lead successfully', async ({ crmLoginPage, dashboardPage, leadsPage }) => {
+test('@e2e Verify new lead creation - Should create a new lead successfully', async ({ crmLoginPage, dashboardPage, leadsPage }) => {
 
     await crmLoginPage.goto();
     await crmLoginPage.loginWithDefaultCredentials();
@@ -13,7 +13,8 @@ test('@sanity Verify new lead creation - Should create a new lead successfully',
     expect(currentUrl).toContain('/leads');
 
     await leadsPage.createNewLead();
-    await leadsPage.fillLeadDetails('New', 'Event', 'CRM Starter Plan', 3000);
+    await leadsPage.fillLeadDetails('New', 'Event', 3000, 'CRM Starter Plan');
+    await leadsPage.createLead();
 
     const leadName = await leadsPage.getLeadNameFromDetailsPage();
     await leadsPage.goToLeads();
