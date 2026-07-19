@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test.only('@regression Perform actions save, edit and delete on lead after creation ', async ({ 
+test('@regression Perform actions save, edit and delete on lead after creation ', async ({ 
     crmLoginPage, 
     dashboardPage, 
     leadsPage }) => {
