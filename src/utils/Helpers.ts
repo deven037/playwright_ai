@@ -33,6 +33,14 @@ export class Helpers {
     await locator.fill(value);
   }
 
+  async fillWithReturn(locator: Locator, value: string, description = ''): Promise<string> {
+    this.logger.step(`Fill "${value}" into: ${description || locator.toString()}`);
+    await locator.waitFor({ state: 'visible' });
+    await locator.clear();
+    await locator.fill(value);
+    return value;
+  }
+
   async selectOption(locator: Locator, value: string, description = ''): Promise<void> {
     this.logger.step(`Select "${value}" in: ${description || locator.toString()}`);
     await locator.selectOption(value);

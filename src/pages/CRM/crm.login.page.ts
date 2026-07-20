@@ -62,4 +62,11 @@ export class CrmLoginPage extends BasePage {
         await this.remeberMeCheckbox.uncheck();
         await this.loginButton.click();
     }
+
+    async loginWithCustomCredentials(email: string) {
+        await this.helpers.fill(this.emailInput, email, "Email");
+        await this.enterPassword();
+        await this.remeberMeCheckbox.uncheck();
+        await this.loginButton.click();
+    }
 }
