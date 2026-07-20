@@ -19,4 +19,9 @@ export class DashboardPage extends BasePage {
     async assertProfileIconVisible() {
         await this.helpers.assertVisible(await this.profileIcon(), 'Profile Icon is visible');
     }
+
+    async clickAvatar() {
+        const profileIcon = this.page.locator("//button[@data-testid='avatar-menu']");
+        await this.helpers.click(profileIcon, 'Profile');
+    }
 }
