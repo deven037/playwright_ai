@@ -18,6 +18,6 @@ test('@feature CRM Login - Should log in with default credentials', async ({ crm
   await crmLoginPage.goto();
   await crmLoginPage.loginWithDefaultCredentials();
 
-  await dashboardPage.waitForPageLoad();
+  await dashboardPage.waitForDashBoardPage();
   await dashboardPage.assertProfileIconVisible();
 });

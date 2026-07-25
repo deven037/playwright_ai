@@ -5,7 +5,7 @@ test('@e2e Verify new lead creation - Should create a new lead successfully', as
     await crmLoginPage.goto();
     await crmLoginPage.loginWithDefaultCredentials();
 
-    await dashboardPage.waitForPageLoad();
+    await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();
 
     await leadsPage.goToLeads();
