@@ -97,6 +97,7 @@ export class LeadsPage extends BasePage {
     }
 
     async getFirstLeadNameFromTable() {
+        this.logger.info("Getting top lead name")
         const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
         await this.helpers.waitForElement(name, 'visible');
         return await this.helpers.getText(name);

@@ -24,4 +24,10 @@ export class DashboardPage extends BasePage {
         const profileIcon = this.page.locator("//button[@data-testid='avatar-menu']");
         await this.helpers.click(profileIcon, 'Profile');
     }
+
+    async waitForDashBoardPage() {
+        await this.waitForPageLoad();
+        const dashboardPage = this.page.locator("//div[@data-testid='dashboard-page']");
+        await this.helpers.waitForElement(dashboardPage, 'visible');
+    }
 }
