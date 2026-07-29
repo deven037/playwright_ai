@@ -36,6 +36,7 @@ export class EnvManager implements IEnvConfig {
   private readonly _newAppBaseUrl: string;
   private readonly _newAppEmail: string;
   private readonly _newAppPassword: string;
+  private readonly _newAppBaseAPI: string;
 
   private constructor() {
     this._baseUrl   = process.env.BASE_URL      ?? '';
@@ -53,6 +54,7 @@ export class EnvManager implements IEnvConfig {
     this._newAppBaseUrl  = process.env.NEWAPP_BASE_URL ?? '';
     this._newAppEmail = process.env.NEWAPP_EMAIL ?? '';
     this._newAppPassword = process.env.NEWAPP_PASSWORD ?? '';
+    this._newAppBaseAPI = process.env.NEWAPP_BASE_API ?? '';
   }
 
   /** Returns the singleton instance */
@@ -80,6 +82,7 @@ export class EnvManager implements IEnvConfig {
   get newAppBaseUrl():  string { return this._newAppBaseUrl;  }
   get newAppEmail(): string { return this._newAppEmail; }
   get newAppPassword(): string { return this._newAppPassword; }
+  get newAppBaseAPI(): string {return this._newAppBaseAPI; }
 
   /** Validates all required env variables are present */
   public validate(): void {
