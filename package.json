@@ -22,7 +22,7 @@
     "winston": "^3.13.0"
   },
   "devDependencies": {
-    "@playwright/test": "^1.44.0",
+    "@playwright/test": "^1.62.0",
     "@types/node": "^20.14.0",
     "cross-env": "^7.0.3",
     "rimraf": "^5.0.7",
