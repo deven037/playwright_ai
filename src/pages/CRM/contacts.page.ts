@@ -35,8 +35,8 @@ export class ContactsPage extends BasePage {
 
   async fillContactDetails(jobTitle: string, accountName: string, tags: string[]) {
     const randomPhoneNumber = Math.floor(Math.random() * 1000000000).toString();
-    const randomEmail = `contact_${Date.now().toPrecision(4)}@testmail.com`;
-    const randomFullName = `Contact_${Date.now().toPrecision(4)}`;
+    const randomEmail = `contact_${Date.now()}@testmail.com`;
+    const randomFullName = `Contact_${Date.now()}`;
 
     const fullNameInput = this.page.locator("//input[@data-testid='contact-name']");
     await this.helpers.fill(fullNameInput, randomFullName, 'Full Name Input');
