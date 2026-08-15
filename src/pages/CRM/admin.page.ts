@@ -17,8 +17,14 @@ export class Admin extends BasePage {
         await this.page.waitForLoadState('networkidle');
     }
 
+    async gotoUsers() {
+        const usersTab = this.page.locator("//a[@data-testid='setup-card-users']");
+        await this.helpers.click(usersTab, 'Users');
+        await this.page.waitForLoadState('networkidle');
+    }
+
     async addUser() {
-        const addBtn = this.page.locator("//div[@class='toolbar']/button[text()='+ Add user']");
+        const addBtn = this.page.locator("//button[text()='+ Add user']");
         await this.helpers.click(addBtn, "Add User");
         await this.waitForPageLoad();
     }
@@ -64,5 +70,10 @@ export class Admin extends BasePage {
         const loggedInUserName = this.page.locator("//div[@class='avatar-info']/strong");
         const name = await this.helpers.getText(loggedInUserName);
         return name;
+    }
+
+     async gotoSetup() {
+        const setup = this.page.locator("//button[@data-testid='setup-menu-item']");
+        await this.helpers.click(setup, 'Setup');   
     }
 }

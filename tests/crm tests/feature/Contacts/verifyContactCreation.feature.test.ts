@@ -13,6 +13,7 @@ test('@feature Verify Contact Creation', async ({
 
     await contactsPage.gotoContacts();
     await contactsPage.clickNewContact();
+    await contactsPage.chooseLayout('Default');
     await contactsPage.fillContactDetails('Augomation Engineer', 'Quantica', ['partner']);
     await contactsPage.createContact();
 

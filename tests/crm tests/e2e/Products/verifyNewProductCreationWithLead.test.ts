@@ -3,17 +3,23 @@ import { expect, test } from "@fixtures/CrmFixtures";
 test('@e2e Product + Lead Creation', async({
     crmLoginPage,
     leadsPage,
-    productsPage
+    productsPage,
+    dashboardPage,
+    adminPage
 }) => {
 
     await crmLoginPage.goto();
     await crmLoginPage.loginWithDefaultCredentials();
+
+    await dashboardPage.clickAvatar();
+    await adminPage.gotoSetup();
 
     await productsPage.gotoProducts();
     const url = await productsPage.getPageurl();
     expect(url).toContain("/products");
 
     await productsPage.createNewProduct();
+    await productsPage.chooseLayout('Default');
     await productsPage.fillProductDetails(`Product_${Date.now()}`, "Training", 2000);
     await productsPage.createProduct();
     

@@ -12,7 +12,7 @@ export class Product extends BasePage {
     }
 
     async gotoProducts() {
-        const productBtn = this.page.locator("//a[contains(@class, 'nav-link') and contains(@href, '/products')]");
+        const productBtn = this.page.locator("//a[@data-testid='setup-card-product']");
         await productBtn.click();
         await this.waitForPageLoad();
     }
@@ -67,6 +67,9 @@ export class Product extends BasePage {
     }
 
     async createLeadFromProduct() {
+        const leadTab = this.page.locator("//div[@class='tab-list']/button").nth(1);
+        await this.helpers.click(leadTab, "Clicked Lead Tab");
+        await this.page.waitForLoadState('domcontentloaded');
         const createLeadBtn = this.page.locator("//button[@data-testid='new-lead-for-product-btn']");
         await this.helpers.click(createLeadBtn, "Clicked + Create Lead Btn");
         await this.waitForPageLoad();
@@ -86,8 +89,14 @@ export class Product extends BasePage {
     }
 
     async clickProductName() {
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.page.locator(".product-card-body");
         await this.helpers.click(name, "Product Name");
+    }
+
+    async openDetailPage() {
+        const openFullPage = this.page.locator("//button[text()='Open full page ↗']");
+        await this.helpers.click(openFullPage, "Open Full Page");
+        await this.waitForPageLoad();
     }
 
     async editProduct(productName: string, oldValue: string) {
@@ -123,8 +132,13 @@ export class Product extends BasePage {
     }
 
     async getNoRecordFoundMessaage() {
-        const record = this.page.locator("//table[@class='table']/tbody/tr").first();
+        const record = this.page.locator("//div[@class='empty-cell']");
         const text = await this.helpers.getText(record);
         this.logger.info(text);
+    }
+
+    async chooseLayout(layoutName: string) {
+        const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
+        await this.helpers.click(layout, "Layout");
     }
 }
