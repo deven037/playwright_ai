@@ -16,6 +16,7 @@ test('@regression Perform actions save, edit and delete on lead after creation '
     expect(currentUrl).toContain('/leads');
 
     await leadsPage.createNewLead();
+    await leadsPage.chooseLayout('Default');
     await leadsPage.fillLeadDetails('New', 'Event', 3000, 'CRM Starter Plan');
     await leadsPage.createLead();
 

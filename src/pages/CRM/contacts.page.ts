@@ -121,22 +121,27 @@ export class ContactsPage extends BasePage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-    async getFirstContactNameFromTable() {
-        this.logger.info("Getting first contact name")
-        const name = this.page.locator("//div[@class='contact-name']");
-        const contactName = await this.helpers.getText(name);
-        return contactName;
-    }
+  async getFirstContactNameFromTable() {
+    this.logger.info("Getting first contact name")
+    const name = this.page.locator("//div[@class='contact-name']");
+    const contactName = await this.helpers.getText(name);
+    return contactName;
+  }
 
-    async clickContactName() {
-        const name = this.page.locator("//div[@class='contact-name']");
-        await this.helpers.click(name, "Contact Name");
-    }
+  async clickContactName() {
+    const name = this.page.locator("//div[@class='contact-name']");
+    await this.helpers.click(name, "Contact Name");
+  }
 
-    async getNoRecordFoundMessage() {
-        const emptyRecord = this.page.locator("//div[@class='contact-grid']/div[@class='empty-cell']");
-        const text = await this.helpers.getText(emptyRecord);
-        this.logger.info(text);
-        return text;
-    }
+  async getNoRecordFoundMessage() {
+    const emptyRecord = this.page.locator("//div[@class='contact-grid']/div[@class='empty-cell']");
+    const text = await this.helpers.getText(emptyRecord);
+    this.logger.info(text);
+    return text;
+  }
+
+  async chooseLayout(layoutName: string) {
+    const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
+    await this.helpers.click(layout, "Layout");
+  }
 }

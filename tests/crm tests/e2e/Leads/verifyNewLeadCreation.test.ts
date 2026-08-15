@@ -13,6 +13,7 @@ test('@e2e Verify new lead creation - Should create a new lead successfully', as
     expect(currentUrl).toContain('/leads');
 
     await leadsPage.createNewLead();
+    await leadsPage.chooseLayout('Default');
     await leadsPage.fillLeadDetails('New', 'Event', 3000, 'CRM Starter Plan');
     await leadsPage.createLead();
 

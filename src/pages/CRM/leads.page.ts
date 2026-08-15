@@ -154,7 +154,7 @@ export class LeadsPage extends BasePage {
         await this.page.waitForLoadState('domcontentloaded');
         const detailPage = this.page.locator("//div[@data-testid='lead-detail-page']");
         await this.helpers.waitForElement(detailPage, 'visible');
-        const status = this.page.locator("//div[@class='page-actions']/span[@data-testid='lead-detail-status']");
+        const status = this.page.locator("//span[@data-testid='lead-detail-status']");
         const name = await this.helpers.getText(status);
         await this.helpers.assertVisible(status, "Status");
         return name;
@@ -212,5 +212,10 @@ export class LeadsPage extends BasePage {
         const record = this.page.locator("//table[@class='table']/tbody/tr").first();
         const text = await this.helpers.getText(record);
         this.logger.info(text);
+    }
+
+    async chooseLayout(layoutName: string) {
+        const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
+        await this.helpers.click(layout, "Layout");
     }
 }

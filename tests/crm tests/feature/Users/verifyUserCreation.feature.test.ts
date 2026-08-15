@@ -9,7 +9,9 @@ test('@regression User Creation', async({
     await crmLoginPage.goto();
     await crmLoginPage.loginWithDefaultCredentials();
 
-    await adminPage.gotoAdmin();
+    await dashboardPage.clickAvatar();
+    await adminPage.gotoSetup();
+    await adminPage.gotoUsers();
     await adminPage.addUser();
     const userDetail = await adminPage.fillUserDetails("Viewer", true);
     await adminPage.createUser();
