@@ -20,5 +20,5 @@ test('Verify Lead Assignment Rule Creation', async({
     const cretedRule = await assignmentRulesPage.fillAssignmentRuleDetails('Lead', 'Riya Rep', true, [{field: 'Name', value:'Test'}]);
     await assignmentRulesPage.saveRule();
 
-    await assignmentRulesPage.verifyRuleCreated(cretedRule);
+    await assignmentRulesPage.verifyRuleCreated(cretedRule.rule);
 })

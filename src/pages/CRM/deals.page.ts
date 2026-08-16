@@ -13,7 +13,7 @@ export class DealsPage extends BasePage {
 
   async gotoDeals() {
     const dealsBtn = this.page.locator("//a[contains(@class, 'nav-link') and contains(@href, '/deals')]");
-    await this.helpers.click(dealsBtn, 'Leads');
+    await this.helpers.click(dealsBtn, 'Deals');
     await this.page.waitForLoadState('networkidle');
   }
 }
