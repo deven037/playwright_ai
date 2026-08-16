@@ -27,10 +27,12 @@ export class AssignmentRulePage extends BasePage {
     const ruleNameInput = this.page.locator("//input[@data-testid='assignment-rule-name']");
     await this.helpers.fill(ruleNameInput, rule, 'Rule Name Input');
 
-    const moduleDropdown = this.page.locator("//button[@data-testid='assignment-rule-module']");
-    await this.helpers.click(moduleDropdown, 'Module Dropdown')
-    const moduleOptions = this.page.getByRole('option', { name: module });
-    await this.helpers.click(moduleOptions, `Module ${module}`);
+    if(module){
+      const moduleDropdown = this.page.locator("//button[@data-testid='assignment-rule-module']");
+      await this.helpers.click(moduleDropdown, 'Module Dropdown')
+      const moduleOptions = this.page.getByRole('option', { name: module });
+      await this.helpers.click(moduleOptions, `Module ${module}`);
+    }
 
     const assignToDropdown = this.page.locator("//button[@data-testid='assignment-rule-assignto']");
     await this.helpers.click(assignToDropdown, 'Assign to dropdown');
@@ -88,7 +90,7 @@ export class AssignmentRulePage extends BasePage {
         await labelLocator.click();
       }
     }
-    return rule;
+    return {rule, assignToUser};
   }
 
   async saveRule() {

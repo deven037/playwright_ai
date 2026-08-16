@@ -160,6 +160,16 @@ export class LeadsPage extends BasePage {
         return name;
     }
 
+    async getLeadAssignTo() {
+        await this.page.waitForLoadState('domcontentloaded');
+        const detailPage = this.page.locator("//div[@data-testid='lead-detail-page']");
+        await this.helpers.waitForElement(detailPage, 'visible');
+        const owner = this.page.locator("//dl[@class='detail-list']/dd").nth(4);
+        const name = await this.helpers.getText(owner);
+        await this.helpers.assertVisible(owner, "Owner");
+        return name;
+    }
+
     private detailPageBlock(index: number): Locator {
         return this.page.locator(`//dl[@class='detail-list']//dd[${index}]`);
     }
