@@ -224,6 +224,48 @@ export class LeadsPage extends BasePage {
         this.logger.info(text);
     }
 
+    async openConvertWizardForFirstLead() {
+        const row = this.page.locator("//tr[contains(@class,'row-clickable')]").first();
+        await this.helpers.waitForElement(row, 'visible');
+        await row.click({ button: 'right' });
+        const convertItem = this.page.getByText('Convert lead…');
+        await this.helpers.click(convertItem, 'Convert lead menu item');
+        const wizardTitle = this.page.getByText(/Convert lead — Step 1 of 3/);
+        await this.helpers.assertVisible(wizardTitle, 'Convert wizard step 1');
+    }
+
+    async wizardNext() {
+        const nextBtn = this.page.getByRole('button', { name: /Next/ });
+        await this.helpers.click(nextBtn, 'Wizard Next');
+    }
+
+    async getWizardContactName() {
+        const input = this.page.locator("//span[text()='Contact name']/following-sibling::input");
+        return await input.inputValue();
+    }
+
+    async setWizardAccountName(accountName: string) {
+        const input = this.page.locator("//span[text()='Account name']/following-sibling::input");
+        await this.helpers.fill(input, accountName, 'Wizard Account Name');
+    }
+
+    async enableWizardDeal(dealName: string) {
+        const checkbox = this.page.getByLabel('Also create a deal for this conversion');
+        await checkbox.check();
+        const dealInput = this.page.locator("//span[text()='Deal name']/following-sibling::input");
+        await this.helpers.fill(dealInput, dealName, 'Wizard Deal Name');
+    }
+
+    async finishConversion() {
+        const finishBtn = this.page.locator("//button[@data-testid='wizard-finish']");
+        await this.helpers.click(finishBtn, 'Finish conversion');
+    }
+
+    async assertConvertedToast(leadName: string) {
+        const toast = this.page.getByText(`Lead "${leadName}" converted successfully.`);
+        await this.helpers.assertVisible(toast, 'Converted toast');
+    }
+
     async chooseLayout(layoutName: string) {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
