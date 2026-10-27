@@ -33,7 +33,7 @@ export class CrmLoginPage extends BasePage {
     }
 
     private get remeberMeCheckbox() {
-        return this.page.locator("//label[@class='checkbox-label']/input");
+        return this.page.getByRole('checkbox', { name: 'Remember me' });
     }
 
     async enterEmail(){
