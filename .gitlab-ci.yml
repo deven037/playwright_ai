@@ -33,3 +33,31 @@ playwright-tests:
 
     # Run when manually triggered from GitLab UI
     - if: '$CI_PIPELINE_SOURCE == "web"'
+
+# Started through the API (pipeline_run): runs the suite named in TEST_SUITE
+playwright-suite:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.55.0-jammy
+  timeout: 1h
+
+  before_script:
+    - npm ci
+
+  script:
+    - npx playwright install --with-deps chromium
+    - npm run test:$TEST_SUITE -- --project=chromium
+
+  artifacts:
+    when: always
+    name: playwright-suite-artifacts
+    paths:
+      - playwright-report/
+      - test-results/
+      - reports/
+    expire_in: 5 days
+    reports:
+      junit: reports/junit/results.xml
+
+  rules:
+    # Only the three known suites; any other TEST_SUITE value gives no job
+    - if: '$CI_PIPELINE_SOURCE == "api" && ($TEST_SUITE == "smoke" || $TEST_SUITE == "sanity" || $TEST_SUITE == "regression")'
