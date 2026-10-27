@@ -240,7 +240,8 @@ export class LeadsPage extends BasePage {
     }
 
     async getWizardContactName() {
-        const input = this.page.locator("//span[text()='Contact name']/following-sibling::input");
+        // Contact name is a <label for="convert-contact-name"> bound to its input
+        const input = this.page.getByLabel('Contact name', { exact: true });
         return await input.inputValue();
     }
 
