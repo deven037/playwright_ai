@@ -235,7 +235,7 @@ export class LeadsPage extends BasePage {
     }
 
     async wizardNext() {
-        const nextBtn = this.page.getByRole('button', { name: /Next/ });
+        const nextBtn = this.page.getByRole('button', { name: 'Next ›', exact: true });
         await this.helpers.click(nextBtn, 'Wizard Next');
     }
 
