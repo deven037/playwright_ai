@@ -39,6 +39,10 @@ export class DashboardPage extends BasePage {
         return this.page.getByRole('link', { name: 'Back to Dashboard' });
     }
 
+    private get activityFeed() {
+        return this.page.getByLabel('Recent activity, scrollable');
+    }
+
     async assertViewAllActivityIsLink() {
         await expect(this.viewAllActivityLink).toBeVisible();
         await expect(this.page.getByRole('link', { name: /view all activity/i })).toHaveAttribute('href', '/activity');
@@ -59,5 +63,41 @@ export class DashboardPage extends BasePage {
 
     async assertDashboardUrl() {
         await expect(this.page).toHaveURL(/\/dashboard$/);
+    }
+
+    // ---- AIO-102 Dashboard design gaps ----
+
+    async assertActivityFeedAccessible() {
+        await expect(this.activityFeed).toBeVisible();
+        await expect(this.activityFeed).toHaveAttribute('tabindex', '0');
+    }
+
+    /** Focuses the feed and scrolls it with PageDown; the scroll is asserted only when its content overflows. */
+    async scrollActivityFeedWithKeyboard() {
+        await this.activityFeed.focus();
+        await expect(this.activityFeed).toBeFocused();
+        const overflows = await this.activityFeed.evaluate((el) => el.scrollHeight > el.clientHeight);
+        await this.page.keyboard.press('PageDown');
+        if (overflows) {
+            await expect.poll(() => this.activityFeed.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+        }
+    }
+
+    /** Reaches the "view all activity" link by keyboard focus and opens it with Enter. */
+    async openViewAllActivityWithKeyboard() {
+        await this.viewAllActivityLink.focus();
+        await expect(this.viewAllActivityLink).toBeFocused();
+        await this.page.keyboard.press('Enter');
+    }
+
+    async assertLinkedTiles() {
+        const dashboard = this.page.getByTestId('dashboard-page');
+        for (const path of ['/leads', '/deals', '/tasks', '/tickets']) {
+            await expect(dashboard.locator(`a[href^="${path}"]`).first()).toBeVisible();
+        }
+    }
+
+    async assertRangeChipVisible() {
+        await expect(this.page.getByText('Last 30 days').first()).toBeVisible();
     }
 }
