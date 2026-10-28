@@ -2,9 +2,11 @@ import * as dotenv from 'dotenv';
 import * as path from 'path';
 import { IEnvConfig } from '../types';
 
-// Override=true ensures .env values always take precedence over system env vars.
+// Locally, override=true ensures .env values always take precedence over system env vars.
 // This prevents Windows built-in vars like USERNAME from polluting our config.
-dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: true });
+// In CI the pipeline's variables win (TARGET_ENV picks the environment whose NEWAPP_* URLs apply),
+// and .env only fills in what the pipeline doesn't set.
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: !process.env.CI });
 
 /**
  * EnvManager - Singleton class for centralized environment configuration.

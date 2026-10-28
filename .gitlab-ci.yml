@@ -1,13 +1,44 @@
 stages:
   - test
 
+# Which CRM environment the tests run against (owner, 2026-10-28)
+# - staging and production are GitLab environments (Operate > Environments). Their CRM URLs are
+#   CI variables scoped to them (Settings > CI/CD > Variables, Environment scope "staging" or
+#   "production"): NEWAPP_BASE_URL (the site) and NEWAPP_BASE_API (the API). Every job below runs
+#   in the environment named by TARGET_ENV, so it gets that environment's URLs.
+# - API runs (the office's pipeline_run): TARGET_ENV and TEST_SUITE come with the request.
+# - Manual runs: Build > Pipelines > Run pipeline shows TARGET_ENV and TEST_SUITE as dropdowns.
+# - Schedules: set TARGET_ENV on the schedule; without it, staging.
+# - BASE_URL is the Automation Test Store's site, not the CRM's; it stays a project variable.
+# No secrets belong in this file.
 variables:
   CI: "true"
+  TARGET_ENV:
+    value: "staging"
+    options: ["staging", "production"]
+    description: "CRM environment to test: its environment-scoped NEWAPP_BASE_URL and NEWAPP_BASE_API are used."
+  TEST_SUITE:
+    value: "all"
+    options: ["all", "smoke", "sanity", "regression"]
+    description: "Suite to run on a manual or scheduled pipeline (all = the full suite)."
 
+# How to run the scheduled smoke run against staging (AIO-72)
+# - Scheduled: in GitLab, CI/CD > Schedules > New schedule (owner: Deven). Add the
+#   schedule variable SMOKE_STAGING = "true". Without it, a schedule runs the full
+#   suite in playwright-tests, as before.
+# - Manually: CI/CD > Pipelines > Run pipeline, with the variable SMOKE_STAGING = "true".
+# - Target: the staging environment's NEWAPP_BASE_URL / NEWAPP_BASE_API (see above).
+# - Report: the job artifacts (playwright-report/, test-results/, reports/, junit)
+#   are kept 5 days; open them from the job page, Browse.
+
+# Full suite on a schedule or a manual run
 playwright-tests:
   stage: test
   image: mcr.microsoft.com/playwright:v1.55.0-jammy
   timeout: 1h
+  environment:
+    name: $TARGET_ENV
+    action: prepare # reads the environment's variables; records no deployment
 
   before_script:
     - npm ci
@@ -28,17 +59,47 @@ playwright-tests:
       junit: reports/junit/results.xml
 
   rules:
-    # Run from GitLab Pipeline Schedule
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    # Run from GitLab Pipeline Schedule or a manual run (the smoke schedule runs staging-smoke instead)
+    - if: '($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $SMOKE_STAGING != "true" && $TEST_SUITE == "all" && ($TARGET_ENV == "staging" || $TARGET_ENV == "production")'
 
-    # Run when manually triggered from GitLab UI
-    - if: '$CI_PIPELINE_SOURCE == "web"'
+# Scheduled smoke run against staging (AIO-70)
+staging-smoke:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.55.0-jammy
+  timeout: 30m
+  environment:
+    name: staging
+    action: prepare
 
-# Started through the API (pipeline_run): runs the suite named in TEST_SUITE
+  before_script:
+    - npm ci
+
+  script:
+    - npx playwright install --with-deps chromium
+    - npm run test:smoke -- --project=chromium
+
+  artifacts:
+    when: always
+    name: staging-smoke-artifacts
+    paths:
+      - playwright-report/
+      - test-results/
+      - reports/
+    expire_in: 5 days
+    reports:
+      junit: reports/junit/results.xml
+
+  rules:
+    - if: '($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $SMOKE_STAGING == "true"'
+
+# One suite against one environment: API runs (pipeline_run), or a manual or scheduled run with TEST_SUITE set
 playwright-suite:
   stage: test
   image: mcr.microsoft.com/playwright:v1.55.0-jammy
   timeout: 1h
+  environment:
+    name: $TARGET_ENV
+    action: prepare
 
   before_script:
     - npm ci
@@ -59,5 +120,6 @@ playwright-suite:
       junit: reports/junit/results.xml
 
   rules:
-    # Only the three known suites; any other TEST_SUITE value gives no job
-    - if: '$CI_PIPELINE_SOURCE == "api" && ($TEST_SUITE == "smoke" || $TEST_SUITE == "sanity" || $TEST_SUITE == "regression")'
+    # Only the three known suites and the two environments; any other value gives no job
+    - if: '$CI_PIPELINE_SOURCE == "api" && ($TEST_SUITE == "smoke" || $TEST_SUITE == "sanity" || $TEST_SUITE == "regression") && ($TARGET_ENV == "staging" || $TARGET_ENV == "production")'
+    - if: '($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $SMOKE_STAGING != "true" && ($TEST_SUITE == "smoke" || $TEST_SUITE == "sanity" || $TEST_SUITE == "regression") && ($TARGET_ENV == "staging" || $TARGET_ENV == "production")'
