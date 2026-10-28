@@ -1,6 +1,6 @@
 import { test } from "@fixtures/CrmFixtures";
 
-test('AIO-T23: Dashboard "view all activity" link opens the Activity view @feature @regression', async ({
+test('AIO-T23: Dashboard "view all activity" link opens the Activity view @feature @smoke @regression', async ({
     crmLoginPage,
     dashboardPage
 }) => {

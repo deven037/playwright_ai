@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test('@regression Verify Deal Creation', async ({
+test('@smoke @regression Verify Deal Creation', async ({
     crmLoginPage,
     dashboardPage,
     dealsPage

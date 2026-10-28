@@ -9,7 +9,7 @@ import { test, expect } from '../../../src/fixtures/PageFixtures';
  */
 test.describe('@feature - Login Feature', () => {
 
-  test('@feature TC_LOGIN_001 - Valid user should login successfully with correct credentials',
+  test('@feature @smoke @regression TC_LOGIN_001 - Valid user should login successfully with correct credentials',
     async ({ loginPage }) => {
 
       // -- Arrange ------------------------------------------------------------
@@ -22,7 +22,7 @@ test.describe('@feature - Login Feature', () => {
       await loginPage.assertLoginSuccess();
     });
 
-  test('@feature TC_LOGIN_002 - User should see error message with invalid credentials',
+  test('@feature @regression TC_LOGIN_002 - User should see error message with invalid credentials',
     async ({loginPage}) => {
 
       await loginPage.goto();

@@ -1,6 +1,6 @@
 import { test } from "@fixtures/CrmFixtures";
 
-test('Verify Deals Assignment Rule Creation', async({
+test('@regression Verify Deals Assignment Rule Creation', async({
     crmLoginPage,
     dashboardPage,
     dealsPage,

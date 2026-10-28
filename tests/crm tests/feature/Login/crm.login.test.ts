@@ -13,7 +13,7 @@ import { test } from '../../../../src/fixtures/CrmFixtures';
  *      (e.g. "@feature TC_NEWAPP_001 - Should ...").
  */
 
-test('@feature CRM Login - Should log in with default credentials', async ({ crmLoginPage, dashboardPage }) => {
+test('@feature @smoke @regression CRM Login - Should log in with default credentials', async ({ crmLoginPage, dashboardPage }) => {
   
   await crmLoginPage.goto();
   await crmLoginPage.loginWithDefaultCredentials();

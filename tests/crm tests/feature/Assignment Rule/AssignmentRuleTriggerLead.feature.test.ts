@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test('Verify Lead Assignment Rule Creation', async({
+test('@regression Verify Lead Assignment Rule Creation', async({
     crmLoginPage,
     dashboardPage,
     leadsPage,

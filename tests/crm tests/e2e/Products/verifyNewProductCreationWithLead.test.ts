@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test('@e2e Product + Lead Creation', async({
+test('@e2e @regression Product + Lead Creation', async({
     crmLoginPage,
     leadsPage,
     productsPage,
