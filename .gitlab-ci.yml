@@ -4,6 +4,17 @@ stages:
 variables:
   CI: "true"
 
+# How to run the scheduled smoke run against staging (AIO-72)
+# - Scheduled: in GitLab, CI/CD > Schedules > New schedule (owner: Deven). Add the
+#   schedule variable SMOKE_STAGING = "true". Without it, a schedule runs the full
+#   suite in playwright-tests, as before.
+# - Manually: CI/CD > Pipelines > Run pipeline, with the variable SMOKE_STAGING = "true".
+# - Target: BASE_URL (read by src/utils/EnvManager.ts). It defaults to the verified
+#   staging site below; override it with a schedule variable BASE_URL to test elsewhere.
+# - Report: the job artifacts (playwright-report/, test-results/, reports/, junit)
+#   are kept 5 days; open them from the job page, Browse.
+# No secrets belong in this file.
+
 playwright-tests:
   stage: test
   image: mcr.microsoft.com/playwright:v1.55.0-jammy
@@ -28,11 +39,41 @@ playwright-tests:
       junit: reports/junit/results.xml
 
   rules:
-    # Run from GitLab Pipeline Schedule
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    # Run from GitLab Pipeline Schedule (the smoke schedule runs staging-smoke instead)
+    - if: '$CI_PIPELINE_SOURCE == "schedule" && $SMOKE_STAGING != "true"'
 
     # Run when manually triggered from GitLab UI
-    - if: '$CI_PIPELINE_SOURCE == "web"'
+    - if: '$CI_PIPELINE_SOURCE == "web" && $SMOKE_STAGING != "true"'
+
+# Scheduled smoke run against the verified staging site (AIO-70)
+staging-smoke:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.55.0-jammy
+  timeout: 30m
+
+  variables:
+    BASE_URL: "https://automation-crm.netlify.app/"
+
+  before_script:
+    - npm ci
+
+  script:
+    - npx playwright install --with-deps chromium
+    - npm run test:smoke -- --project=chromium
+
+  artifacts:
+    when: always
+    name: staging-smoke-artifacts
+    paths:
+      - playwright-report/
+      - test-results/
+      - reports/
+    expire_in: 5 days
+    reports:
+      junit: reports/junit/results.xml
+
+  rules:
+    - if: '($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $SMOKE_STAGING == "true"'
 
 # Started through the API (pipeline_run): runs the suite named in TEST_SUITE
 playwright-suite:
