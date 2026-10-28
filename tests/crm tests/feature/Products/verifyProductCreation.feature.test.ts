@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test('@sanity Product Creation', async({
+test('@smoke @regression @sanity Product Creation', async({
     crmLoginPage,
     dashboardPage,
     adminPage,

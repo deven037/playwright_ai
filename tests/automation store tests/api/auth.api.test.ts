@@ -4,7 +4,7 @@ import { EnvManager } from "../../../src/utils/EnvManager";
 const env = EnvManager.getInstance();
 
 test.describe("Authentication API Tests", () => {
-  test("@api TC_AUTH_001 - Should authenticate user with valid credentials", async ({
+  test("@api @regression TC_AUTH_001 - Should authenticate user with valid credentials", async ({
     request,
     }) => {
     const apiUrl = `${env.authApi}login`;
@@ -23,7 +23,7 @@ test.describe("Authentication API Tests", () => {
     console.log(body.accessToken);
   });
 
-  test("@api TC_AUTH_002 - Should fail authentication with invalid credentials", async ({
+  test("@api @regression TC_AUTH_002 - Should fail authentication with invalid credentials", async ({
       request,
     }) => {
     const apiUrl = `${env.authApi}login`;
@@ -39,7 +39,7 @@ test.describe("Authentication API Tests", () => {
     expect(body.message).toBe("Invalid credentials");
   });
 
-  test("@api Login And Get Profile", async ({ request }) => {
+  test("@api @regression Login And Get Profile", async ({ request }) => {
     const apiUrl = `${env.authApi}login`;
     const payload = {
       username: "emilys",

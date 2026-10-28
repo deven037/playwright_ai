@@ -4,7 +4,7 @@ import { EnvManager } from "../../../src/utils/EnvManager";
 const env = EnvManager.getInstance();
 
 test.describe("API Tests", () => {
-  test("@api TC_API_001 - Should fetch list of users", async ({ request }) => {
+  test("@api @regression TC_API_001 - Should fetch list of users", async ({ request }) => {
     const url = `${env.apiBaseUrl}users/1`;
     const response = await request.get(url);
     expect(response.status()).toBe(200);
@@ -14,7 +14,7 @@ test.describe("API Tests", () => {
     expect(body.name).toBeTruthy();
   });
 
-  test("@api TC_API_002 - Should create a new user", async ({ request }) => {
+  test("@api @regression TC_API_002 - Should create a new user", async ({ request }) => {
     const payload = {
       name: "John Doe",
       email: "john.doe@gmail.com",
@@ -32,7 +32,7 @@ test.describe("API Tests", () => {
     expect(body.message).toBe(payload.message);
   });
 
-  test("@api TC_API_003 - Should update an existing user", async ({
+  test("@api @regression TC_API_003 - Should update an existing user", async ({
     request,
     }) => {
     const payload = {
@@ -52,7 +52,7 @@ test.describe("API Tests", () => {
     expect(body.message).toBe(payload.message);
   });
 
-  test("@api TC_API_004 - Headers Validation", async ({ request }) => {
+  test("@api @regression TC_API_004 - Headers Validation", async ({ request }) => {
     const url = `${env.apiBaseUrl}users/1`;
     const response = await request.get(url);
     expect(response.status()).toBe(200);
@@ -60,7 +60,7 @@ test.describe("API Tests", () => {
     expect(response.headers()["content-type"]).toContain("application/json");
   });
 
-  test("@api TC_API_005 - Query Parameters Validation", async ({ request }) => {
+  test("@api @regression TC_API_005 - Query Parameters Validation", async ({ request }) => {
     const url = `${env.apiBaseUrl}users`;
     const response = await request.get(url, {
       params: { id: 5 },

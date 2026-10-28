@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test('@feature Verify Contact Deletion', async ({
+test('@feature @regression Verify Contact Deletion', async ({
     crmLoginPage,
     dashboardPage,
     contactsPage
