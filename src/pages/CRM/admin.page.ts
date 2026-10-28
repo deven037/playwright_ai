@@ -76,4 +76,30 @@ export class Admin extends BasePage {
         const setup = this.page.locator("//button[@data-testid='setup-menu-item']");
         await this.helpers.click(setup, 'Setup');   
     }
+
+    /** Opens Status Codes from the ToolBox panel on the Leads page (must already be on /leads). */
+    async gotoStatusCodesFromLeads() {
+        await this.page.getByRole('link', { name: 'Status Codes', exact: true }).click();
+        await this.page.getByTestId('status-codes-page').waitFor({ state: 'visible' });
+    }
+
+    /** Option-count text of a status code set card, e.g. "5 option(s) · Built-in". */
+    statusSetMeta(setName: string) {
+        return this.page.locator(`//*[normalize-space(text())='${setName}']/following-sibling::*[1]`);
+    }
+
+    /** Opens a status code set for editing and returns its options (one per line in the textarea). */
+    async openStatusSet(setName: string): Promise<string[]> {
+        await this.page.getByText(setName, { exact: true }).click();
+        const options = this.page.getByTestId('status-codes-options');
+        await options.waitFor({ state: 'visible' });
+        const text = await options.inputValue();
+        return text.split('\n').map((o) => o.trim()).filter(Boolean);
+    }
+
+    async saveStatusSet(options: string[]) {
+        await this.page.getByTestId('status-codes-options').fill(options.join('\n'));
+        await this.page.getByTestId('status-codes-save-btn').click();
+        await this.page.getByTestId('status-codes-options').waitFor({ state: 'hidden' });
+    }
 }
