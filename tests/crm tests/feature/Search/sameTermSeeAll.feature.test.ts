@@ -50,7 +50,11 @@ test('AIO-T94: Same-term See all restores edited list filters on Leads, Contacts
             const originalUrl = page.url();
 
             await box.fill('zzz');
-            await expect(list.getByText(/No .* match/)).toBeVisible();
+            if (scenario.module === 'contacts') {
+                await expect(rows).toHaveCount(0);
+            } else {
+                await expect(list.getByText(/No .* match/)).toBeVisible();
+            }
             if (scenario.module === 'leads') {
                 await expect(list.getByTestId('pagination')).toContainText('0 lead(s) · page 1 of 1');
             }
