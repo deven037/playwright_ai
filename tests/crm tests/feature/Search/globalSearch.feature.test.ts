@@ -161,6 +161,7 @@ test.describe('Global search @regression', () => {
         await page.keyboard.press('Control+k');
         await expect(input(page)).toBeFocused();
         await page.clock.install();
+        await page.clock.pauseAt(new Date());
         await input(page).fill('q');
         await page.clock.runFor(500);
         expect(requests).toEqual([]);
