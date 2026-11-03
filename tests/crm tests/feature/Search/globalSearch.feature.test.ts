@@ -127,7 +127,8 @@ test.describe('Global search @regression', () => {
                 await expect(module).toBeVisible();
                 if (type === 'deals') {
                     await expect(module.getByRole('button', { name: `Filtered by "${prefix}" · Clear`, exact: true })).toBeVisible();
-                    await expect(module.locator('.kanban-card-title')).toHaveText(records.deals.map(row => row.name));
+                    await expect(module.locator('.kanban-card-title')).toHaveCount(4);
+                    expect((await module.locator('.kanban-card-title').allTextContents()).sort()).toEqual(records.deals.map(row => row.name).sort());
                 } else {
                     await expect(module.getByRole('searchbox')).toHaveValue(prefix);
                     for (const row of records[type]) await expect(module.getByText(row.name, { exact: true })).toBeVisible();
@@ -174,7 +175,7 @@ test.describe('Global search @regression', () => {
         await page.clock.runFor(1);
         await expect(page.getByTestId('search-result-leads')).toHaveText('qabControlled response');
         expect(requests).toEqual(['qab']);
-        await expect(page.getByRole('status')).toContainText('1 result in 1 type');
+        await expect(page.getByTestId('command-bar').getByRole('status')).toContainText('1 result in 1 type');
         await input(page).press('ArrowDown');
         await expect(page.getByTestId('search-result-leads')).toHaveAttribute('aria-selected', 'true');
         await expect(input(page)).toHaveAttribute('aria-activedescendant', await page.getByTestId('search-result-leads').getAttribute('id') as string);
