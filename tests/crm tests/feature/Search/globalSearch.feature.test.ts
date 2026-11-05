@@ -34,7 +34,9 @@ test.describe('Global search @regression', () => {
         const adminHeaders = { Authorization: `Bearer ${token}` };
         const created: { type: string; id: string }[] = [];
         const prefix = `qa204${Date.now()}${test.info().workerIndex}`;
-        const phone = `555${Date.now()}`;
+        // Fixed-length 10-digit phone, unique per run: 555 + last 7 digits of the timestamp.
+        const phone = `555${String(Date.now() % 10_000_000).padStart(7, '0')}`;
+        expect(phone).toMatch(/^\d{10}$/);
         const email = `${prefix}@example.com`;
         const api = async (path: string, method = 'GET', data?: unknown, headers = adminHeaders) => {
             const response = await page.request.fetch(`${base}/api/${path}`, { method, data, headers });
@@ -95,7 +97,7 @@ test.describe('Global search @regression', () => {
                         }
                     }
                 }
-                for (const term of [email, phone, `(${phone.slice(0, 3)}) ${phone.slice(3, 8)}-${phone.slice(8)}`]) {
+                for (const term of [email, phone, `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`]) {
                     const matched = await search(term, headers);
                     for (const type of types) {
                         const expected = role === 'viewer' || type === 'deals' || (type === 'accounts' && term === email) ? 0 : 4;
