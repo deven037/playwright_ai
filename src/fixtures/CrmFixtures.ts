@@ -8,6 +8,7 @@ import { ContactsPage } from '@pages/CRM/contacts.page';
 import { AssignmentRulePage } from '@pages/CRM/Rules/assignment.rule.page';
 import { DealsPage } from '@pages/CRM/deals.page';
 import { AccountsPage } from '@pages/CRM/accounts.page';
+import { SearchPage } from '@pages/CRM/search.page';
 import { TicketsPage } from '@pages/CRM/tickets.page';
 // import { Logger } from '../utils/Logger'; // uncomment if you add logging here
 
@@ -43,6 +44,7 @@ import { TicketsPage } from '@pages/CRM/tickets.page';
  */
 
 export type CRMPageFixtures = {
+  searchPage: SearchPage;
   crmLoginPage: CrmLoginPage;
   dashboardPage: DashboardPage;
   leadsPage: LeadsPage;
@@ -56,6 +58,9 @@ export type CRMPageFixtures = {
 };
 
 export const test = base.extend<CRMPageFixtures>({
+  searchPage: async ({ page }, use) => {
+    await use(new SearchPage(page));
+  },
   crmLoginPage: async ({ page }, use) => {
     const crmLoginPage = new CrmLoginPage(page);
     await use(crmLoginPage);
