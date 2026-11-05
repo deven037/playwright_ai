@@ -232,45 +232,7 @@ export class SearchPage extends BasePage {
         await expect(page.getByTestId('search-result-leads')).toBeVisible();
         await this.input(page).press('ArrowDown');
         await this.input(page).press('Enter');
-        await expect(page).toHaveURL(new RegExp(`/leads/${searchText.controlledId}        const requests: string[] = [];
-        await page.route('**/api/search?**', async route => {
-            const term = new URL(route.request().url()).searchParams.get(searchTerms.minimum)!;
-            requests.push(term);
-            await this.fulfill(route, controlledSearchResponse(term));
-        });
-        await this.opener(page).focus();
-        await page.keyboard.press('Control+k');
-        await expect(this.input(page)).toBeFocused();
-        await page.clock.install();
-        await page.clock.pauseAt(new Date());
-        await helpers.fill(this.input(page), searchTerms.minimum);
-        await page.clock.runFor(500);
-        expect(requests).toEqual([]);
-        await helpers.fill(this.input(page), searchTerms.initial);
-        await page.clock.runFor(200);
-        expect(requests).toEqual([]);
-        await helpers.fill(this.input(page), searchTerms.debounced);
-        await page.clock.runFor(249);
-        expect(requests).toEqual([]);
-        await page.clock.runFor(1);
-        await expect(page.getByTestId('search-result-leads')).toHaveText(searchTerms.debounced + searchText.subtitle);
-        expect(requests).toEqual([searchTerms.debounced]);
-        await expect(page.getByTestId('command-bar').getByRole('status')).toContainText(searchText.announcement);
-        await this.input(page).press('ArrowDown');
-        await expect(page.getByTestId('search-result-leads')).toHaveAttribute('aria-selected', 'true');
-        await expect(this.input(page)).toHaveAttribute('aria-activedescendant', await page.getByTestId('search-result-leads').getAttribute('id') as string);
-        await this.input(page).press('ArrowUp');
-        await expect(page.getByTestId('search-result-leads')).toHaveAttribute('aria-selected', 'true');
-        await this.input(page).press('Escape');
-        await expect(page.getByTestId('command-bar')).toHaveCount(0);
-        await expect(this.opener(page)).toBeFocused();
-        await page.clock.resume();
-        await helpers.click(this.opener(page));
-        await helpers.fill(this.input(page), searchTerms.initial);
-        await expect(page.getByTestId('search-result-leads')).toBeVisible();
-        await this.input(page).press('ArrowDown');
-        await this.input(page).press('Enter');
-        await expect(page).toHaveURL());
+        await expect(page).toHaveURL(new RegExp(`/leads/${searchText.controlledId}$`));
     }
 
     async assertLoadingErrorRetryAndEmpty() {
