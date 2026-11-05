@@ -139,7 +139,7 @@ test.describe('Global search @regression', () => {
             await opener(page).click();
             await input(page).fill(records.leads[0].name);
             await expect(page.getByRole('group')).toHaveCount(1);
-            await expect(page.getByRole('group', { name: 'Leads', exact: true })).toBeVisible();
+            await expect(page.getByRole('group', { name: 'Leads 1 match', exact: true })).toBeVisible();
             await page.getByTestId('search-result-leads').click();
             await expect(page).toHaveURL(new RegExp(`/leads/${records.leads[0].id}$`));
         } finally {
