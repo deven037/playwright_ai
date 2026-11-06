@@ -1,12 +1,12 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@regression Convert a lead through the 3-step wizard with a new account and a deal', async ({
     crmLoginPage,
     dashboardPage,
     leadsPage }) => {
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.waitForPageLoad();
     await dashboardPage.assertProfileIconVisible();

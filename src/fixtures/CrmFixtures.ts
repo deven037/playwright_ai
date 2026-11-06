@@ -9,6 +9,9 @@ import { AssignmentRulePage } from '@pages/CRM/Rules/assignment.rule.page';
 import { DealsPage } from '@pages/CRM/deals.page';
 import { AccountsPage } from '@pages/CRM/accounts.page';
 import { TicketsPage } from '@pages/CRM/tickets.page';
+import { Page } from '@playwright/test';
+import { EnvManager } from '../utils/EnvManager';
+import { AuthRole, AuthRoleOption, roleAuthFile } from '../data/auth.data';
 // import { Logger } from '../utils/Logger'; // uncomment if you add logging here
 
 /**
@@ -55,7 +58,60 @@ export type CRMPageFixtures = {
   ticketsPage: TicketsPage;
 };
 
-export const test = base.extend<CRMPageFixtures>({
+/**
+ * Per-role session reuse (AIO-250). tests/auth.setup.ts signs in once per role and saves
+ * auth/<role>.json; a spec opts in with test.use({ authRole: 'admin' | 'rep' | 'viewer' }) and
+ * starts already signed in. The default 'none' starts signed out (login specs use the form).
+ */
+export type CRMAuthOptions = {
+  authRole: AuthRoleOption;
+};
+
+export type CRMAuthFixtures = {
+  /** Opens an extra signed-in page for another role (closed after the test). */
+  pageAsRole: (role: AuthRole) => Promise<Page>;
+};
+
+export const test = base.extend<CRMPageFixtures & CRMAuthOptions & CRMAuthFixtures>({
+  authRole: ['none', { option: true }],
+
+  context: async ({ browser, authRole }, use) => {
+    const storageState = authRole === 'none'
+      ? undefined
+      : roleAuthFile(authRole);
+    const context = await browser.newContext({
+      viewport: { width: 1920, height: 1080 },
+      ignoreHTTPSErrors: true,
+      storageState,
+    });
+    await use(context);
+    await context.close();
+  },
+
+  page: async ({ context, authRole }, use) => {
+    const page = await context.newPage();
+    if (authRole !== 'none') {
+      await page.goto(EnvManager.getInstance().newAppBaseUrl, { waitUntil: 'networkidle' });
+    }
+    await use(page);
+  },
+
+  pageAsRole: async ({ browser }, use) => {
+    const contexts: Awaited<ReturnType<typeof browser.newContext>>[] = [];
+    await use(async (role: AuthRole) => {
+      const context = await browser.newContext({
+        viewport: { width: 1920, height: 1080 },
+        ignoreHTTPSErrors: true,
+        storageState: roleAuthFile(role),
+      });
+      contexts.push(context);
+      const page = await context.newPage();
+      await page.goto(EnvManager.getInstance().newAppBaseUrl, { waitUntil: 'networkidle' });
+      return page;
+    });
+    for (const context of contexts) await context.close();
+  },
+
   crmLoginPage: async ({ page }, use) => {
     const crmLoginPage = new CrmLoginPage(page);
     await use(crmLoginPage);

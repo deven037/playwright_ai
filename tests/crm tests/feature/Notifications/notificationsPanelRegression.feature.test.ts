@@ -1,12 +1,12 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('AIO-T53: Notifications panel lists items while unread>0 and shows "No notifications" at zero unread, before and after navigating @smoke @regression', async ({
     crmLoginPage,
     dashboardPage,
     page
 }) => {
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     const notificationsButton = page.getByRole('button', { name: 'Notifications' });

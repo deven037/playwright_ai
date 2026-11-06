@@ -1,13 +1,13 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@regression User Creation', async({
     crmLoginPage,
     adminPage,
     dashboardPage
 }) => {
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.clickAvatar();
     await adminPage.gotoSetup();

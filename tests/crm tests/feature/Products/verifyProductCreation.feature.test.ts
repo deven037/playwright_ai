@@ -1,5 +1,7 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@smoke @regression @sanity Product Creation', async({
     crmLoginPage,
     dashboardPage,
@@ -7,8 +9,6 @@ test('@smoke @regression @sanity Product Creation', async({
     productsPage
 }) => {
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.clickAvatar();
     await adminPage.gotoSetup();

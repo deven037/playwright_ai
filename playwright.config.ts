@@ -55,8 +55,14 @@ export default defineConfig({
 
   projects: [
     {
+      // Signs in once per CRM role (admin, rep, viewer) and saves auth/<role>.json (AIO-250)
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+    },
+    {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      dependencies: ['setup'],
     }
   ],
 });

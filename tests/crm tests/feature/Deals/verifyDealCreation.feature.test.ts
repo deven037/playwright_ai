@@ -1,5 +1,7 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@smoke @regression Verify Deal Creation', async ({
     crmLoginPage,
     dashboardPage,
@@ -7,8 +9,6 @@ test('@smoke @regression Verify Deal Creation', async ({
 }) => {
     const dealName = `Deal_${Date.now()}`;
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();
 

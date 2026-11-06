@@ -1,13 +1,13 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@feature @regression Verify Contact Deletion', async ({
     crmLoginPage,
     dashboardPage,
     contactsPage
 }) => {
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();
 

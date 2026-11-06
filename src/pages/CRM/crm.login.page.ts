@@ -1,5 +1,6 @@
 import { BasePage } from '../../core/BasePage';
 import { Page } from "@playwright/test";
+import { AuthRole, ROLE_EMAILS, roleAuthFile } from '../../data/auth.data';
 
 export class CrmLoginPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -68,5 +69,20 @@ export class CrmLoginPage extends BasePage {
         await this.enterPassword();
         await this.remeberMeCheckbox.uncheck();
         await this.loginButton.click();
+    }
+
+    /** Form login as a demo role: Admin with the default credentials, Rep/Viewer with their demo account. */
+    async loginAsRole(role: AuthRole) {
+        if (role === 'admin') {
+            await this.loginWithDefaultCredentials();
+            return;
+        }
+        await this.loginWithCustomCredentials(ROLE_EMAILS[role]);
+    }
+
+    /** Saves the signed-in session to auth/<role>.json (git-ignored) for reuse by the other specs. */
+    async saveRoleSession(role: AuthRole) {
+        await this.page.context().storageState({ path: roleAuthFile(role) });
+        this.logger.info(`Auth session saved to auth/${role}.json`);
     }
 }

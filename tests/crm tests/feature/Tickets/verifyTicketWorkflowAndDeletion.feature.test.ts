@@ -1,5 +1,7 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@feature @smoke @regression Verify Ticket Creation, Status Workflow and Deletion', async ({
     crmLoginPage,
     dashboardPage,
@@ -8,8 +10,6 @@ test('@feature @smoke @regression Verify Ticket Creation, Status Workflow and De
     let createdSubject: string | undefined;
 
     try {
-        await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForDashBoardPage();
         await dashboardPage.assertProfileIconVisible();
 

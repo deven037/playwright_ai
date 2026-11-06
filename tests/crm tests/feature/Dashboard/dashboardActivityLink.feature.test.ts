@@ -1,11 +1,11 @@
 import { test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('AIO-T23: Dashboard "view all activity" link opens the Activity view @feature @smoke @regression', async ({
     crmLoginPage,
     dashboardPage
 }) => {
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     // Step 1: it is a link with href /activity

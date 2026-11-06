@@ -1,5 +1,7 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@regression Verify Deal Deletion from detail page', async ({
     crmLoginPage,
     dashboardPage,
@@ -7,8 +9,6 @@ test('@regression Verify Deal Deletion from detail page', async ({
 }) => {
     const dealName = `Deal_${Date.now()}`;
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();
 

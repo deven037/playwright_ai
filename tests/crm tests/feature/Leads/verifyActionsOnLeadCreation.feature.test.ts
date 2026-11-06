@@ -1,12 +1,12 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@regression Perform actions save, edit and delete on lead after creation ', async ({ 
     crmLoginPage, 
     dashboardPage, 
     leadsPage }) => {
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.waitForPageLoad();
     await dashboardPage.assertProfileIconVisible();

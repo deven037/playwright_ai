@@ -1,12 +1,12 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('AIO-T36: Notifications panel remains available when unread count is zero @smoke @regression', async ({
     crmLoginPage,
     dashboardPage,
     page
 }) => {
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     const notificationsButton = page.getByRole('button', { name: 'Notifications' });

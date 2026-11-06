@@ -1,9 +1,9 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test.describe('Leads list keyboard accessibility (AIO-61 AC3)', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage, leadsPage }) => {
-        await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForPageLoad();
         await dashboardPage.assertProfileIconVisible();
         await leadsPage.goToLeads();

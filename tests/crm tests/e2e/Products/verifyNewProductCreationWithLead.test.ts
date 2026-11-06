@@ -1,5 +1,7 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
+test.use({ authRole: 'admin' });
+
 test('@e2e @regression Product + Lead Creation', async({
     crmLoginPage,
     leadsPage,
@@ -8,8 +10,6 @@ test('@e2e @regression Product + Lead Creation', async({
     adminPage
 }) => {
 
-    await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.clickAvatar();
     await adminPage.gotoSetup();
