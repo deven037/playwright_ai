@@ -1,5 +1,6 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page } from "@playwright/test";
+import { LEADS_NO_MATCH_MESSAGE } from "../../data/leads.data";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -265,6 +266,26 @@ export class LeadsPage extends BasePage {
     async assertConvertedToast(leadName: string) {
         const toast = this.page.getByText(`Lead "${leadName}" converted successfully.`);
         await this.helpers.assertVisible(toast, 'Converted toast');
+    }
+
+    private get leadRows() {
+        return this.page.getByTestId('leads-page').locator('tbody tr.row-clickable');
+    }
+
+    async assertLeadStatusInList(leadName: string, status: string) {
+        const row = this.leadRows.filter({ hasText: leadName });
+        await expect(row).toHaveCount(1);
+        await expect(row.locator('td').nth(5).locator('span')).toHaveText(status);
+    }
+
+    async assertNoLeadsMatch() {
+        await expect(this.leadRows).toHaveCount(0);
+        await expect(this.page.getByTestId('leads-page').getByText(LEADS_NO_MATCH_MESSAGE)).toBeVisible();
+    }
+
+    async clearLeadsSearch() {
+        await this.searchInLeadsTable('');
+        await expect(this.leadRows.first()).toBeVisible();
     }
 
     async chooseLayout(layoutName: string) {

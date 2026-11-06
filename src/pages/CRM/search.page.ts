@@ -61,6 +61,14 @@ export class SearchPage extends BasePage {
         await expect(this.input).toHaveAttribute('aria-busy', 'false');
     }
 
+    async assertGlobalSearchExcludesLead(leadName: string) {
+        await this.helpers.click(this.page.getByTestId('global-search'));
+        await this.helpers.fill(this.input, leadName);
+        await expect(this.input).toHaveAttribute('aria-busy', 'false');
+        await expect(this.panel.getByTestId('search-see-all-leads')).toHaveCount(0);
+        await expect(this.panel.getByText(leadName)).toHaveCount(0);
+    }
+
     async seeAll(term: string, module: SearchModule) {
         await this.searchFor(term, module);
         await this.helpers.click(this.panel.getByTestId(`search-see-all-${module}`));
