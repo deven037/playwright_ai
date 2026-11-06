@@ -1,36 +1,45 @@
-import { expect, test } from "@fixtures/CrmFixtures";
+import { test, expect } from '@fixtures/CrmFixtures';
+import { CONVERTED_SEARCH } from '../../../../src/data/leads.data';
 
-test('@regression Convert a lead through the 3-step wizard with a new account and a deal', async ({
-    crmLoginPage,
-    dashboardPage,
-    leadsPage }) => {
+test.use({ trace: 'on-first-retry' });
 
+test('AIO-T100: Converted leads remain searchable in Leads list @regression', async ({
+    crmLoginPage, dashboardPage, leadsPage,
+}) => {
     await crmLoginPage.goto();
     await crmLoginPage.loginWithDefaultCredentials();
-
     await dashboardPage.waitForPageLoad();
-    await dashboardPage.assertProfileIconVisible();
-
+    await leadsPage.trackConvertedSearchRecords();
     await leadsPage.goToLeads();
-    await leadsPage.createNewLead();
-    await leadsPage.chooseLayout('Default');
-    await leadsPage.fillLeadDetails('New', 'Event', 3000, 'CRM Starter Plan');
-    await leadsPage.createLead();
 
-    const leadName = await leadsPage.getLeadNameFromDetailsPage();
+    const wizardLead = await leadsPage.createConvertedSearchLead();
     await leadsPage.goToLeads();
-    await leadsPage.searchInLeadsTable(leadName);
-    expect(await leadsPage.getFirstLeadNameFromTable()).toBe(leadName);
-
-    await leadsPage.openConvertWizardForFirstLead();
-    expect(await leadsPage.getWizardContactName()).toBe(leadName);
+    await leadsPage.searchInLeadsTable(wizardLead);
+    await leadsPage.assertSearchLeadStatus(wizardLead, CONVERTED_SEARCH.newStatus);
+    await leadsPage.openSearchLeadConversion(wizardLead);
+    expect(await leadsPage.getWizardContactName()).toBe(wizardLead);
     await leadsPage.wizardNext();
-    await leadsPage.setWizardAccountName(`Account_${Date.now()}`);
+    await leadsPage.nameSearchConversionAccount(wizardLead);
     await leadsPage.wizardNext();
-    await leadsPage.enableWizardDeal(`Deal_${Date.now()}`);
+    await leadsPage.nameSearchConversionDeal(wizardLead);
     await leadsPage.finishConversion();
+    await leadsPage.assertConvertedToast(wizardLead);
+    await leadsPage.searchInLeadsTable(wizardLead);
+    await leadsPage.assertSearchLeadStatus(wizardLead, CONVERTED_SEARCH.convertedStatus);
 
-    await leadsPage.assertConvertedToast(leadName);
-    await leadsPage.searchInLeadsTable(leadName);
-    expect(await leadsPage.getStatusFromTable()).toBe('Converted');
+    const editedLead = await leadsPage.createConvertedSearchLead();
+    await leadsPage.goToLeads();
+    await leadsPage.searchInLeadsTable(editedLead);
+    await leadsPage.assertSearchLeadStatus(editedLead, CONVERTED_SEARCH.newStatus);
+    await leadsPage.editSearchLeadToConverted(editedLead);
+    await leadsPage.goToLeads();
+    await leadsPage.searchInLeadsTable(editedLead);
+    await leadsPage.assertSearchLeadStatus(editedLead, CONVERTED_SEARCH.convertedStatus);
+
+    await leadsPage.assertConvertedSearchVariants(wizardLead);
+    await leadsPage.assertConvertedSearchVariants(editedLead);
+    await leadsPage.searchForMissingConvertedLead(editedLead);
+    await leadsPage.assertClearingConvertedSearchRestoresList();
+    await leadsPage.assertGlobalSearchExcludesConverted(wizardLead);
+    await leadsPage.assertGlobalSearchExcludesConverted(editedLead);
 });

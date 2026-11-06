@@ -1,5 +1,8 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page, Response } from "@playwright/test";
+
+import { CONVERTED_SEARCH, convertedSearchLead } from '../../data/leads.data';
+import { SEARCH_LABEL } from '../../data/search.data';
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -271,4 +274,125 @@ export class LeadsPage extends BasePage {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
     }
+    private readonly createdSearchRecords = new Map<string, string>();
+    private readonly captureSearchRecord = (response: Response) => {
+        const request = response.request();
+        if (!response.ok() || request.method() !== 'POST' ||
+            !/\/api\/(leads|contacts|accounts|deals)$/.test(new URL(request.url()).pathname)) return;
+        const record = request.postDataJSON();
+        if (typeof record?.name !== 'string' || !record.name.startsWith(CONVERTED_SEARCH.prefix)) return;
+        this.createdSearchRecords.set(
+            request.url() + '/' + encodeURIComponent(record.id),
+            request.headers()['authorization'] ?? '',
+        );
+    };
+
+    async trackConvertedSearchRecords() {
+        this.page.on('response', this.captureSearchRecord);
+    }
+
+    async cleanupConvertedSearchRecords() {
+        this.page.off('response', this.captureSearchRecord);
+        for (const [url, authorization] of [...this.createdSearchRecords].reverse()) {
+            const response = await this.page.request.delete(url, { headers: { authorization } });
+            expect(response.status(), 'Remove only AIO-T100 records created in this browser').toBe(204);
+            this.createdSearchRecords.delete(url);
+        }
+    }
+
+    async createConvertedSearchLead() {
+        const record = convertedSearchLead();
+        await this.helpers.click(this.page.getByRole('button', { name: '+ New Lead', exact: true }));
+        await this.chooseLayout('Default');
+        await this.helpers.fill(this.page.getByTestId('lead-name'), record.name);
+        await this.helpers.fill(this.page.getByTestId('lead-company'), record.company);
+        await this.helpers.fill(this.page.getByTestId('lead-email'), record.email);
+        await this.helpers.fill(this.page.getByTestId('lead-phone'), CONVERTED_SEARCH.phone);
+        await this.helpers.click(this.page.getByTestId('lead-status'));
+        await this.helpers.click(this.page.getByRole('option', { name: CONVERTED_SEARCH.newStatus, exact: true }));
+        await this.helpers.click(this.page.getByRole('button', { name: 'Create lead', exact: true }));
+        await this.helpers.waitForElement(this.page.getByTestId('lead-detail-page'));
+        await this.helpers.assertText(this.page.getByRole('heading', { level: 1 }), record.name);
+        return record.name;
+    }
+
+    private convertedSearchRow(name: string) {
+        return this.page.getByTestId('leads-page').getByRole('row').filter({
+            has: this.page.getByRole('cell', { name, exact: true }),
+        });
+    }
+
+    async assertSearchLeadStatus(name: string, status: string) {
+        const row = this.convertedSearchRow(name);
+        await expect(row).toHaveCount(1);
+        await this.helpers.assertVisible(row.getByRole('cell', { name: status, exact: true }));
+        await expect(this.page.getByTestId('leads-page').getByRole('checkbox', { name: /^Select AioT100/ })).toHaveCount(1);
+    }
+
+    async openSearchLeadConversion(name: string) {
+        const row = this.convertedSearchRow(name);
+        await this.helpers.waitForElement(row);
+        await row.click({ button: 'right' });
+        await this.helpers.click(this.page.getByText('Convert lead…', { exact: true }));
+        await this.helpers.assertVisible(this.page.getByLabel('Contact name', { exact: true }));
+    }
+
+    async editSearchLeadToConverted(name: string) {
+        await this.helpers.click(this.convertedSearchRow(name).getByRole('cell', { name, exact: true }));
+        await this.editlead();
+        await this.helpers.click(this.page.getByRole('dialog').getByRole('button', { name: CONVERTED_SEARCH.newStatus, exact: true }));
+        await this.helpers.click(this.page.getByRole('option', { name: CONVERTED_SEARCH.convertedStatus, exact: true }));
+        await this.helpers.click(this.page.getByTestId('save-lead-btn'));
+        await this.helpers.assertText(this.page.getByTestId('lead-detail-status'), CONVERTED_SEARCH.convertedStatus);
+    }
+
+    async nameSearchConversionAccount(name: string) {
+        await this.setWizardAccountName(name + 'Account');
+    }
+
+    async nameSearchConversionDeal(name: string) {
+        await this.enableWizardDeal(name + 'Deal');
+    }
+
+    async searchForMissingConvertedLead(name: string) {
+        await this.searchInLeadsTable(name + 'missing');
+        await this.helpers.assertVisible(this.page.getByText(CONVERTED_SEARCH.noMatches, { exact: true }));
+    }
+
+    async assertConvertedSearchVariants(name: string) {
+        // Force a visible empty state before each matching query so assertions cannot
+        // accidentally pass against rows from before the list's debounce completes.
+        for (const query of [name.slice(0, -4), name.toUpperCase()]) {
+            await this.searchInLeadsTable(name + 'missing');
+            await this.helpers.assertVisible(this.page.getByText(CONVERTED_SEARCH.noMatches, { exact: true }));
+            await this.searchInLeadsTable(query);
+            await this.assertSearchLeadStatus(name, CONVERTED_SEARCH.convertedStatus);
+        }
+    }
+
+    async assertClearingConvertedSearchRestoresList() {
+        await this.helpers.fill(this.page.getByTestId('leads-page').getByRole('searchbox'), '');
+        await expect(this.page.getByTestId('leads-page').getByRole('searchbox')).toHaveValue('');
+        await expect(this.page.getByTestId('leads-page').getByRole('checkbox', { name: /^Select AioT100/ })).toHaveCount(2);
+    }
+
+    async assertGlobalSearchExcludesConverted(name: string) {
+        await this.helpers.click(this.page.getByTestId('global-search'));
+        const panel = this.page.getByTestId('command-bar');
+        const input = panel.getByRole('combobox', { name: SEARCH_LABEL });
+        // Response ties the assertion to this query, rather than the previous results.
+        const completed = this.page.waitForResponse(response => {
+            const url = new URL(response.url());
+            return url.pathname === '/api/search' && url.searchParams.get('q') === name && response.ok();
+        });
+        await this.helpers.fill(input, name);
+        await completed;
+        await expect(input).toHaveAttribute('aria-busy', 'false');
+        await expect(input).toHaveAttribute('aria-invalid', 'false');
+        await expect(panel.getByTestId('search-result-leads')).toHaveCount(0);
+        await expect(panel.getByTestId('search-see-all-leads')).toHaveCount(0);
+        await this.helpers.pressKey(input, 'Escape');
+        await expect(panel).toHaveCount(0);
+    }
+
 }

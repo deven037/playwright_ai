@@ -74,7 +74,7 @@ export const test = base.extend<CRMPageFixtures>({
 
   leadsPage: async ({ page }, use) => {
     const leadsPage = new LeadsPage(page);
-    await use(leadsPage);
+    try { await use(leadsPage); } finally { await leadsPage.cleanupConvertedSearchRecords(); }
   },
 
   productsPage: async ({page}, use) => {
