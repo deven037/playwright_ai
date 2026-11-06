@@ -30,3 +30,30 @@ export function searchResponse(term: string) {
         })) }];
     })) };
 }
+
+// AIO-211: live staging search (API-derived counts), seeded demo data.
+export type SearchType = 'leads' | 'contacts' | 'accounts' | 'deals';
+export const SEARCH_TYPES: readonly SearchType[] = ['leads', 'contacts', 'accounts', 'deals'];
+export const SEARCH_ROWS_PER_TYPE = 3;
+export const COUNT_TERM = 'ver';
+export const COUNT_TOTALS: Record<SearchType, number> = { leads: 14, contacts: 5, accounts: 2, deals: 2 };
+export const COUNT_FOOTER = '23 results in 4 types';
+export const SEE_ALL_LABELS = { leads: 'See all 14 leads', contacts: 'See all 5 contacts' } as const;
+export const SEARCH_TYPE_HEADINGS: Record<SearchType, string> = { leads: 'Leads', contacts: 'Contacts', accounts: 'Accounts', deals: 'Deals' };
+export const groupName = (type: SearchType, total: number) =>
+    `${SEARCH_TYPE_HEADINGS[type]} ${total === 1 ? '1 match' : `${total} matches`}`;
+export const STAGE_ONLY_TERM = 'won';
+export const SHORT_TERM = 'v';
+export const SHORT_TERM_HINT = 'Type 2 or more characters to search leads, contacts, accounts and deals.';
+export const NO_MATCH_TERM = 'acme';
+export const noMatchesHeading = (term: string) => `No matches for "${term}"`;
+export const HIDDEN_CONTACT_TERM = 'example.com';
+export const VIEWER_EMAIL = 'viewer@crm.com';
+export const REP_EMAIL = 'rep@crm.com';
+export const VIEWPORTS = {
+    phone: { width: 375, height: 800 },
+    tablet: { width: 768, height: 1024 },
+    desktop: { width: 1440, height: 900 },
+} as const;
+export const CLEAR_BUTTON_MIN_PX = 44;
+export const FIRST_RESULT_URL = /\/leads\/lead-3$/;

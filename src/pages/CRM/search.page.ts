@@ -1,8 +1,9 @@
 import { BasePage } from '@core/BasePage';
 import { expect, Route } from '@playwright/test';
 import {
-    LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
-    SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel,
+    CLEAR_BUTTON_MIN_PX, COUNT_FOOTER, COUNT_TOTALS, LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL,
+    SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS, SEARCH_ROWS_PER_TYPE, SEARCH_TERMS, SEARCH_TYPES,
+    SearchModule, SearchType, groupName, searchResponse, seeAllLabel,
 } from '../../data/search.data';
 
 export class SearchPage extends BasePage {
@@ -12,8 +13,15 @@ export class SearchPage extends BasePage {
     private markHeld?: () => void;
     private gate?: Promise<void>;
     private readonly apiPattern = '**/api/**';
+    private searchRequests = 0;
+    private consoleErrors: string[] = [];
+    private lastApiTotals?: Record<SearchType, number>;
     private get panel() { return this.page.getByTestId('command-bar'); }
     private get input() { return this.panel.getByRole('combobox', { name: SEARCH_LABEL }); }
+    private get footer() { return this.panel.getByTestId('search-total'); }
+    private get clearIconButton() { return this.panel.getByRole('button', { name: 'Clear search', exact: true }); }
+    private group(type: SearchType, total: number) { return this.panel.getByRole('group', { name: groupName(type, total) }); }
+    private rows(type: SearchType) { return this.panel.getByTestId(`search-result-${type}`); }
     private list(module: SearchModule) { return this.page.getByTestId(`${module}-page`); }
     private box(module: SearchModule) { return this.list(module).getByRole('searchbox'); }
 
@@ -112,5 +120,133 @@ export class SearchPage extends BasePage {
             this.releaseSearch?.();
             this.heldTerm = undefined;
         }
+    }
+
+    // --- AIO-211: live staging search (counts come from the API) -------------
+
+    /** Counts /api/search requests and page console errors from now on. */
+    trackSearchActivity() {
+        this.searchRequests = 0;
+        this.consoleErrors = [];
+        this.page.on('request', request => {
+            if (new URL(request.url()).pathname === '/api/search') this.searchRequests++;
+        });
+        this.page.on('console', message => {
+            if (message.type() === 'error') this.consoleErrors.push(message.text());
+        });
+    }
+
+    async openSearch() {
+        await this.helpers.click(this.page.getByTestId('global-search'));
+        await this.helpers.waitForElement(this.input);
+    }
+
+    /** Types a term and waits for the API response; keeps its totals for later comparison. */
+    async typeAndAwaitApi(term: string) {
+        const response = this.page.waitForResponse(res =>
+            new URL(res.url()).pathname === '/api/search' && new URL(res.url()).searchParams.get('q') === term);
+        await this.helpers.fill(this.input, term);
+        const body = await (await response).json();
+        this.lastApiTotals = Object.fromEntries(SEARCH_TYPES.map(type => [type, body[type].total])) as Record<SearchType, number>;
+        await expect(this.input).toHaveAttribute('aria-busy', 'false');
+    }
+
+    async typeWithoutApi(term: string) {
+        await this.helpers.fill(this.input, term);
+    }
+
+    async assertGroupsAndRows(totals: Record<SearchType, number>) {
+        for (const type of SEARCH_TYPES) {
+            await expect(this.group(type, totals[type])).toBeVisible();
+            await expect(this.group(type, totals[type]).getByTestId(`search-result-${type}`))
+                .toHaveCount(Math.min(totals[type], SEARCH_ROWS_PER_TYPE));
+        }
+        await expect(this.panel.locator('mark').first()).toBeVisible();
+    }
+
+    async assertFooterMatchesApi() {
+        const totals = this.lastApiTotals!;
+        expect(totals).toEqual(COUNT_TOTALS);
+        const sum = SEARCH_TYPES.reduce((acc, type) => acc + totals[type], 0);
+        await expect(this.footer).toHaveText(`${sum} results in ${SEARCH_TYPES.length} types`);
+        await expect(this.footer).toHaveText(COUNT_FOOTER);
+    }
+
+    async assertSeeAll(labels: Partial<Record<SearchType, string>>) {
+        for (const type of SEARCH_TYPES) {
+            const link = this.panel.getByTestId(`search-see-all-${type}`);
+            const label = labels[type];
+            if (label) await expect(link).toHaveText(label);
+            else await expect(link).toHaveCount(0);
+        }
+    }
+
+    async assertDealHighlightsNameOnly(total: number) {
+        const deals = this.rows('deals');
+        await expect(deals).toHaveCount(Math.min(total, SEARCH_ROWS_PER_TYPE));
+        await expect(deals.locator('strong mark')).toHaveCount(await deals.count());
+        await expect(deals.locator('small mark')).toHaveCount(0);
+    }
+
+    async assertNoMatches(term: string, heading: string) {
+        const empty = this.panel.getByTestId('search-empty');
+        await expect(empty).toContainText(heading);
+        await expect(empty.getByRole('button', { name: 'Clear search', exact: true })).toBeVisible();
+        await expect(this.footer).toHaveCount(0);
+        expect(term.length).toBeGreaterThan(0);
+    }
+
+    async assertShortTermHint(hint: string) {
+        await expect(this.panel.getByTestId('search-short-hint')).toHaveText(hint);
+        for (const type of SEARCH_TYPES) await expect(this.rows(type)).toHaveCount(0);
+        expect(this.searchRequests).toBe(0);
+    }
+
+    async clearSearchFromEmptyState() {
+        await this.helpers.click(this.panel.getByTestId('search-empty').getByRole('button', { name: 'Clear search', exact: true }));
+        await expect(this.input).toHaveValue('');
+        await expect(this.input).toBeFocused();
+    }
+
+    async setViewport(size: { width: number; height: number }) {
+        await this.page.setViewportSize(size);
+    }
+
+    async assertNoHorizontalOverflow() {
+        const overflow = await this.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        expect(overflow).toBeLessThanOrEqual(0);
+    }
+
+    async assertClearButtonTouchTarget() {
+        await expect(this.clearIconButton).toBeVisible();
+        const box = await this.clearIconButton.boundingBox();
+        expect(box!.width).toBeGreaterThanOrEqual(CLEAR_BUTTON_MIN_PX);
+        expect(box!.height).toBeGreaterThanOrEqual(CLEAR_BUTTON_MIN_PX);
+    }
+
+    async assertResultsPanelShown() {
+        await expect(this.panel).toBeVisible();
+        await expect(this.rows('leads').first()).toBeVisible();
+    }
+
+    async openFirstResultWithKeyboard(url: RegExp) {
+        await this.helpers.pressKey(this.input, 'ArrowDown');
+        await expect(this.input).toHaveAttribute('aria-activedescendant', 'command-option-0');
+        await this.helpers.pressKey(this.input, 'Enter');
+        await this.helpers.assertURL(url);
+    }
+
+    assertNoConsoleErrors() {
+        expect(this.consoleErrors).toEqual([]);
+    }
+
+    async assertNoRowsContain(type: SearchType, text: string) {
+        await expect(this.rows(type).filter({ hasText: text })).toHaveCount(0);
+    }
+
+    async assertRowsHideContactDetails(type: SearchType) {
+        const rows = this.rows(type);
+        await expect(rows.first()).toBeVisible();
+        await expect(rows.filter({ hasText: /@|\d{3}[\s-]?\d{3}/ })).toHaveCount(0);
     }
 }
