@@ -22,6 +22,117 @@ variables:
     options: ["all", "smoke", "sanity", "regression"]
     description: "Suite to run on a manual or scheduled pipeline (all = the full suite)."
 
+# AIO-229: shared script entry in a hidden job mapping; no credentials or browser artifacts logged.
+.warm-up:
+  script:
+    - &warm-up |
+      node <<'NODE'
+      const assert = require('node:assert/strict');
+      const required = ['NEWAPP_BASE_API', 'NEWAPP_BASE_URL', 'NEWAPP_EMAIL', 'NEWAPP_PASSWORD'];
+      async function warm(env, probe, pause, report) {
+        for (const key of required) {
+          if (!env[key]?.trim()) throw new Error('Missing configuration: ' + key);
+        }
+        let fast = 0;
+        for (let n = 1; n <= 20; n++) {
+          let result;
+          try { result = await probe(); }
+          catch { result = { status: 0, ms: Infinity, ready: false }; }
+          report(n, result);
+          fast = result.status === 200 && result.ms < 3000 && result.ready ? fast + 1 : 0;
+          if (fast === 2) return;
+          if (n < 20) await pause();
+        }
+        throw new Error('Staging warm-up exhausted 20 attempts');
+      }
+      async function regression() {
+        const env = Object.fromEntries(required.map(key => [key, 'fixture']));
+        const good = { status: 200, ms: 100, ready: true };
+        const bad = [
+          { ...good, ms: 3000 }, { ...good, status: 503 },
+          { ...good, ready: false }, new Error('transport')
+        ];
+        async function scenario(prefix, succeeds) {
+          let calls = 0, sleeps = 0, reachedTest = false;
+          const sequence = succeeds ? [...prefix, good, good] : Array(20).fill(prefix[0]);
+          const run = async () => {
+            await warm(env, async () => {
+              const value = sequence[calls++];
+              if (value instanceof Error) throw value;
+              return value;
+            }, async () => { sleeps++; }, () => {});
+            reachedTest = true; // sentinel for the command following warm-up
+          };
+          if (succeeds) await run();
+          else await assert.rejects(run, /exhausted/);
+          assert.equal(reachedTest, succeeds);
+          assert.equal(calls, sequence.length);
+          assert.equal(sleeps, succeeds ? calls - 1 : 19);
+        }
+        await scenario([], true);
+        for (const value of bad) {
+          await scenario([good, value], true); // interrupted streak must reset
+          await scenario([value], false);
+        }
+        for (const key of required) {
+          for (const value of [undefined, '', ' ']) {
+            await assert.rejects(warm({ ...env, [key]: value },
+              async () => assert.fail('probe reached with missing configuration'),
+              async () => {}, () => {}), /Missing configuration/);
+          }
+        }
+        console.log('warm-up regression: passed (including test-command continuation sentinel)');
+      }
+      (async () => {
+        await regression(); // offline checks run before credentials or network are used
+        try { require('dotenv').config({ quiet: true }); } catch { /* CI variables only */ }
+        const { chromium } = require('@playwright/test');
+        let browser;
+        try {
+          // One attempt is capped at 45 s overall (per-action 30 s timeouts do not bound it).
+          const capped = probe => async () => {
+            let timer;
+            try {
+              return await Promise.race([probe(), new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error('attempt timeout')), 45000);
+              })]);
+            } finally { clearTimeout(timer); }
+          };
+          await warm(process.env, capped(async () => {
+            const start = Date.now();
+            const response = await fetch(process.env.NEWAPP_BASE_API.replace(/\/$/, '') + '/api/health',
+              { signal: AbortSignal.timeout(30000) });
+            await response.body?.cancel();
+            const status = response.status;
+            if (status !== 200) return { status, ms: Date.now() - start, ready: false };
+            browser ??= await chromium.launch();
+            const context = await browser.newContext();
+            try {
+              const page = await context.newPage();
+              page.setDefaultTimeout(30000);
+              page.setDefaultNavigationTimeout(30000);
+              // Same entry URL and test-id locators as src/pages/CRM/crm.login.page.ts
+              await page.goto(process.env.NEWAPP_BASE_URL);
+              await page.locator("//input[@data-testid='login-email']").fill(process.env.NEWAPP_EMAIL);
+              await page.locator("//input[@data-testid='login-password']").fill(process.env.NEWAPP_PASSWORD);
+              await page.locator("//*[@data-testid='login-submit']").click();
+              await page.locator('[data-testid="avatar-menu"]').waitFor({ state: 'visible' });
+              await page.locator('[data-testid="dashboard-page"]').waitFor({ state: 'visible' });
+              return { status, ms: Date.now() - start, ready: true };
+            } finally { await context.close(); }
+          }), () => new Promise(resolve => setTimeout(resolve, 10000)),
+          (n, r) => console.log('warm-up ' + n + ': API health HTTP ' + r.status +
+            '; login/bootstrap ready=' + r.ready + '; total ms=' + r.ms));
+          console.log('warm-up complete: continuing to Playwright test command');
+        } finally { await browser?.close(); }
+      })().catch(error => {
+        // Never emit browser/fetch exception text, request data, or credentials.
+        console.error(/^(Missing configuration: |Staging warm-up exhausted)/.test(error.message)
+          ? error.message : 'Warm-up regression or browser setup failed');
+        process.exitCode = 1;
+      });
+      NODE
+
 # How to run the scheduled smoke run against staging (AIO-72)
 # - Scheduled: in GitLab, CI/CD > Schedules > New schedule (owner: Deven). Add the
 #   schedule variable SMOKE_STAGING = "true". Without it, a schedule runs the full
@@ -42,9 +153,10 @@ playwright-tests:
 
   before_script:
     - npm ci
+    - npx playwright install --with-deps chromium
+    - *warm-up
 
   script:
-    - npx playwright install --with-deps chromium
     - npm run test:ci
 
   artifacts:
@@ -73,9 +185,10 @@ staging-smoke:
 
   before_script:
     - npm ci
+    - npx playwright install --with-deps chromium
+    - *warm-up
 
   script:
-    - npx playwright install --with-deps chromium
     - npm run test:smoke -- --project=chromium
 
   artifacts:
@@ -103,9 +216,10 @@ playwright-suite:
 
   before_script:
     - npm ci
+    - npx playwright install --with-deps chromium
+    - *warm-up
 
   script:
-    - npx playwright install --with-deps chromium
     - npm run test:$TEST_SUITE -- --project=chromium
 
   artifacts:
