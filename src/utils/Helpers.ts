@@ -62,11 +62,11 @@ export class Helpers {
 
   // --- Actions -------------------------------------------------------------
 
-  async click(locator: Locator, description = ''): Promise<void> {
+  async click(locator: Locator, description = '', options?: Parameters<Locator['click']>[0]): Promise<void> {
     this.logger.step(`Click: ${description || locator.toString()}`);
     await this.runWithHealing(locator, description, 'click', async (loc) => {
       await loc.waitFor({ state: 'visible' });
-      await loc.click();
+      await loc.click(options);
     });
   }
 

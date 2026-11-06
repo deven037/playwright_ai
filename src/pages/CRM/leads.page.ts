@@ -93,7 +93,10 @@ export class LeadsPage extends BasePage {
         return leadName;
     }
     
+    private currentSearchTerm = '';
+
     async searchInLeadsTable(leadName: string) {
+        this.currentSearchTerm = leadName;
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
@@ -189,13 +192,13 @@ export class LeadsPage extends BasePage {
     }
 
     async getTextFromLeadTableColumns(index: number) {
-        const column = this.page.locator(this.leadTableBlock(index));
+        const column = this.convertedSearchRow(this.currentSearchTerm).getByRole('cell').nth(index - 1);
         const text = await this.helpers.getText(column);
         return text;
     }
 
     async getStatusFromTable() {
-        const column = this.page.locator("//tr[@class='row-clickable']/td[6]/span");
+        const column = this.convertedSearchRow(this.currentSearchTerm).getByRole('cell').nth(5);
         const status = await this.helpers.getText(column);
         return status;
     }
@@ -332,7 +335,7 @@ export class LeadsPage extends BasePage {
     async openSearchLeadConversion(name: string) {
         const row = this.convertedSearchRow(name);
         await this.helpers.waitForElement(row);
-        await row.click({ button: 'right' });
+        await this.helpers.click(row, 'Open lead context menu', { button: 'right' });
         await this.helpers.click(this.page.getByText('Convert lead…', { exact: true }));
         await this.helpers.assertVisible(this.page.getByLabel('Contact name', { exact: true }));
     }
@@ -340,7 +343,7 @@ export class LeadsPage extends BasePage {
     async editSearchLeadToConverted(name: string) {
         await this.helpers.click(this.convertedSearchRow(name).getByRole('cell', { name, exact: true }));
         await this.editlead();
-        await this.helpers.click(this.page.getByRole('dialog').getByRole('button', { name: CONVERTED_SEARCH.newStatus, exact: true }));
+        await this.helpers.click(this.page.getByTestId('lead-detail-page').getByRole('button', { name: CONVERTED_SEARCH.newStatus, exact: true }));
         await this.helpers.click(this.page.getByRole('option', { name: CONVERTED_SEARCH.convertedStatus, exact: true }));
         await this.helpers.click(this.page.getByTestId('save-lead-btn'));
         await this.helpers.assertText(this.page.getByTestId('lead-detail-status'), CONVERTED_SEARCH.convertedStatus);

@@ -115,7 +115,10 @@ export class ContactsPage extends BasePage {
     }
   }
 
+  private searchedContactName = '';
+
   async searchInContactsTable(contactName: string) {
+    this.searchedContactName = contactName;
     const searchInput = this.page.locator("//div[@class='toolbar']/input");
     await this.helpers.fill(searchInput, contactName, 'Search Input');
     await this.page.waitForLoadState('domcontentloaded');
@@ -123,18 +126,18 @@ export class ContactsPage extends BasePage {
 
   async getFirstContactNameFromTable() {
     this.logger.info("Getting first contact name")
-    const name = this.page.locator("//div[@class='contact-name']");
+    const name = this.page.getByTestId('contacts-page').getByRole('link', { name: this.searchedContactName, exact: true });
     const contactName = await this.helpers.getText(name);
     return contactName;
   }
 
   async clickContactName() {
-    const name = this.page.locator("//div[@class='contact-name']");
+    const name = this.page.getByTestId('contacts-page').getByRole('link', { name: this.searchedContactName, exact: true });
     await this.helpers.click(name, "Contact Name");
   }
 
   async getNoRecordFoundMessage() {
-    const emptyRecord = this.page.locator("//div[@class='contact-grid']/div[@class='empty-cell']");
+    const emptyRecord = this.page.getByText(`No contacts match “${this.searchedContactName}”.`, { exact: true });
     const text = await this.helpers.getText(emptyRecord);
     this.logger.info(text);
     return text;
