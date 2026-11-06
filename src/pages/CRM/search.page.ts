@@ -1,4 +1,4 @@
-import { expect, Page, Route, BrowserContext } from '@playwright/test';
+import { expect, Page, Route, BrowserContext, Locator } from '@playwright/test';
 import { BasePage } from '@core/BasePage';
 import { Helpers } from '../../utils/Helpers';
 import { CrmLoginPage } from './crm.login.page';
@@ -10,6 +10,21 @@ export class SearchPage extends BasePage {
 
     private opener(page: Page) { return page.getByRole('button', { name: /Search leads, contacts, accounts/ }); }
     private input(page: Page) { return page.getByTestId('command-input'); }
+    private panel(page: Page) { return page.getByTestId('command-bar'); }
+    private result(page: Page, type: string) { return page.getByTestId(`search-result-${type}`); }
+    private seeAll(page: Page, type: string) { return page.getByTestId(`search-see-all-${type}`); }
+    private loading(page: Page) { return page.getByTestId('search-loading'); }
+    private emptyState(page: Page) { return page.getByTestId('search-empty'); }
+    private groups(page: Page) { return page.getByRole('group'); }
+    private namedGroup(page: Page, name: string) { return page.getByRole('group', { name, exact: true }); }
+    private alert(page: Page) { return page.getByRole('alert'); }
+    private retryButton(page: Page) { return page.getByRole('button', { name: searchText.retry, exact: true }); }
+    private modulePage(page: Page, type: string) { return page.getByTestId(`${type}-page`); }
+    private filterChip(module: Locator, label: string) { return module.getByRole('button', { name: label, exact: true }); }
+    private kanbanTitles(module: Locator) { return module.locator('.kanban-card-title'); }
+    private searchbox(module: Locator) { return module.getByRole('searchbox'); }
+    private rowText(module: Locator, name: string) { return module.getByText(name, { exact: true }); }
+    private statusRegion(page: Page) { return this.panel(page).getByRole('status'); }
     private fulfill(route: Route, body: unknown) {
         return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     }
@@ -144,11 +159,11 @@ export class SearchPage extends BasePage {
                 await helpers.click(this.opener(page));
                 await helpers.fill(this.input(page), prefix);
                 for (const type of searchTypes) {
-                    await expect(page.getByTestId(`search-result-${type}`)).toHaveCount(3);
-                    await expect(page.getByTestId(`search-see-all-${type}`)).toHaveText(searchText.seeAll(4, type));
+                    await expect(this.result(page, type)).toHaveCount(3);
+                    await expect(this.seeAll(page, type)).toHaveText(searchText.seeAll(4, type));
                 }
                 if (role === 'viewer') {
-                    const panel = page.getByTestId('command-bar');
+                    const panel = this.panel(page);
                     await expect(panel).not.toContainText(email);
                     await expect(panel).not.toContainText(phone);
                 }
@@ -159,24 +174,24 @@ export class SearchPage extends BasePage {
             for (const type of searchTypes) {
                 await helpers.click(this.opener(page));
                 await helpers.fill(this.input(page), prefix);
-                await helpers.click(page.getByTestId(`search-see-all-${type}`));
+                await helpers.click(this.seeAll(page, type));
                 await expect(page).toHaveURL(url => url.pathname === `/${type}` && url.searchParams.get(searchTerms.minimum) === prefix);
-                const module = page.getByTestId(`${type}-page`);
+                const module = this.modulePage(page, type);
                 await expect(module).toBeVisible();
                 if (type === 'deals') {
-                    await expect(module.getByRole('button', { name: searchText.filteredBy(prefix), exact: true })).toBeVisible();
-                    await expect(module.locator('.kanban-card-title')).toHaveCount(4);
-                    expect((await module.locator('.kanban-card-title').allTextContents()).sort()).toEqual(records.deals.map(row => row.name).sort());
+                    await expect(this.filterChip(module, searchText.filteredBy(prefix))).toBeVisible();
+                    await expect(this.kanbanTitles(module)).toHaveCount(4);
+                    expect((await this.kanbanTitles(module).allTextContents()).sort()).toEqual(records.deals.map(row => row.name).sort());
                 } else {
-                    await expect(module.getByRole('searchbox')).toHaveValue(prefix);
-                    for (const row of records[type]) await expect(module.getByText(row.name, { exact: true })).toBeVisible();
+                    await expect(this.searchbox(module)).toHaveValue(prefix);
+                    for (const row of records[type]) await expect(this.rowText(module, row.name)).toBeVisible();
                 }
             }
             await helpers.click(this.opener(page));
             await helpers.fill(this.input(page), records.leads[0].name);
-            await expect(page.getByRole('group')).toHaveCount(1);
-            await expect(page.getByRole('group', { name: searchText.leadsOneMatch, exact: true })).toBeVisible();
-            await helpers.click(page.getByTestId('search-result-leads'));
+            await expect(this.groups(page)).toHaveCount(1);
+            await expect(this.namedGroup(page, searchText.leadsOneMatch)).toBeVisible();
+            await helpers.click(this.result(page, 'leads'));
             await expect(page).toHaveURL(new RegExp(`/leads/${records.leads[0].id}$`));
         } finally {
             // Attempt every deletion with the Admin token; a rejected request must not skip the rest.
@@ -216,21 +231,21 @@ export class SearchPage extends BasePage {
         await page.clock.runFor(249);
         expect(requests).toEqual([]);
         await page.clock.runFor(1);
-        await expect(page.getByTestId('search-result-leads')).toHaveText(searchTerms.debounced + searchText.subtitle);
+        await expect(this.result(page, 'leads')).toHaveText(searchTerms.debounced + searchText.subtitle);
         expect(requests).toEqual([searchTerms.debounced]);
-        await expect(page.getByTestId('command-bar').getByRole('status')).toContainText(searchText.announcement);
+        await expect(this.statusRegion(page)).toContainText(searchText.announcement);
         await helpers.pressKey(this.input(page), 'ArrowDown', 'Search input');
-        await expect(page.getByTestId('search-result-leads')).toHaveAttribute('aria-selected', 'true');
-        await expect(this.input(page)).toHaveAttribute('aria-activedescendant', await page.getByTestId('search-result-leads').getAttribute('id') as string);
+        await expect(this.result(page, 'leads')).toHaveAttribute('aria-selected', 'true');
+        await expect(this.input(page)).toHaveAttribute('aria-activedescendant', await this.result(page, 'leads').getAttribute('id') as string);
         await helpers.pressKey(this.input(page), 'ArrowUp', 'Search input');
-        await expect(page.getByTestId('search-result-leads')).toHaveAttribute('aria-selected', 'true');
+        await expect(this.result(page, 'leads')).toHaveAttribute('aria-selected', 'true');
         await helpers.pressKey(this.input(page), 'Escape', 'Search input');
-        await expect(page.getByTestId('command-bar')).toHaveCount(0);
+        await expect(this.panel(page)).toHaveCount(0);
         await expect(this.opener(page)).toBeFocused();
         await page.clock.resume();
         await helpers.click(this.opener(page));
         await helpers.fill(this.input(page), searchTerms.initial);
-        await expect(page.getByTestId('search-result-leads')).toBeVisible();
+        await expect(this.result(page, 'leads')).toBeVisible();
         await helpers.pressKey(this.input(page), 'ArrowDown', 'Search input');
         await helpers.pressKey(this.input(page), 'Enter', 'Search input');
         await expect(page).toHaveURL(new RegExp(`/leads/${searchText.controlledId}$`));
@@ -242,15 +257,15 @@ export class SearchPage extends BasePage {
         const { terms, release } = await this.failFirstSearchRequest();
         await helpers.click(this.opener(page));
         await helpers.fill(this.input(page), searchTerms.empty);
-        await expect(page.getByTestId('search-loading')).toBeVisible();
+        await expect(this.loading(page)).toBeVisible();
         await expect(this.input(page)).toHaveAttribute('aria-busy', 'true');
         release();
-        await expect(page.getByRole('alert')).toContainText(searchText.error);
-        await helpers.click(page.getByRole('button', { name: searchText.retry, exact: true }));
-        await expect(page.getByTestId('search-empty')).toContainText(searchText.empty(searchTerms.empty));
+        await expect(this.alert(page)).toContainText(searchText.error);
+        await helpers.click(this.retryButton(page));
+        await expect(this.emptyState(page)).toContainText(searchText.empty(searchTerms.empty));
         expect(terms).toEqual([searchTerms.empty, searchTerms.empty]);
         await expect(this.input(page)).toHaveValue(searchTerms.empty);
-        await expect(page.getByRole('group')).toHaveCount(0);
+        await expect(this.groups(page)).toHaveCount(0);
     }
 
     async assertNewerResponseIsRetained() {
@@ -259,14 +274,14 @@ export class SearchPage extends BasePage {
         const { release, finished } = await this.delayOlderResponse();
         await helpers.click(this.opener(page));
         await helpers.fill(this.input(page), searchTerms.older);
-        await expect(page.getByTestId('search-loading')).toBeVisible();
+        await expect(this.loading(page)).toBeVisible();
         await helpers.fill(this.input(page), searchTerms.newer);
-        await expect(page.getByTestId('search-result-leads')).toContainText(searchTerms.newer);
+        await expect(this.result(page, 'leads')).toContainText(searchTerms.newer);
         release();
         await finished;
         // Flush the browser fetch/React work before checking retained results.
         await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
-        await expect(page.getByTestId('search-result-leads')).toContainText(searchTerms.newer);
-        await expect(page.getByTestId('command-bar')).not.toContainText(searchTerms.older);
+        await expect(this.result(page, 'leads')).toContainText(searchTerms.newer);
+        await expect(this.panel(page)).not.toContainText(searchTerms.older);
     }
 }
