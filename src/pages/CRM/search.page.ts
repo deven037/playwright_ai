@@ -3,7 +3,7 @@ import { BasePage } from '@core/BasePage';
 import { Helpers } from '../../utils/Helpers';
 import { CrmLoginPage } from './crm.login.page';
 import { DashboardPage } from './dashboard.page';
-import { searchTypes, searchRoles, searchText, searchTerms, emptySearchResponse, controlledSearchResponse } from '../../data/search.data';
+import { searchTypes, searchRoles, searchText, searchTerms, searchFixtures, emptySearchResponse, controlledSearchResponse } from '../../data/search.data';
 
 export class SearchPage extends BasePage {
     async waitForPageLoad() { await this.helpers.assertVisible(this.opener(this.page)); }
@@ -64,7 +64,7 @@ export class SearchPage extends BasePage {
         let page = this.page;
         let helpers = this.helpers;
         const roleContexts: BrowserContext[] = [];
-                const base = process.env.NEWAPP_BASE_API?.replace(/\/$/, '');
+        const base = process.env.NEWAPP_BASE_API?.replace(/\/$/, '');
         expect(base, 'NEWAPP_BASE_API must identify staging').toBeTruthy();
         expect(new URL(base!).hostname).toBe('crm-practice-api.onrender.com');
         const token = await page.evaluate(() => sessionStorage.getItem('crm.token') ?? localStorage.getItem('crm.token'));
@@ -95,24 +95,18 @@ export class SearchPage extends BasePage {
             const ownerId = owner.id;
             const records: Record<string, any[]> = Object.fromEntries(searchTypes.map(type => [type, []]));
             for (let i = 0; i < 4; i++) {
-                const account = await create('accounts', { name: `${prefix} Account ${i}`, ownerId, phone });
+                const account = await create('accounts', searchFixtures.account(prefix, i, ownerId, phone));
                 records.accounts.push(account);
-                records.leads.push(await create('leads', {
-                    name: `${prefix} Lead ${i}`, company: `${prefix} Company`, email, phone, ownerId
-                }));
-                records.contacts.push(await create('contacts', {
-                    name: `${prefix} Contact ${i}`, accountId: account.id, email, phone
-                }));
-                records.deals.push(await create('deals', {
-                    name: `${prefix} Deal ${i}`, accountId: account.id, ownerId
-                }));
+                records.leads.push(await create('leads', searchFixtures.lead(prefix, i, ownerId, email, phone)));
+                records.contacts.push(await create('contacts', searchFixtures.contact(prefix, i, account.id, email, phone)));
+                records.deals.push(await create('deals', searchFixtures.deal(prefix, i, account.id, ownerId)));
             }
-            await create('leads', { name: `${prefix} Converted`, email, phone, ownerId, status: 'Converted' });
-            const deleted = await create('leads', { name: `${prefix} Deleted`, email, phone, ownerId });
+            await create('leads', searchFixtures.convertedLead(prefix, ownerId, email, phone));
+            const deleted = await create('leads', searchFixtures.deletedLead(prefix, ownerId, email, phone));
             await api(`leads/${deleted.id}`, 'DELETE');
             created.splice(created.findIndex(row => row.id === deleted.id), 1);
             // Related account matches prefix, but the Deal name does not.
-            await create('deals', { name: `Unrelated ${Date.now()}`, accountId: records.accounts[0].id, ownerId });
+            await create('deals', searchFixtures.unrelatedDeal(records.accounts[0].id, ownerId));
 
             for (const role of searchRoles) {
                 if (role !== 'admin') {
@@ -158,7 +152,7 @@ export class SearchPage extends BasePage {
                     await expect(panel).not.toContainText(email);
                     await expect(panel).not.toContainText(phone);
                 }
-                await page.keyboard.press('Escape');
+                await helpers.pressPageKey('Escape');
             }
 
             // Verify navigation AND the destination filter, for every module.
@@ -170,7 +164,7 @@ export class SearchPage extends BasePage {
                 const module = page.getByTestId(`${type}-page`);
                 await expect(module).toBeVisible();
                 if (type === 'deals') {
-                    await expect(module.getByRole('button', { name: `Filtered by "${prefix}" · Clear`, exact: true })).toBeVisible();
+                    await expect(module.getByRole('button', { name: searchText.filteredBy(prefix), exact: true })).toBeVisible();
                     await expect(module.locator('.kanban-card-title')).toHaveCount(4);
                     expect((await module.locator('.kanban-card-title').allTextContents()).sort()).toEqual(records.deals.map(row => row.name).sort());
                 } else {
@@ -181,17 +175,24 @@ export class SearchPage extends BasePage {
             await helpers.click(this.opener(page));
             await helpers.fill(this.input(page), records.leads[0].name);
             await expect(page.getByRole('group')).toHaveCount(1);
-            await expect(page.getByRole('group', { name: 'Leads 1 match', exact: true })).toBeVisible();
+            await expect(page.getByRole('group', { name: searchText.leadsOneMatch, exact: true })).toBeVisible();
             await helpers.click(page.getByTestId('search-result-leads'));
             await expect(page).toHaveURL(new RegExp(`/leads/${records.leads[0].id}$`));
         } finally {
-            // Keep the Admin token for cleanup even after role changes; attempt every deletion.
+            // Attempt every deletion with the Admin token; a rejected request must not skip the rest.
             const failures: string[] = [];
-            for (const row of [...created].reverse()) {
-                const response = await page.request.delete(`${base}/api/${row.type}/${row.id}`, { headers: adminHeaders });
-                if (response.status() !== 204) failures.push(`${row.type}/${row.id}: HTTP ${response.status()} ${await response.text()}`);
+            try {
+                for (const row of [...created].reverse()) {
+                    try {
+                        const response = await this.page.request.delete(`${base}/api/${row.type}/${row.id}`, { headers: adminHeaders });
+                        if (response.status() !== 204) failures.push(`${row.type}/${row.id}: HTTP ${response.status()} ${await response.text()}`);
+                    } catch (error) {
+                        failures.push(`${row.type}/${row.id}: ${String(error)}`);
+                    }
+                }
+            } finally {
+                await Promise.allSettled(roleContexts.map(context => context.close()));
             }
-            await Promise.all(roleContexts.map(context => context.close()));
             expect(failures, 'Isolated staging record cleanup').toEqual([]);
         }
     }
@@ -200,8 +201,8 @@ export class SearchPage extends BasePage {
         const page = this.page;
         const helpers = this.helpers;
         const requests = await this.stubSearchResults();
-        await this.opener(page).focus();
-        await page.keyboard.press('Control+k');
+        await helpers.focus(this.opener(page), 'Header search button');
+        await helpers.pressPageKey('Control+k');
         await expect(this.input(page)).toBeFocused();
         await page.clock.install();
         await page.clock.pauseAt(new Date());
@@ -218,20 +219,20 @@ export class SearchPage extends BasePage {
         await expect(page.getByTestId('search-result-leads')).toHaveText(searchTerms.debounced + searchText.subtitle);
         expect(requests).toEqual([searchTerms.debounced]);
         await expect(page.getByTestId('command-bar').getByRole('status')).toContainText(searchText.announcement);
-        await this.input(page).press('ArrowDown');
+        await helpers.pressKey(this.input(page), 'ArrowDown', 'Search input');
         await expect(page.getByTestId('search-result-leads')).toHaveAttribute('aria-selected', 'true');
         await expect(this.input(page)).toHaveAttribute('aria-activedescendant', await page.getByTestId('search-result-leads').getAttribute('id') as string);
-        await this.input(page).press('ArrowUp');
+        await helpers.pressKey(this.input(page), 'ArrowUp', 'Search input');
         await expect(page.getByTestId('search-result-leads')).toHaveAttribute('aria-selected', 'true');
-        await this.input(page).press('Escape');
+        await helpers.pressKey(this.input(page), 'Escape', 'Search input');
         await expect(page.getByTestId('command-bar')).toHaveCount(0);
         await expect(this.opener(page)).toBeFocused();
         await page.clock.resume();
         await helpers.click(this.opener(page));
         await helpers.fill(this.input(page), searchTerms.initial);
         await expect(page.getByTestId('search-result-leads')).toBeVisible();
-        await this.input(page).press('ArrowDown');
-        await this.input(page).press('Enter');
+        await helpers.pressKey(this.input(page), 'ArrowDown', 'Search input');
+        await helpers.pressKey(this.input(page), 'Enter', 'Search input');
         await expect(page).toHaveURL(new RegExp(`/leads/${searchText.controlledId}$`));
     }
 
@@ -245,7 +246,7 @@ export class SearchPage extends BasePage {
         await expect(this.input(page)).toHaveAttribute('aria-busy', 'true');
         release();
         await expect(page.getByRole('alert')).toContainText(searchText.error);
-        await helpers.click(page.getByRole('button', { name: 'Try again', exact: true }));
+        await helpers.click(page.getByRole('button', { name: searchText.retry, exact: true }));
         await expect(page.getByTestId('search-empty')).toContainText(searchText.empty(searchTerms.empty));
         expect(terms).toEqual([searchTerms.empty, searchTerms.empty]);
         await expect(this.input(page)).toHaveValue(searchTerms.empty);
