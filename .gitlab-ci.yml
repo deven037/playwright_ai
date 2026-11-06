@@ -23,68 +23,15 @@ variables:
     description: "Suite to run on a manual or scheduled pipeline (all = the full suite)."
 
 # AIO-229: shared script entry in a hidden job mapping; no credentials or browser artifacts logged.
+# AIO-248: the readiness loop lives in src/utils/warmUp.js; its regression checks are the tracked
+# spec tests/crm tests/feature/Warmup/stagingWarmUp.feature.test.ts (no inline regression here).
 .warm-up:
   script:
     - &warm-up |
       node <<'NODE'
-      const assert = require('node:assert/strict');
-      const required = ['NEWAPP_BASE_API', 'NEWAPP_BASE_URL', 'NEWAPP_EMAIL', 'NEWAPP_PASSWORD'];
-      async function warm(env, probe, pause, report) {
-        for (const key of required) {
-          if (!env[key]?.trim()) throw new Error('Missing configuration: ' + key);
-        }
-        let fast = 0;
-        for (let n = 1; n <= 20; n++) {
-          let result;
-          try { result = await probe(); }
-          catch { result = { status: 0, ms: Infinity, ready: false }; }
-          report(n, result);
-          fast = result.status === 200 && result.ms < 3000 && result.ready ? fast + 1 : 0;
-          if (fast === 2) return;
-          if (n < 20) await pause();
-        }
-        throw new Error('Staging warm-up exhausted 20 attempts');
-      }
-      async function regression() {
-        const env = Object.fromEntries(required.map(key => [key, 'fixture']));
-        const good = { status: 200, ms: 100, ready: true };
-        const bad = [
-          { ...good, ms: 3000 }, { ...good, status: 503 },
-          { ...good, ready: false }, new Error('transport')
-        ];
-        async function scenario(prefix, succeeds) {
-          let calls = 0, sleeps = 0, reachedTest = false;
-          const sequence = succeeds ? [...prefix, good, good] : Array(20).fill(prefix[0]);
-          const run = async () => {
-            await warm(env, async () => {
-              const value = sequence[calls++];
-              if (value instanceof Error) throw value;
-              return value;
-            }, async () => { sleeps++; }, () => {});
-            reachedTest = true; // sentinel for the command following warm-up
-          };
-          if (succeeds) await run();
-          else await assert.rejects(run, /exhausted/);
-          assert.equal(reachedTest, succeeds);
-          assert.equal(calls, sequence.length);
-          assert.equal(sleeps, succeeds ? calls - 1 : 19);
-        }
-        await scenario([], true);
-        for (const value of bad) {
-          await scenario([good, value], true); // interrupted streak must reset
-          await scenario([value], false);
-        }
-        for (const key of required) {
-          for (const value of [undefined, '', ' ']) {
-            await assert.rejects(warm({ ...env, [key]: value },
-              async () => assert.fail('probe reached with missing configuration'),
-              async () => {}, () => {}), /Missing configuration/);
-          }
-        }
-        console.log('warm-up regression: passed (including test-command continuation sentinel)');
-      }
+      const path = require('node:path');
+      const { warm } = require(path.join(process.cwd(), 'src', 'utils', 'warmUp.js'));
       (async () => {
-        await regression(); // offline checks run before credentials or network are used
         try { require('dotenv').config({ quiet: true }); } catch { /* CI variables only */ }
         const { chromium } = require('@playwright/test');
         let browser;
@@ -128,7 +75,7 @@ variables:
       })().catch(error => {
         // Never emit browser/fetch exception text, request data, or credentials.
         console.error(/^(Missing configuration: |Staging warm-up exhausted)/.test(error.message)
-          ? error.message : 'Warm-up regression or browser setup failed');
+          ? error.message : 'Warm-up or browser setup failed');
         process.exitCode = 1;
       });
       NODE
