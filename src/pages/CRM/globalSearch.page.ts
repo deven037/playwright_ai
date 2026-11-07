@@ -9,10 +9,10 @@ export class GlobalSearchPage extends SearchPage {
     async waitForPageLoad() { await this.helpers.assertVisible(this.opener(this.page)); }
 
     private opener(page: Page) { return page.getByRole('button', { name: /Search leads, contacts, accounts/ }); }
-    private input(page: Page) { return page.getByTestId('command-input'); }
-    private panel(page: Page) { return page.getByTestId('command-bar'); }
+    private globalInput(page: Page) { return page.getByTestId('command-input'); }
+    private globalPanel(page: Page) { return page.getByTestId('command-bar'); }
     private result(page: Page, type: string) { return page.getByTestId(`search-result-${type}`); }
-    private seeAll(page: Page, type: string) { return page.getByTestId(`search-see-all-${type}`); }
+    private globalSeeAll(page: Page, type: string) { return page.getByTestId(`search-see-all-${type}`); }
     private loading(page: Page) { return page.getByTestId('search-loading'); }
     private emptyState(page: Page) { return page.getByTestId('search-empty'); }
     private groups(page: Page) { return page.getByRole('group'); }
@@ -24,7 +24,7 @@ export class GlobalSearchPage extends SearchPage {
     private kanbanTitles(module: Locator) { return module.locator('.kanban-card-title'); }
     private searchbox(module: Locator) { return module.getByRole('searchbox'); }
     private rowText(module: Locator, name: string) { return module.getByText(name, { exact: true }); }
-    private statusRegion(page: Page) { return this.panel(page).getByRole('status'); }
+    private statusRegion(page: Page) { return this.globalPanel(page).getByRole('status'); }
     private fulfill(route: Route, body: unknown) {
         return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
     }
@@ -157,15 +157,15 @@ export class GlobalSearchPage extends SearchPage {
                     }
                 }
                 await helpers.click(this.opener(page));
-                await helpers.fill(this.input(page), prefix);
+                await helpers.fill(this.globalInput(page), prefix);
                 for (const type of searchTypes) {
                     await expect(this.result(page, type)).toHaveCount(3);
-                    await expect(this.seeAll(page, type)).toHaveText(searchText.seeAll(4, type));
+                    await expect(this.globalSeeAll(page, type)).toHaveText(searchText.seeAll(4, type));
                 }
                 if (role === 'viewer') {
-                    const panel = this.panel(page);
-                    await expect(panel).not.toContainText(email);
-                    await expect(panel).not.toContainText(phone);
+                    const globalPanel = this.globalPanel(page);
+                    await expect(globalPanel).not.toContainText(email);
+                    await expect(globalPanel).not.toContainText(phone);
                 }
                 await helpers.pressPageKey('Escape');
             }
@@ -173,8 +173,8 @@ export class GlobalSearchPage extends SearchPage {
             // Verify navigation AND the destination filter, for every module.
             for (const type of searchTypes) {
                 await helpers.click(this.opener(page));
-                await helpers.fill(this.input(page), prefix);
-                await helpers.click(this.seeAll(page, type));
+                await helpers.fill(this.globalInput(page), prefix);
+                await helpers.click(this.globalSeeAll(page, type));
                 await expect(page).toHaveURL(url => url.pathname === `/${type}` && url.searchParams.get(searchTerms.minimum) === prefix);
                 const module = this.modulePage(page, type);
                 await expect(module).toBeVisible();
@@ -188,7 +188,7 @@ export class GlobalSearchPage extends SearchPage {
                 }
             }
             await helpers.click(this.opener(page));
-            await helpers.fill(this.input(page), records.leads[0].name);
+            await helpers.fill(this.globalInput(page), records.leads[0].name);
             await expect(this.groups(page)).toHaveCount(1);
             await expect(this.namedGroup(page, searchText.leadsOneMatch)).toBeVisible();
             await helpers.click(this.result(page, 'leads'));
@@ -218,36 +218,36 @@ export class GlobalSearchPage extends SearchPage {
         const requests = await this.stubSearchResults();
         await helpers.focus(this.opener(page), 'Header search button');
         await helpers.pressPageKey('Control+k');
-        await expect(this.input(page)).toBeFocused();
+        await expect(this.globalInput(page)).toBeFocused();
         await page.clock.install();
         await page.clock.pauseAt(new Date());
-        await helpers.fill(this.input(page), searchTerms.minimum);
+        await helpers.fill(this.globalInput(page), searchTerms.minimum);
         await page.clock.runFor(500);
         expect(requests).toEqual([]);
-        await helpers.fill(this.input(page), searchTerms.initial);
+        await helpers.fill(this.globalInput(page), searchTerms.initial);
         await page.clock.runFor(200);
         expect(requests).toEqual([]);
-        await helpers.fill(this.input(page), searchTerms.debounced);
+        await helpers.fill(this.globalInput(page), searchTerms.debounced);
         await page.clock.runFor(249);
         expect(requests).toEqual([]);
         await page.clock.runFor(1);
         await expect(this.result(page, 'leads')).toHaveText(searchTerms.debounced + searchText.subtitle);
         expect(requests).toEqual([searchTerms.debounced]);
         await expect(this.statusRegion(page)).toContainText(searchText.announcement);
-        await helpers.pressKey(this.input(page), 'ArrowDown', 'Search input');
+        await helpers.pressKey(this.globalInput(page), 'ArrowDown', 'Search globalInput');
         await expect(this.result(page, 'leads')).toHaveAttribute('aria-selected', 'true');
-        await expect(this.input(page)).toHaveAttribute('aria-activedescendant', await this.result(page, 'leads').getAttribute('id') as string);
-        await helpers.pressKey(this.input(page), 'ArrowUp', 'Search input');
+        await expect(this.globalInput(page)).toHaveAttribute('aria-activedescendant', await this.result(page, 'leads').getAttribute('id') as string);
+        await helpers.pressKey(this.globalInput(page), 'ArrowUp', 'Search globalInput');
         await expect(this.result(page, 'leads')).toHaveAttribute('aria-selected', 'true');
-        await helpers.pressKey(this.input(page), 'Escape', 'Search input');
-        await expect(this.panel(page)).toHaveCount(0);
+        await helpers.pressKey(this.globalInput(page), 'Escape', 'Search globalInput');
+        await expect(this.globalPanel(page)).toHaveCount(0);
         await expect(this.opener(page)).toBeFocused();
         await page.clock.resume();
         await helpers.click(this.opener(page));
-        await helpers.fill(this.input(page), searchTerms.initial);
+        await helpers.fill(this.globalInput(page), searchTerms.initial);
         await expect(this.result(page, 'leads')).toBeVisible();
-        await helpers.pressKey(this.input(page), 'ArrowDown', 'Search input');
-        await helpers.pressKey(this.input(page), 'Enter', 'Search input');
+        await helpers.pressKey(this.globalInput(page), 'ArrowDown', 'Search globalInput');
+        await helpers.pressKey(this.globalInput(page), 'Enter', 'Search globalInput');
         await expect(page).toHaveURL(new RegExp(`/leads/${searchText.controlledId}$`));
     }
 
@@ -256,15 +256,15 @@ export class GlobalSearchPage extends SearchPage {
         const helpers = this.helpers;
         const { terms, release } = await this.failFirstSearchRequest();
         await helpers.click(this.opener(page));
-        await helpers.fill(this.input(page), searchTerms.empty);
+        await helpers.fill(this.globalInput(page), searchTerms.empty);
         await expect(this.loading(page)).toBeVisible();
-        await expect(this.input(page)).toHaveAttribute('aria-busy', 'true');
+        await expect(this.globalInput(page)).toHaveAttribute('aria-busy', 'true');
         release();
         await expect(this.alert(page)).toContainText(searchText.error);
         await helpers.click(this.retryButton(page));
         await expect(this.emptyState(page)).toContainText(searchText.empty(searchTerms.empty));
         expect(terms).toEqual([searchTerms.empty, searchTerms.empty]);
-        await expect(this.input(page)).toHaveValue(searchTerms.empty);
+        await expect(this.globalInput(page)).toHaveValue(searchTerms.empty);
         await expect(this.groups(page)).toHaveCount(0);
     }
 
@@ -273,15 +273,15 @@ export class GlobalSearchPage extends SearchPage {
         const helpers = this.helpers;
         const { release, finished } = await this.delayOlderResponse();
         await helpers.click(this.opener(page));
-        await helpers.fill(this.input(page), searchTerms.older);
+        await helpers.fill(this.globalInput(page), searchTerms.older);
         await expect(this.loading(page)).toBeVisible();
-        await helpers.fill(this.input(page), searchTerms.newer);
+        await helpers.fill(this.globalInput(page), searchTerms.newer);
         await expect(this.result(page, 'leads')).toContainText(searchTerms.newer);
         release();
         await finished;
         // Flush the browser fetch/React work before checking retained results.
         await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
         await expect(this.result(page, 'leads')).toContainText(searchTerms.newer);
-        await expect(this.panel(page)).not.toContainText(searchTerms.older);
+        await expect(this.globalPanel(page)).not.toContainText(searchTerms.older);
     }
 }
