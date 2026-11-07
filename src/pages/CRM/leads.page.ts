@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page } from "@playwright/test";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -93,7 +93,9 @@ export class LeadsPage extends BasePage {
     async searchInLeadsTable(leadName: string) {
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
-        await this.page.waitForLoadState('domcontentloaded');
+        const rows = this.page.getByTestId('leads-page').locator('tbody tr.row-clickable');
+        await expect(rows).toHaveCount(1);
+        await expect(rows.locator('td').nth(1)).toHaveText(leadName);
     }
 
     async getFirstLeadNameFromTable() {
