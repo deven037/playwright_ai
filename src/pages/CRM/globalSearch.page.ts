@@ -17,7 +17,7 @@ export class GlobalSearchPage extends SearchPage {
     private emptyState(page: Page) { return page.getByTestId('search-empty'); }
     private groups(page: Page) { return page.getByRole('group'); }
     private namedGroup(page: Page, name: string) { return page.getByRole('group', { name, exact: true }); }
-    private alert(page: Page) { return page.getByRole('alert'); }
+    private alert(page: Page) { return this.globalPanel(page).getByRole('alert'); }
     private retryButton(page: Page) { return page.getByRole('button', { name: searchText.retry, exact: true }); }
     private modulePage(page: Page, type: string) { return page.getByTestId(`${type}-page`); }
     private filterChip(module: Locator, label: string) { return module.getByRole('button', { name: label, exact: true }); }
