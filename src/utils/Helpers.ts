@@ -87,6 +87,11 @@ export class Helpers {
     return value;
   }
 
+  async pressKey(locator: Locator, key: string, description = ''): Promise<void> {
+    this.logger.step(`Press "${key}" in: ${description || locator.toString()}`);
+    await locator.press(key);
+  }
+
   async selectOption(locator: Locator, value: string, description = ''): Promise<void> {
     this.logger.step(`Select "${value}" in: ${description || locator.toString()}`);
     await this.runWithHealing(locator, description, 'selectOption', async (loc) => {
