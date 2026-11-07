@@ -1,3 +1,4 @@
+import { BANK_PROFILE } from '../../data/bankProfile.data';
 import { BasePage } from '../../core/BasePage';
 import { Page, expect } from "@playwright/test";
 
@@ -59,5 +60,52 @@ export class DashboardPage extends BasePage {
 
     async assertDashboardUrl() {
         await expect(this.page).toHaveURL(/\/dashboard$/);
+    }
+
+    private bootstrapRequests = 0;
+    private bootstrapPayload?: Record<string, unknown>;
+    private recoveryProfile = false;
+
+    async installUnavailableBankProfile() {
+        await this.page.route('**/api/bootstrap', async route => {
+            if (route.request().method() !== 'GET') return route.continue();
+            if (!this.bootstrapPayload) {
+                const response = await route.fetch();
+                expect(response.ok(), 'Bootstrap fixture must preserve a successful real payload').toBeTruthy();
+                this.bootstrapPayload = await response.json();
+            }
+            this.bootstrapRequests++;
+            await route.fulfill({ json: {
+                ...this.bootstrapPayload,
+                bankProfile: this.recoveryProfile ? BANK_PROFILE.withoutLogo : null,
+            } });
+        });
+    }
+
+    async assertUnavailableBankProfile() {
+        const sidebar = this.page.getByTestId('sidebar');
+        await this.helpers.assertVisible(sidebar.getByText(BANK_PROFILE.productName, { exact: true }));
+        await this.helpers.assertVisible(sidebar.getByText(BANK_PROFILE.defaultMark, { exact: true }));
+        const error = this.page.getByTestId('bank-profile-error');
+        await this.helpers.assertVisible(error);
+        await expect(error).toContainText(BANK_PROFILE.errorTitle);
+        await expect(error).toContainText(BANK_PROFILE.errorDetail);
+        await expect(error.getByRole('button', { name: 'Retry', exact: true })).toBeEnabled();
+    }
+
+    async retryBankProfileWithoutLogo() {
+        const previousRequests = this.bootstrapRequests;
+        this.recoveryProfile = true;
+        await this.helpers.click(this.page.getByTestId('bank-profile-error').getByRole('button', { name: 'Retry', exact: true }));
+        await expect.poll(() => this.bootstrapRequests).toBeGreaterThan(previousRequests);
+    }
+
+    async assertBankNameWithoutLogo() {
+        const sidebar = this.page.getByTestId('sidebar');
+        await this.helpers.assertVisible(sidebar.getByText(BANK_PROFILE.withoutLogo.name, { exact: true }));
+        await expect(sidebar.getByText(BANK_PROFILE.defaultMark, { exact: true })).toHaveCount(0);
+        await expect(sidebar.getByRole('img', { includeHidden: true })).toHaveCount(0);
+        await expect(sidebar.getByText('Your bank', { exact: true })).toHaveCount(0);
+        await expect(this.page.getByTestId('bank-profile-error')).toHaveCount(0);
     }
 }
