@@ -1,4 +1,3 @@
-import { GlobalSearchPage } from '@pages/CRM/globalSearch.page';
 import { WarmUpPage } from '@pages/CRM/warmUp.page';
 import { SearchPage } from '@pages/CRM/search.page';
 import { CrmLoginPage } from '@pages/CRM/crm.login.page';
@@ -46,7 +45,6 @@ import { TicketsPage } from '@pages/CRM/tickets.page';
  */
 
 export type CRMPageFixtures = {
-  globalSearchPage: GlobalSearchPage;
   warmUpPage: WarmUpPage;
   searchPage: SearchPage;
   crmLoginPage: CrmLoginPage;
@@ -62,9 +60,6 @@ export type CRMPageFixtures = {
 };
 
 export const test = base.extend<CRMPageFixtures>({
-  globalSearchPage: async ({ page }, use) => {
-    await use(new GlobalSearchPage(page));
-  },
   warmUpPage: async ({ page }, use) => { await use(new WarmUpPage(page)); },
   searchPage: async ({ page }, use) => {
     const searchPage = new SearchPage(page);
