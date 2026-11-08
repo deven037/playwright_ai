@@ -10,6 +10,13 @@ export class CrmLoginPage extends BasePage {
         super(page);
     }
 
+    async warmUpLogin(url: string, email: string, password: string): Promise<void> {
+        await this.helpers.navigateTo(url);
+        await this.helpers.fill(this.emailInput, email, 'Email Input', true);
+        await this.helpers.fill(this.passwordInput, password, 'Password Input', true);
+        await this.helpers.click(this.loginButton, 'Login');
+    }
+
     async goto() {
         const crmUrl = this.env.newAppBaseUrl?.trim();
         if (!crmUrl) {

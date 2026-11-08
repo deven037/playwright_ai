@@ -11,6 +11,11 @@ export class DashboardPage extends BasePage {
         super(page);
     }
 
+    async waitForWarmUpReady(): Promise<void> {
+        await this.helpers.waitForElement(await this.profileIcon(), 'visible');
+        await this.helpers.waitForElement(this.page.getByTestId('dashboard-page'), 'visible');
+    }
+
     async profileIcon() {
         const profileIcon = this.page.locator("//button[@data-testid='avatar-menu']");
         return profileIcon;
