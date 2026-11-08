@@ -119,7 +119,7 @@ export class SearchPage extends BasePage {
             this.heldTerm = undefined;
         }
     }
-    private opener(page: Page) { return page.getByRole('button', { name: SEARCH_LABEL, exact: true }); }
+    private opener(page: Page) { return page.getByRole('button', { name: /Search leads, contacts, accounts/ }); }
     private globalInput(page: Page) { return page === this.page ? this.input : this.globalPanel(page).getByRole('combobox', { name: SEARCH_LABEL }); }
     private globalPanel(page: Page) { return page === this.page ? this.panel : page.getByTestId('command-bar'); }
     private result(page: Page, type: string) { return page.getByTestId(`search-result-${type}`); }
