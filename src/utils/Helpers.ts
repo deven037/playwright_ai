@@ -70,8 +70,8 @@ export class Helpers {
     });
   }
 
-  async fill(locator: Locator, value: string, description = ''): Promise<void> {
-    this.logger.step(`Fill "${value}" into: ${description || locator.toString()}`);
+  async fill(locator: Locator, value: string, description = '', sensitive = false): Promise<void> {
+    this.logger.step(`Fill "${sensitive ? '[redacted]' : value}" into: ${description || locator.toString()}`);
     await this.runWithHealing(locator, description, 'fill', async (loc) => {
       await loc.waitFor({ state: 'visible' });
       await loc.clear();
