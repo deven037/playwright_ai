@@ -2,7 +2,8 @@ import { BasePage } from '@core/BasePage';
 import { expect, Route } from '@playwright/test';
 import {
     LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
-    SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel,
+    SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel, SEARCH_API_GROUPS, SEARCH_GROUPING_TERM,
+    SEARCH_LIVE_PATHS, SEARCH_PER_TYPE_LIMIT, SearchApiBody, formatPhoneWithSeparators,
 } from '../../data/search.data';
 
 export class SearchPage extends BasePage {
@@ -76,6 +77,59 @@ export class SearchPage extends BasePage {
         await expect(rows).toHaveCount(expectedRows);
         await expect(rows.filter({ hasText: term })).toHaveCount(expectedRows);
         if (module === 'leads') await expect(this.list(module).getByTestId('pagination')).toContainText(LEADS_PAGINATION_LABEL);
+    }
+
+    private async searchLive(term: string): Promise<SearchApiBody> {
+        const response = this.page.waitForResponse(r => r.request().method() === 'GET'
+            && new URL(r.url()).pathname === SEARCH_LIVE_PATHS.search && new URL(r.url()).searchParams.get('q') === term);
+        if (!(await this.panel.isVisible())) await this.helpers.click(this.page.getByTestId('global-search'));
+        await this.helpers.fill(this.input, term);
+        const result = await response;
+        expect(result.status()).toBe(200);
+        return result.json();
+    }
+
+    private async firstLeadFromList(): Promise<Record<string, string>> {
+        const response = this.page.waitForResponse(r => r.request().method() === 'GET'
+            && new URL(r.url()).pathname === SEARCH_LIVE_PATHS.leads);
+        await this.helpers.click(this.page.getByRole('link', { name: /^leads$/i }));
+        const body = await (await response).json();
+        return body.data[0];
+    }
+
+    private static allHits(body: SearchApiBody) {
+        return SEARCH_API_GROUPS.flatMap(group => body[group].items);
+    }
+
+    async assertGroupedResultsWithTotals() {
+        const body = await this.searchLive(SEARCH_GROUPING_TERM);
+        expect(body.term).toBe(SEARCH_GROUPING_TERM);
+        for (const group of SEARCH_API_GROUPS) {
+            expect(body[group].items.length, `${group} items`).toBeLessThanOrEqual(SEARCH_PER_TYPE_LIMIT);
+            expect(body[group].total, `${group} total`).toBeGreaterThanOrEqual(body[group].items.length);
+        }
+        expect(body.leads.total, 'leads total').toBeGreaterThan(0);
+    }
+
+    async assertContactDetailsReturnedAndMatched() {
+        const lead = await this.firstLeadFromList();
+        const byEmail = await this.searchLive(lead.email);
+        expect(byEmail.leads.total, 'leads matched by email').toBeGreaterThan(0);
+        const byPhone = await this.searchLive(formatPhoneWithSeparators(lead.phone.replace(/\D/g, '')));
+        expect(byPhone.leads.total, 'leads matched by formatted phone').toBeGreaterThan(0);
+        const byName = await this.searchLive(SEARCH_GROUPING_TERM);
+        expect(SearchPage.allHits(byName).some(hit => hit.email || hit.phone), 'email/phone returned').toBe(true);
+    }
+
+    async assertContactDetailsHiddenAndNotMatched() {
+        const lead = await this.firstLeadFromList();
+        const byName = await this.searchLive(SEARCH_GROUPING_TERM);
+        expect(SearchPage.allHits(byName).filter(hit => 'email' in hit || 'phone' in hit), 'hits with email/phone').toEqual([]);
+        const byEmail = await this.searchLive(lead.email);
+        expect(byEmail.leads.total, 'leads matched by email').toBe(0);
+        expect(SearchPage.allHits(byEmail).filter(hit => 'email' in hit || 'phone' in hit), 'hits with email/phone').toEqual([]);
+        const byPhone = await this.searchLive(formatPhoneWithSeparators(lead.phone.replace(/\D/g, '')));
+        expect(byPhone.leads.total, 'leads matched by phone').toBe(0);
     }
 
     async goToSecondPage() {

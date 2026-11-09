@@ -30,3 +30,19 @@ export function searchResponse(term: string) {
         })) }];
     })) };
 }
+
+// AIO-202 (Search API) role checks against the live staging API; demo users from the CRM README.
+export const SEARCH_ROLE_EMAILS = { admin: 'admin@crm.com', rep: 'rep@crm.com', viewer: 'viewer@crm.com' } as const;
+export type SearchRole = keyof typeof SEARCH_ROLE_EMAILS;
+export const SEARCH_API_GROUPS = ['leads', 'contacts', 'accounts', 'deals'] as const;
+export const SEARCH_PER_TYPE_LIMIT = 3;
+export const SEARCH_GROUPING_TERM = 'an';
+export const SEARCH_LIVE_PATHS = { search: '/api/search', leads: '/api/leads' } as const;
+
+export interface SearchHitData { id: string; name: string; subtitle: string; email?: string; phone?: string }
+export interface SearchGroupData { items: SearchHitData[]; total: number }
+export type SearchApiBody = { term: string } & Record<typeof SEARCH_API_GROUPS[number], SearchGroupData>;
+
+// Phone written with spaces, dashes and brackets must match the same digits (AIO-202 AC2).
+export const formatPhoneWithSeparators = (digits: string) =>
+    `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
