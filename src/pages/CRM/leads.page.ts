@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page } from "@playwright/test";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -265,6 +265,76 @@ export class LeadsPage extends BasePage {
     async assertConvertedToast(leadName: string) {
         const toast = this.page.getByText(`Lead "${leadName}" converted successfully.`);
         await this.helpers.assertVisible(toast, 'Converted toast');
+    }
+
+    private get leadRows() { return this.page.locator('tbody tr.row-clickable'); }
+    private get nameHeader() { return this.page.locator('th[tabindex="0"]').filter({ hasText: /^\s*Name/ }); }
+
+    async assertLeadRowsVisible() {
+        await expect(this.leadRows.first()).toBeVisible();
+    }
+
+    async assertFirstRowKeyboardReachable() {
+        await expect(this.leadRows.first()).toHaveAttribute('tabindex', '0');
+    }
+
+    async tabToLeadRow() {
+        await this.page.locator('body').click({ position: { x: 0, y: 0 } });
+        let focused = false;
+        for (let i = 0; i < 80 && !focused; i++) {
+            await this.page.keyboard.press('Tab');
+            focused = await this.page.evaluate(() => {
+                const el = document.activeElement;
+                return !!el && el.tagName === 'TR' && el.classList.contains('row-clickable');
+            });
+        }
+        expect(focused, 'a lead row receives keyboard focus via Tab').toBe(true);
+    }
+
+    async pressEnter() {
+        await this.page.keyboard.press('Enter');
+    }
+
+    async assertLeadDetailOpen() {
+        await this.helpers.assertURL(/\/leads\/[^/]+$/);
+        await expect(this.page.getByTestId('lead-detail-page')).toBeVisible();
+    }
+
+    async goBackToLeadsList() {
+        await this.page.goBack();
+        await this.assertLeadRowsVisible();
+    }
+
+    async assertFirstRowHasVisibleConvertButton() {
+        const convertButtons = this.leadRows.first().getByRole('button', { name: /convert/i });
+        await expect(convertButtons).toHaveCount(1);
+        await expect(convertButtons).toBeVisible();
+    }
+
+    async focusNameHeader() {
+        await expect(this.nameHeader).toHaveCount(1);
+        await this.nameHeader.focus();
+        await expect(this.nameHeader).toBeFocused();
+    }
+
+    async assertNameHeaderSort(direction: 'ascending' | 'descending') {
+        await expect(this.nameHeader).toHaveAttribute('aria-sort', direction);
+    }
+
+    async openStatusFilter() {
+        await this.helpers.click(this.page.getByTestId('filters-toggle'), 'Filters');
+        const filterPanel = this.page.getByTestId('filter-panel');
+        await expect(filterPanel).toBeVisible();
+        await this.helpers.click(filterPanel.getByRole('button', { name: 'Any status' }), 'Any status');
+    }
+
+    async assertStatusFilterOptions(baseline: string[], addedStatus: string) {
+        const options = this.page.getByRole('listbox').getByRole('option');
+        await expect(options).toHaveCount(baseline.length + 1);
+        await expect(options.filter({ hasText: addedStatus })).toHaveCount(1);
+        for (const status of baseline) {
+            await expect(options.filter({ hasText: status }).first()).toBeVisible();
+        }
     }
 
     async chooseLayout(layoutName: string) {

@@ -3,6 +3,11 @@ export const SEARCH_TERMS = { first: 'quinnalpha', second: 'quinnbeta', absent: 
 export const SEARCH_MODULES = ['leads', 'contacts', 'accounts'] as const;
 export type SearchModule = typeof SEARCH_MODULES[number];
 
+// Error-state stub used by the Escape/focus regression (AIO-T79): every search request fails with 503.
+export const SEARCH_ERROR_TERM = 'an';
+export const SEARCH_FAILURE_TITLE = 'Search did not finish';
+export const SEARCH_FAILURE_RESPONSE = { message: 'Controlled search failure for AIO-T79' };
+
 // Fixture size: 24 records per module, 12 per search term; leads paginate at 10 per page.
 export const SEARCH_MATCH_COUNT = 12;
 export const LEADS_PAGE_SIZE = 10;
