@@ -1,10 +1,44 @@
-import { FullConfig } from '@playwright/test';
+import { FullConfig, chromium } from '@playwright/test';
 import { EnvManager } from './src/utils/EnvManager';
 import { Logger } from './src/utils/Logger';
+import { AuthManager, CRM_ROLES, CrmRole } from './src/utils/AuthManager';
+import { CrmLoginPage } from './src/pages/CRM/crm.login.page';
+import { DashboardPage } from './src/pages/CRM/dashboard.page';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const logger = Logger.getInstance();
+
+/** Signs in once per CRM role through the login form and saves each role's storageState under auth/. */
+async function authenticateRoles(): Promise<void> {
+  const env = EnvManager.getInstance();
+  const auth = AuthManager.getInstance();
+  const emails: Record<CrmRole, string> = {
+    admin: env.newAppEmail,
+    rep: env.newAppRepEmail,
+    viewer: env.newAppViewerEmail,
+  };
+
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const role of CRM_ROLES) {
+      const context = await browser.newContext({ ignoreHTTPSErrors: true, viewport: { width: 1920, height: 1080 } });
+      try {
+        const page = await context.newPage();
+        const loginPage = new CrmLoginPage(page);
+        await loginPage.goto();
+        await loginPage.loginWithCustomCredentials(emails[role]);
+        await new DashboardPage(page).waitForDashBoardPage();
+        await auth.saveSession(context, role);
+        logger.info(`[AUTH] ${role} session saved (1 login)`);
+      } finally {
+        await context.close();
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+}
 
 async function globalSetup(config: FullConfig): Promise<void> {
   logger.info('==================================================');
@@ -42,6 +76,9 @@ async function globalSetup(config: FullConfig): Promise<void> {
       logger.info(`  Created directory: ${dir}`);
     }
   });
+
+  // Authenticate once per role, after the reset so the saved sessions match the seeded users
+  await authenticateRoles();
 
   logger.info('[PASS]  Global setup completed successfully.');
   logger.info('==================================================');

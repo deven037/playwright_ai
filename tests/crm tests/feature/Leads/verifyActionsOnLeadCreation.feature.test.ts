@@ -6,7 +6,6 @@ test('@regression Perform actions save, edit and delete on lead after creation '
     leadsPage }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.waitForPageLoad();
     await dashboardPage.assertProfileIconVisible();

@@ -6,7 +6,6 @@ test('AIO-T36: Notifications panel remains available when unread count is zero @
     page
 }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     const notificationsButton = page.getByRole('button', { name: 'Notifications' });

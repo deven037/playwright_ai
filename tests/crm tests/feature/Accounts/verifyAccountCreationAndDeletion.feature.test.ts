@@ -9,7 +9,6 @@ test('@feature @smoke @regression Verify Account Creation and Deletion', async (
 
     try {
         await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForDashBoardPage();
         await dashboardPage.assertProfileIconVisible();
 

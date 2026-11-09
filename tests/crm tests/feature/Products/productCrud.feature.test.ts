@@ -8,7 +8,6 @@ test('@regression Product edit + delete', async({
 }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.clickAvatar();
     await adminPage.gotoSetup();

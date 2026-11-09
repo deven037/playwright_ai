@@ -11,7 +11,10 @@ import { AssignmentRulePage } from '@pages/CRM/Rules/assignment.rule.page';
 import { DealsPage } from '@pages/CRM/deals.page';
 import { AccountsPage } from '@pages/CRM/accounts.page';
 import { TicketsPage } from '@pages/CRM/tickets.page';
-// import { Logger } from '../utils/Logger'; // uncomment if you add logging here
+import { AuthManager, CrmRole } from '../utils/AuthManager';
+import { Logger } from '../utils/Logger';
+
+const logger = Logger.getInstance();
 
 /**
  * NewAppFixtures (SCAFFOLD)
@@ -44,6 +47,15 @@ import { TicketsPage } from '@pages/CRM/tickets.page';
  *   });
  */
 
+/**
+ * Signed-in role of the test's browser context. The default is 'admin': the context starts with the
+ * storageState saved by global-setup.ts, so specs do not log in. Use 'anonymous' (a fresh, signed-out
+ * context) for specs that exercise the login form itself:
+ *   test.use({ role: 'anonymous' });
+ * and 'rep' / 'viewer' for role-specific checks.
+ */
+export type CrmTestRole = CrmRole | 'anonymous';
+
 export type CRMPageFixtures = {
   warmUpPage: WarmUpPage;
   searchPage: SearchPage;
@@ -59,7 +71,25 @@ export type CRMPageFixtures = {
   ticketsPage: TicketsPage;
 };
 
-export const test = base.extend<CRMPageFixtures>({
+export type CRMRoleOptions = {
+  role: CrmTestRole;
+};
+
+export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
+  role: ['admin', { option: true }],
+
+  context: async ({ browser, role }, use) => {
+    logger.info(`Creating fresh browser context for test (role: ${role})`);
+    const context = await browser.newContext({
+      viewport: { width: 1920, height: 1080 },
+      ignoreHTTPSErrors: true,
+      storageState: role === 'anonymous' ? undefined : AuthManager.getInstance().getAuthFilePath(role),
+    });
+    await use(context);
+    logger.info('Closing browser context after test');
+    await context.close();
+  },
+
   warmUpPage: async ({ page }, use) => { await use(new WarmUpPage(page)); },
   searchPage: async ({ page }, use) => {
     const searchPage = new SearchPage(page);

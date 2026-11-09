@@ -7,7 +7,6 @@ test('@feature @regression Verify Contact Deletion', async ({
 }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();
 

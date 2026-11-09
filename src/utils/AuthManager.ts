@@ -7,6 +7,10 @@ import { ICredentials } from '../types';
 
 const AUTH_FILE = path.resolve('auth', 'storageState.json');
 
+/** CRM roles that have a saved authenticated session (see global-setup.ts). */
+export type CrmRole = 'admin' | 'rep' | 'viewer';
+export const CRM_ROLES: CrmRole[] = ['admin', 'rep', 'viewer'];
+
 /**
  * AuthManager - Handles authentication and session management.
  * Supports storageState reuse to avoid repeated logins.
@@ -32,28 +36,32 @@ export class AuthManager {
   }
 
   /** Checks if a saved auth state exists and is recent (< 12 hours) */
-  public hasSavedSession(): boolean {
-    if (!fs.existsSync(AUTH_FILE)) return false;
-    const stats = fs.statSync(AUTH_FILE);
+  public hasSavedSession(role?: CrmRole): boolean {
+    const file = this.getAuthFilePath(role);
+    if (!fs.existsSync(file)) return false;
+    const stats = fs.statSync(file);
     const ageMs = Date.now() - stats.mtimeMs;
     return ageMs < 12 * 60 * 60 * 1000; // 12 hours
   }
 
-  /** Returns the auth file path for storageState */
-  public getAuthFilePath(): string {
-    return AUTH_FILE;
+  /** Returns the auth file path for storageState (one file per CRM role when a role is given) */
+  public getAuthFilePath(role?: CrmRole): string {
+    return role ? path.resolve('auth', `storageState.${role}.json`) : AUTH_FILE;
   }
 
   /** Saves browser context storage state to file */
-  public async saveSession(context: BrowserContext): Promise<void> {
-    await context.storageState({ path: AUTH_FILE });
-    this.logger.info('  Auth session saved to storageState.json');
+  public async saveSession(context: BrowserContext, role?: CrmRole): Promise<void> {
+    const file = this.getAuthFilePath(role);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    await context.storageState({ path: file });
+    this.logger.info(`  Auth session saved to ${path.basename(file)}`);
   }
 
   /** Clears saved session file */
-  public clearSession(): void {
-    if (fs.existsSync(AUTH_FILE)) {
-      fs.unlinkSync(AUTH_FILE);
+  public clearSession(role?: CrmRole): void {
+    const file = this.getAuthFilePath(role);
+    if (fs.existsSync(file)) {
+      fs.unlinkSync(file);
       this.logger.info('  Auth session cleared.');
     }
   }
