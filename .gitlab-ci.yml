@@ -2,9 +2,10 @@ stages:
   - test
 
 # Which CRM environment the tests run against (owner, 2026-10-28)
-# - staging and production are GitLab environments (Operate > Environments). Their CI variables scoped to them are
-#   Settings > CI/CD > Variables, Environment scope "staging" or "production": NEWAPP_BASE_URL (the site) and
-#   NEWAPP_BASE_API (the API). Every job below runs in the environment named by TARGET_ENV, so it gets those URLs.
+# - staging and production are GitLab environments (Operate > Environments). Their CRM URLs are
+#   CI variables scoped to them (Settings > CI/CD > Variables, Environment scope "staging" or
+#   "production"): NEWAPP_BASE_URL (the site) and NEWAPP_BASE_API (the API). Every job below runs
+#   in the environment named by TARGET_ENV, so it gets that environment's URLs.
 # - API runs (the office's pipeline_run): TARGET_ENV and TEST_SUITE come with the request.
 # - Manual runs: Build > Pipelines > Run pipeline shows TARGET_ENV and TEST_SUITE as dropdowns.
 # - Schedules: set TARGET_ENV on the schedule; without it, staging.
