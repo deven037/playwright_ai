@@ -104,6 +104,18 @@ export class Helpers {
     await locator.setInputFiles(filePath);
   }
 
+  async focus(locator: Locator): Promise<void> {
+    await locator.focus();
+  }
+
+  async hover(locator: Locator): Promise<void> {
+    await locator.hover();
+  }
+
+  async setViewportSize(width: number, height: number): Promise<void> {
+    await this.page.setViewportSize({ width, height });
+  }
+
   // --- Waits ----------------------------------------------------------------
 
   async waitForElement(locator: Locator, state: WaitStrategy = 'visible', description = ''): Promise<void> {

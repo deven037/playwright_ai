@@ -1,4 +1,4 @@
-import { Page } from "@playwright/test";
+import { expect, Page } from "@playwright/test";
 import { BasePage } from "../../core/BasePage";
 
 export class ContactsPage extends BasePage {
@@ -143,5 +143,68 @@ export class ContactsPage extends BasePage {
   async chooseLayout(layoutName: string) {
     const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
     await this.helpers.click(layout, "Layout");
+  }
+
+  private get firstContactRow() {
+    // The case explicitly exercises the first displayed contact.
+    return this.page.getByRole('table').locator('tbody tr').nth(0);
+  }
+
+  private get firstContactEmail() {
+    return this.firstContactRow.locator('td[data-tooltip]');
+  }
+
+  async openEmailTooltipList() {
+    await this.helpers.setViewportSize(1440, 900);
+    await this.helpers.click(this.page.getByRole('link', { name: 'Contacts', exact: true }), 'Contacts');
+    await this.helpers.click(this.page.getByTestId('view-list'), 'List view');
+    await this.helpers.assertVisible(this.page.getByRole('table'), 'Contacts table');
+    await this.helpers.assertVisible(this.firstContactRow.getByRole('checkbox'), 'First contact checkbox');
+  }
+
+  async getFirstContactFullEmail() {
+    const email = (await this.helpers.getText(this.firstContactEmail)).trim();
+    expect(email, 'First contact has a full email value').toMatch(/^[^\s@]+@[^\s@]+$/);
+    return email;
+  }
+
+  async tabFromFirstContactCheckboxToEmail() {
+    const checkbox = this.firstContactRow.getByRole('checkbox');
+    await this.helpers.focus(checkbox);
+    await expect(checkbox).toBeFocused();
+    await this.helpers.pressKey(checkbox, 'Tab', 'Tab to contact name');
+    const name = this.firstContactRow.getByRole('link');
+    await expect(name).toBeFocused();
+    await this.helpers.pressKey(name, 'Tab', 'Tab to email');
+    await expect(this.firstContactEmail).toBeFocused();
+  }
+
+  async assertFirstContactEmailTooltip(email: string) {
+    await expect.poll(() => this.firstContactEmail.evaluate(element => {
+      const style = getComputedStyle(element, '::after');
+      return {
+        content: style.content,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: style.opacity
+      };
+    })).toEqual({
+      content: JSON.stringify(email),
+      display: 'block',
+      visibility: 'visible',
+      opacity: '1'
+    });
+  }
+
+  async moveFocusOffFirstContactEmail() {
+    await this.helpers.pressKey(this.firstContactEmail, 'Shift+Tab', 'Move focus back to contact name');
+    await expect(this.firstContactEmail).not.toBeFocused();
+    await expect.poll(() => this.firstContactEmail.evaluate(element =>
+      getComputedStyle(element, '::after').content
+    )).toBe('none');
+  }
+
+  async hoverFirstContactEmail() {
+    await this.helpers.hover(this.firstContactEmail);
   }
 }
