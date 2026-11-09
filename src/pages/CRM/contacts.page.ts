@@ -1,4 +1,5 @@
 import { Page } from "@playwright/test";
+import { CONTACT_FORM } from '../../data/contacts.data';
 import { BasePage } from "../../core/BasePage";
 
 export class ContactsPage extends BasePage {
@@ -146,6 +147,45 @@ export class ContactsPage extends BasePage {
     const text = await this.helpers.getText(emptyRecord);
     this.logger.info(text);
     return text;
+  }
+
+  private contactCreateRequests = 0;
+
+  async observeContactCreation() {
+    this.page.on('request', request => {
+      if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/contacts') {
+        this.contactCreateRequests++;
+      }
+    });
+  }
+
+  async getContactCreateRequestCount() {
+    return this.contactCreateRequests;
+  }
+
+  async assertAccessibleEmptyForm() {
+    const form = this.page.getByTestId('contact-form-page');
+    await this.helpers.assertVisible(form);
+    for (const name of CONTACT_FORM.labels) {
+      const input = form.getByRole('textbox', { name, exact: true });
+      await this.helpers.assertVisible(input);
+      await this.helpers.assertEmpty(input);
+    }
+  }
+
+  async assertEmptySubmitErrorsAndFocus() {
+    const form = this.page.getByTestId('contact-form-page');
+    const name = form.getByRole('textbox', { name: CONTACT_FORM.labels[0], exact: true });
+    const email = form.getByRole('textbox', { name: CONTACT_FORM.labels[1], exact: true });
+    await this.helpers.assertVisible(form.getByText(CONTACT_FORM.nameError, { exact: true }));
+    await this.helpers.assertVisible(form.getByText(CONTACT_FORM.emailError, { exact: true }));
+    await this.helpers.assertAttribute(name, 'aria-invalid', 'true');
+    await this.helpers.assertAttribute(email, 'aria-invalid', 'true');
+    await this.helpers.assertAccessibleDescription(name, CONTACT_FORM.nameError);
+    await this.helpers.assertAccessibleDescription(email, CONTACT_FORM.emailError);
+    await this.helpers.assertFocused(name);
+    await this.helpers.assertURL(/\\/contacts\\/new(?:\\?|$)/);
+    await this.helpers.assertVisible(form);
   }
 
   async chooseLayout(layoutName: string) {

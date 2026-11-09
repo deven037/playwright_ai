@@ -142,6 +142,22 @@ export class Helpers {
     await expect(this.page).toHaveURL(expected);
   }
 
+  async assertFocused(locator: Locator): Promise<void> {
+    await expect(locator).toBeFocused();
+  }
+
+  async assertAttribute(locator: Locator, name: string, value: string): Promise<void> {
+    await expect(locator).toHaveAttribute(name, value);
+  }
+
+  async assertAccessibleDescription(locator: Locator, description: string): Promise<void> {
+    await expect(locator).toHaveAccessibleDescription(description);
+  }
+
+  async assertEmpty(locator: Locator): Promise<void> {
+    await expect(locator).toHaveValue('');
+  }
+
   async assertTitle(expected: string | RegExp): Promise<void> {
     await expect(this.page).toHaveTitle(expected);
   }
