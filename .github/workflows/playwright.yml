@@ -1,0 +1,111 @@
+# Playwright suites on GitHub Actions (owner, 2026-11-09: moved from GitLab CI, .gitlab-ci.yml).
+#
+# Which CRM environment the tests run against
+# - staging and production are GitHub environments (Settings > Environments). Each has the variables
+#   NEWAPP_BASE_URL (the site) and NEWAPP_BASE_API (the API) and the secrets NEWAPP_EMAIL and
+#   NEWAPP_PASSWORD (the test login). The job runs in the environment named by target_env.
+# - BASE_URL is the Automation Test Store's site, not the CRM's: a repository variable.
+# - The AI Agent Office starts runs through the API (workflow_dispatch) with test_suite, target_env and
+#   triggered_by; the run is named after them so the office finds the run it started.
+# - Manual runs: Actions > Playwright > Run workflow shows the same choices.
+# - Scheduled: a staging smoke run on weekdays (the old GitLab smoke schedule).
+# No secrets belong in this file.
+name: Playwright
+
+run-name: ${{ inputs.test_suite || 'smoke' }} on ${{ inputs.target_env || 'staging' }} · ${{ inputs.triggered_by || github.event_name }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: "Suite to run (all = the full suite)"
+        type: choice
+        options: [smoke, sanity, regression, all]
+        default: smoke
+      target_env:
+        description: "CRM environment to test"
+        type: choice
+        options: [staging, production]
+        default: staging
+      triggered_by:
+        description: "Who started the run (the office sets a unique tag)"
+        type: string
+        default: manual
+  schedule:
+    - cron: "30 2 * * 1-5" # 08:00 IST, weekdays: smoke against staging
+
+permissions:
+  contents: read
+
+# One run per branch and environment at a time; a second one waits instead of overlapping logins.
+concurrency:
+  group: playwright-${{ github.ref }}-${{ inputs.target_env || 'staging' }}
+  cancel-in-progress: false
+
+jobs:
+  suite:
+    name: Playwright ${{ inputs.test_suite || 'smoke' }} (${{ inputs.target_env || 'staging' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: ${{ inputs.target_env || 'staging' }}
+    container:
+      image: mcr.microsoft.com/playwright:v1.55.0-jammy
+    env:
+      CI: "true"
+      TARGET_ENV: ${{ inputs.target_env || 'staging' }}
+      TEST_SUITE: ${{ inputs.test_suite || 'smoke' }}
+      BASE_URL: ${{ vars.BASE_URL }}
+      NEWAPP_BASE_URL: ${{ vars.NEWAPP_BASE_URL }}
+      NEWAPP_BASE_API: ${{ vars.NEWAPP_BASE_API }}
+      NEWAPP_EMAIL: ${{ secrets.NEWAPP_EMAIL }}
+      NEWAPP_PASSWORD: ${{ secrets.NEWAPP_PASSWORD }}
+      HOME: /root # Firefox and Chromium in the Playwright image expect root's home
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The browsers come with the Playwright image; this only adds what a version bump needs.
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      # AIO-229 / AIO-247: the staging warm-up gate (API health + a real login) before any test runs.
+      - name: Warm up the CRM
+        run: node scripts/warm-up.js
+
+      - name: Run the suite
+        run: |
+          case "$TEST_SUITE" in
+            all) npm run test:ci ;;
+            smoke|sanity|regression) npm run "test:$TEST_SUITE" -- --project=chromium ;;
+            *) echo "Unknown suite: $TEST_SUITE"; exit 1 ;;
+          esac
+
+      # The office reads the results from this artifact (reports/junit/results.xml).
+      - name: Upload the JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: junit-report
+          path: reports/junit/results.xml
+          retention-days: 5
+          if-no-files-found: ignore
+
+      - name: Upload the Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report/
+            test-results/
+            reports/
+          retention-days: 5
+          if-no-files-found: ignore
