@@ -121,11 +121,9 @@ export class ContactsPage extends BasePage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  async getFirstContactNameFromTable() {
-    this.logger.info("Getting first contact name")
-    const name = this.page.locator("//div[@class='contact-name']");
-    const contactName = await this.helpers.getText(name);
-    return contactName;
+  async getContactNameFromTable(contactName: string) {
+    const name = this.page.getByRole('link', { name: contactName, exact: true });
+    return await this.helpers.getText(name);
   }
 
   async clickContactName() {

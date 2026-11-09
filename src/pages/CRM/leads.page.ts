@@ -109,24 +109,31 @@ export class LeadsPage extends BasePage {
     }
 
     async openFirstNonConvertedLead(): Promise<{ name: string; status: string }> {
-        const rows = this.page.locator("//tr[contains(@class,'row-clickable')]");
-        const rowCount = await rows.count();
+        const nextPage = this.page.getByRole('button', { name: 'Next page' });
 
-        for (let index = 0; index < rowCount; index += 1) {
-            const row = rows.nth(index);
-            const nameCell = row.locator('td').nth(1);
-            const name = (await this.helpers.getText(nameCell)).trim();
-            const status = (await this.helpers.getText(row.locator('td').nth(5))).trim();
+        while (true) {
+            const rows = this.page.locator("//tr[contains(@class,'row-clickable')]");
+            const rowCount = await rows.count();
 
-            if (status !== 'Converted') {
-                await this.helpers.click(nameCell, 'Non-converted lead');
-                const detailPage = this.page.locator("//div[@data-testid='lead-detail-page']");
-                await this.helpers.waitForElement(detailPage, 'visible');
-                return { name, status };
+            for (let index = 0; index < rowCount; index += 1) {
+                const row = rows.nth(index);
+                const nameCell = row.locator('td').nth(1);
+                const name = (await this.helpers.getText(nameCell)).trim();
+                const status = (await this.helpers.getText(row.locator('td').nth(5))).trim();
+
+                if (status !== 'Converted') {
+                    await this.helpers.click(nameCell, 'Non-converted lead');
+                    const detailPage = this.page.locator("//div[@data-testid='lead-detail-page']");
+                    await this.helpers.waitForElement(detailPage, 'visible');
+                    return { name, status };
+                }
             }
+
+            if (!(await nextPage.isEnabled())) break;
+            await this.helpers.click(nextPage, 'Next leads page');
         }
 
-        throw new Error('No non-converted lead is available on the current leads page.');
+        throw new Error('No non-converted lead is available in the leads list.');
     }
 
     async editlead() {

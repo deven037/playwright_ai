@@ -21,5 +21,5 @@ test('@feature @smoke @regression Verify Contact Creation', async ({
     await contactsPage.gotoContacts();
     await contactsPage.searchInContactsTable(contactName);
 
-    expect(await contactsPage.getFirstContactNameFromTable()).toBe(contactName);
+    expect(await contactsPage.getContactNameFromTable(contactName)).toBe(contactName);
 })
