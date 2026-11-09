@@ -108,6 +108,27 @@ export class LeadsPage extends BasePage {
         await this.helpers.click(name, "Lead Name");
     }
 
+    async openFirstNonConvertedLead(): Promise<{ name: string; status: string }> {
+        const rows = this.page.locator("//tr[contains(@class,'row-clickable')]");
+        const rowCount = await rows.count();
+
+        for (let index = 0; index < rowCount; index += 1) {
+            const row = rows.nth(index);
+            const nameCell = row.locator('td').nth(1);
+            const name = (await this.helpers.getText(nameCell)).trim();
+            const status = (await this.helpers.getText(row.locator('td').nth(5))).trim();
+
+            if (status !== 'Converted') {
+                await this.helpers.click(nameCell, 'Non-converted lead');
+                const detailPage = this.page.locator("//div[@data-testid='lead-detail-page']");
+                await this.helpers.waitForElement(detailPage, 'visible');
+                return { name, status };
+            }
+        }
+
+        throw new Error('No non-converted lead is available on the current leads page.');
+    }
+
     async editlead() {
         const leadDetail = this.page.locator("//div[@data-testid='lead-detail-page']");
         await this.helpers.waitForElement(leadDetail, "visible");
@@ -158,6 +179,33 @@ export class LeadsPage extends BasePage {
         const name = await this.helpers.getText(status);
         await this.helpers.assertVisible(status, "Status");
         return name;
+    }
+
+    async isConvertLeadActionVisible(): Promise<boolean> {
+        return this.page.getByRole('button', { name: 'Convert lead…', exact: true }).isVisible();
+    }
+
+    async isConvertLeadActionKeyboardReachable(): Promise<boolean> {
+        const convertButton = this.page.getByRole('button', { name: 'Convert lead…', exact: true });
+        await this.page.getByTestId('edit-lead-btn').focus();
+        await this.page.keyboard.press('Shift+Tab');
+        return convertButton.evaluate((button) => button === document.activeElement);
+    }
+
+    async openConvertWizardFromLeadRecord(): Promise<void> {
+        const convertButton = this.page.getByRole('button', { name: 'Convert lead…', exact: true });
+        await this.helpers.click(convertButton, 'Convert lead action');
+    }
+
+    async isConversionWizardAtStepOne(): Promise<boolean> {
+        const wizard = this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
+        return wizard.isVisible();
+    }
+
+    async closeConversionWizard(): Promise<void> {
+        const wizard = this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
+        const closeButton = wizard.getByRole('button', { name: 'Close dialog', exact: true });
+        await this.helpers.click(closeButton, 'Close conversion wizard');
     }
 
     async getLeadAssignTo() {
@@ -263,7 +311,7 @@ export class LeadsPage extends BasePage {
     }
 
     async assertConvertedToast(leadName: string) {
-        const toast = this.page.getByText(`Lead "${leadName}" converted successfully.`);
+        const toast = this.page.getByText(`Lead \"${leadName}\" converted successfully.`);
         await this.helpers.assertVisible(toast, 'Converted toast');
     }
 
