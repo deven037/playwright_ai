@@ -271,4 +271,60 @@ export class LeadsPage extends BasePage {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
     }
+
+    private get leadsTable() {
+        return this.page.getByRole('table');
+    }
+
+    async getLeadTableHeaders(): Promise<string[]> {
+        await this.helpers.waitForElement(this.leadsTable, 'visible', 'Leads table');
+        const headers = await this.leadsTable.locator('thead th').allInnerTexts();
+        return headers.map((header) => header.replace(/[▲▼]/g, '').trim()).filter(Boolean);
+    }
+
+    async getLeadTableColumnCount(): Promise<number> {
+        return this.leadsTable.locator('thead th').count();
+    }
+
+    async getFirstLeadContactValues(): Promise<{ email: string; phone: string }> {
+        const headers = await this.leadsTable.locator('thead th').allInnerTexts();
+        const getHeaderName = (header: string) => header.replace(/[▲▼]/g, '').trim();
+        const emailIndex = headers.findIndex((header) => getHeaderName(header) === 'Email');
+        const phoneIndex = headers.findIndex((header) => getHeaderName(header) === 'Phone');
+        if (emailIndex < 0 || phoneIndex < 0) {
+            throw new Error('The Leads table does not expose both contact columns.');
+        }
+
+        const row = this.leadsTable.locator('tbody tr.row-clickable').first();
+        await this.helpers.waitForElement(row, 'visible', 'First lead row');
+        const cells = row.getByRole('cell');
+        return {
+            email: await this.helpers.getText(cells.nth(emailIndex)),
+            phone: await this.helpers.getText(cells.nth(phoneIndex)),
+        };
+    }
+
+    async getLeadVisibleRowTexts(): Promise<string[]> {
+        return this.leadsTable.locator('tbody tr.row-clickable').allInnerTexts();
+    }
+
+    async searchLeads(query: string): Promise<void> {
+        const searchInput = this.page.getByPlaceholder('Search name, company, email…');
+        await this.helpers.fill(searchInput, query, 'Leads search');
+        await this.helpers.waitForElement(
+            this.leadsTable.getByRole('cell', { name: 'No leads match the current filters.', exact: true }),
+            'visible',
+            'Empty search results',
+        );
+    }
+
+    async getLeadEmptyStateColumnSpan(): Promise<number> {
+        const emptyCell = this.leadsTable.getByRole('cell', { name: 'No leads match the current filters.', exact: true });
+        await this.helpers.waitForElement(emptyCell, 'visible', 'Empty search results');
+        const span = await this.helpers.getAttributeValue(emptyCell, 'colspan');
+        if (span === null) {
+            throw new Error('The Leads empty-state cell has no colspan attribute.');
+        }
+        return Number(span);
+    }
 }
