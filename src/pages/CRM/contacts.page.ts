@@ -121,14 +121,24 @@ export class ContactsPage extends BasePage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  async getContactNameFromTable(contactName: string) {
-    const name = this.page.getByRole('link', { name: contactName, exact: true });
-    return await this.helpers.getText(name);
+  private contactNameLink(contactName: string) {
+    const xpathName = this.toXPathLiteral(contactName.trim());
+    return this.page.locator(`//a[starts-with(@href, '/contacts/contact-') and normalize-space(.)=${xpathName}]`);
   }
 
-  async clickContactName() {
-    const name = this.page.locator("//div[@class='contact-name']");
-    await this.helpers.click(name, "Contact Name");
+  private toXPathLiteral(value: string) {
+    const parts = value.split("'");
+    if (parts.length === 1) return `'${value}'`;
+    return `concat(${parts.map(part => `'${part}'`).join(`, "'", `)})`;
+  }
+
+  async getFirstContactNameFromTable(contactName: string) {
+    this.logger.info("Getting searched contact name");
+    return this.helpers.getText(this.contactNameLink(contactName));
+  }
+
+  async clickContactName(contactName: string) {
+    await this.helpers.click(this.contactNameLink(contactName), "Contact Name");
   }
 
   async getNoRecordFoundMessage() {
