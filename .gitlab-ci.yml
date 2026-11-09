@@ -23,6 +23,8 @@ variables:
     description: "Suite to run on a manual or scheduled pipeline (all = the full suite)."
 
 # AIO-229: shared script entry in a hidden job mapping; no credentials or browser artifacts logged.
+# AIO-293: "fast" is under 6000 ms. One attempt is a full login in a fresh browser context, which
+# takes 2.2-4.0 s on a warm staging (run 3043385407), so the earlier 3000 ms limit was never met twice in a row.
 .warm-up:
   script:
     - &warm-up |
@@ -39,7 +41,7 @@ variables:
           try { result = await probe(); }
           catch { result = { status: 0, ms: Infinity, ready: false }; }
           report(n, result);
-          fast = result.status === 200 && result.ms < 3000 && result.ready ? fast + 1 : 0;
+          fast = result.status === 200 && result.ms < 6000 && result.ready ? fast + 1 : 0;
           if (fast === 2) return;
           if (n < 20) await pause();
         }
@@ -49,7 +51,7 @@ variables:
         const env = Object.fromEntries(required.map(key => [key, 'fixture']));
         const good = { status: 200, ms: 100, ready: true };
         const bad = [
-          { ...good, ms: 3000 }, { ...good, status: 503 },
+          { ...good, ms: 6000 }, { ...good, status: 503 },
           { ...good, ready: false }, new Error('transport')
         ];
         async function scenario(prefix, succeeds) {
