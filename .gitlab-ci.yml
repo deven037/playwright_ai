@@ -2,10 +2,9 @@ stages:
   - test
 
 # Which CRM environment the tests run against (owner, 2026-10-28)
-# - staging and production are GitLab environments (Operate > Environments). Their CRM URLs are
-#   CI variables scoped to them (Settings > CI/CD > Variables, Environment scope "staging" or
-#   "production"): NEWAPP_BASE_URL (the site) and NEWAPP_BASE_API (the API). Every job below runs
-#   in the environment named by TARGET_ENV, so it gets that environment's URLs.
+# - staging and production are GitLab environments (Operate > Environments). Their CI variables scoped to them are
+#   Settings > CI/CD > Variables, Environment scope "staging" or "production": NEWAPP_BASE_URL (the site) and
+#   NEWAPP_BASE_API (the API). Every job below runs in the environment named by TARGET_ENV, so it gets those URLs.
 # - API runs (the office's pipeline_run): TARGET_ENV and TEST_SUITE come with the request.
 # - Manual runs: Build > Pipelines > Run pipeline shows TARGET_ENV and TEST_SUITE as dropdowns.
 # - Schedules: set TARGET_ENV on the schedule; without it, staging.
@@ -50,13 +49,14 @@ variables:
       async function regression() {
         const env = Object.fromEntries(required.map(key => [key, 'fixture']));
         const good = { status: 200, ms: 100, ready: true };
+        const thresholdCase = { ...good, ms: 4000 };
         const bad = [
           { ...good, ms: 6000 }, { ...good, status: 503 },
           { ...good, ready: false }, new Error('transport')
         ];
-        async function scenario(prefix, succeeds) {
+        async function scenario(prefix, succeeds, successSequence = [good, good]) {
           let calls = 0, sleeps = 0, reachedTest = false;
-          const sequence = succeeds ? [...prefix, good, good] : Array(20).fill(prefix[0]);
+          const sequence = succeeds ? [...prefix, ...successSequence] : Array(20).fill(prefix[0]);
           const run = async () => {
             await warm(env, async () => {
               const value = sequence[calls++];
@@ -72,6 +72,7 @@ variables:
           assert.equal(sleeps, succeeds ? calls - 1 : 19);
         }
         await scenario([], true);
+        await scenario([], true, [thresholdCase, thresholdCase]);
         for (const value of bad) {
           await scenario([good, value], true); // interrupted streak must reset
           await scenario([value], false);
@@ -83,7 +84,7 @@ variables:
               async () => {}, () => {}), /Missing configuration/);
           }
         }
-        console.log('warm-up regression: passed (including test-command continuation sentinel)');
+        console.log('warm-up regression: passed (including 4000 ms threshold acceptance and test-command continuation sentinel)');
       }
       (async () => {
         await regression(); // offline checks run before credentials or network are used
