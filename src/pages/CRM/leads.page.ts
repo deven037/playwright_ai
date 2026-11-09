@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page } from "@playwright/test";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -270,5 +270,40 @@ export class LeadsPage extends BasePage {
     async chooseLayout(layoutName: string) {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
+    }
+
+    private get recordConvertButton() {
+        return this.page.getByTestId('lead-detail-page').getByRole('button', { name: 'Convert lead…', exact: true });
+    }
+
+    private get conversionDialog() {
+        return this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
+    }
+
+    async assertNonConvertedRecord(leadName: string, status: string) {
+        await this.helpers.assertURL(/\/leads\/[^/?]+$/);
+        await expect(this.page.getByTestId('lead-detail-page').getByRole('heading', { name: leadName, exact: true })).toBeVisible();
+        await expect(this.page.getByTestId('lead-detail-status')).toHaveText(status);
+        expect(status).not.toBe('Converted');
+    }
+
+    async openRecordConversionByKeyboard() {
+        await this.helpers.assertVisible(this.recordConvertButton);
+        // Edit immediately follows Convert in the record action area.
+        await this.helpers.pressKey(this.page.getByTestId('edit-lead-btn'), 'Shift+Tab');
+        await expect(this.recordConvertButton).toBeFocused();
+        await this.helpers.pressKey(this.recordConvertButton, 'Enter');
+    }
+
+    async assertRecordConversionStepOne(leadName: string) {
+        await this.helpers.assertVisible(this.conversionDialog);
+        await expect(this.conversionDialog.getByLabel('Contact name', { exact: true })).toHaveValue(leadName);
+    }
+
+    async closeRecordConversion() {
+        await this.helpers.click(this.conversionDialog.getByRole('button', { name: 'Close dialog', exact: true }));
+        await expect(this.conversionDialog).toHaveCount(0);
+        // Reload to check persisted status rather than only local component state.
+        await this.helpers.refreshPage();
     }
 }

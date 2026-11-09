@@ -1,4 +1,5 @@
 import { expect, test } from "@fixtures/CrmFixtures";
+import { RECORD_CONVERSION_LEAD } from "../../../../src/data/leads.data";
 
 test('@regression Convert a lead through the 3-step wizard with a new account and a deal', async ({
     crmLoginPage,
@@ -33,4 +34,31 @@ test('@regression Convert a lead through the 3-step wizard with a new account an
     await leadsPage.assertConvertedToast(leadName);
     await leadsPage.searchInLeadsTable(leadName);
     expect(await leadsPage.getStatusFromTable()).toBe('Converted');
+});
+
+test('AIO-T120: Admin opens and closes record conversion without converting @smoke', async ({
+    crmLoginPage, dashboardPage, leadsPage,
+}) => {
+    await crmLoginPage.goto();
+    await crmLoginPage.loginWithDefaultCredentials();
+    await dashboardPage.waitForPageLoad();
+    await leadsPage.goToLeads();
+    await leadsPage.createNewLead();
+    await leadsPage.chooseLayout('Default');
+    await leadsPage.fillLeadDetails(RECORD_CONVERSION_LEAD.status, RECORD_CONVERSION_LEAD.source, RECORD_CONVERSION_LEAD.value);
+    await leadsPage.createLead();
+    const leadName = await leadsPage.getLeadNameFromDetailsPage();
+    try {
+        await leadsPage.goToLeads();
+        await leadsPage.searchInLeadsTable(leadName);
+        await leadsPage.clickLeadName();
+        await leadsPage.assertNonConvertedRecord(leadName, RECORD_CONVERSION_LEAD.status);
+        await leadsPage.openRecordConversionByKeyboard();
+        await leadsPage.assertRecordConversionStepOne(leadName);
+        await leadsPage.closeRecordConversion();
+        await leadsPage.assertNonConvertedRecord(leadName, RECORD_CONVERSION_LEAD.status);
+    } finally {
+        await leadsPage.deleteLead();
+        await leadsPage.confirmDelete(true);
+    }
 });
