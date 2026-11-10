@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page } from "@playwright/test";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -188,15 +188,17 @@ export class LeadsPage extends BasePage {
         return name;
     }
 
-    async isConvertLeadActionVisible(): Promise<boolean> {
-        return this.page.getByRole('button', { name: 'Convert lead…', exact: true }).isVisible();
+    async assertConvertLeadActionVisible(): Promise<void> {
+        const convertButton = this.page.getByRole('button', { name: 'Convert lead…', exact: true });
+        await this.helpers.assertVisible(convertButton, 'Convert lead action');
     }
 
-    async isConvertLeadActionKeyboardReachable(): Promise<boolean> {
+    // Assumes the Convert lead button sits immediately before the Edit button in tab order.
+    async assertConvertLeadActionKeyboardReachable(): Promise<void> {
         const convertButton = this.page.getByRole('button', { name: 'Convert lead…', exact: true });
         await this.page.getByTestId('edit-lead-btn').focus();
         await this.page.keyboard.press('Shift+Tab');
-        return convertButton.evaluate((button) => button === document.activeElement);
+        await expect(convertButton).toBeFocused();
     }
 
     async openConvertWizardFromLeadRecord(): Promise<void> {
@@ -204,9 +206,14 @@ export class LeadsPage extends BasePage {
         await this.helpers.click(convertButton, 'Convert lead action');
     }
 
-    async isConversionWizardAtStepOne(): Promise<boolean> {
+    async assertConversionWizardStepOne(): Promise<void> {
         const wizard = this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
-        return wizard.isVisible();
+        await this.helpers.assertVisible(wizard, 'Convert wizard step 1');
+    }
+
+    async assertConversionWizardClosed(): Promise<void> {
+        const wizard = this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
+        await this.helpers.waitForElement(wizard, 'hidden', 'Convert wizard step 1');
     }
 
     async closeConversionWizard(): Promise<void> {
@@ -318,7 +325,7 @@ export class LeadsPage extends BasePage {
     }
 
     async assertConvertedToast(leadName: string) {
-        const toast = this.page.getByText(`Lead \"${leadName}\" converted successfully.`);
+        const toast = this.page.getByText(`Lead "${leadName}" converted successfully.`);
         await this.helpers.assertVisible(toast, 'Converted toast');
     }
 
