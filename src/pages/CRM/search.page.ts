@@ -4,7 +4,10 @@ import {
     LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
     SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel, SEARCH_API_GROUPS, SEARCH_GROUPING_TERM,
     SEARCH_LIVE_PATHS, SEARCH_PER_TYPE_LIMIT, SearchApiBody, formatPhoneWithSeparators,
+    SEARCH_ROLE_EMAILS, SearchRole,
 } from '../../data/search.data';
+import { CrmLoginPage } from './crm.login.page';
+import { DashboardPage } from './dashboard.page';
 
 export class SearchPage extends BasePage {
     private releaseSearch?: () => void;
@@ -83,6 +86,8 @@ export class SearchPage extends BasePage {
         const response = this.page.waitForResponse(r => r.request().method() === 'GET'
             && new URL(r.url()).pathname === SEARCH_LIVE_PATHS.search && new URL(r.url()).searchParams.get('q') === term);
         if (!(await this.panel.isVisible())) await this.helpers.click(this.page.getByTestId('global-search'));
+        // Clear first so a repeated term is a real input change and sends a new request.
+        await this.helpers.fill(this.input, '');
         await this.helpers.fill(this.input, term);
         const result = await response;
         expect(result.status()).toBe(200);
@@ -94,7 +99,15 @@ export class SearchPage extends BasePage {
             && new URL(r.url()).pathname === SEARCH_LIVE_PATHS.leads);
         await this.helpers.click(this.page.getByRole('link', { name: /^leads$/i }));
         const body = await (await response).json();
-        return body.data[0];
+        // Converted leads are excluded from search, so they cannot prove a match or a non-match.
+        return body.data.find((lead: Record<string, string>) => lead.status !== 'Converted');
+    }
+
+    async signInAs(role: SearchRole) {
+        const loginPage = new CrmLoginPage(this.page);
+        await loginPage.goto();
+        await loginPage.loginWithCustomCredentials(SEARCH_ROLE_EMAILS[role]);
+        await new DashboardPage(this.page).waitForDashBoardPage();
     }
 
     private static allHits(body: SearchApiBody) {
@@ -106,7 +119,7 @@ export class SearchPage extends BasePage {
         expect(body.term).toBe(SEARCH_GROUPING_TERM);
         for (const group of SEARCH_API_GROUPS) {
             expect(body[group].items.length, `${group} items`).toBeLessThanOrEqual(SEARCH_PER_TYPE_LIMIT);
-            expect(body[group].total, `${group} total`).toBeGreaterThanOrEqual(body[group].items.length);
+            expect(body[group].items.length, `${group} items vs total`).toBe(Math.min(body[group].total, SEARCH_PER_TYPE_LIMIT));
         }
         expect(body.leads.total, 'leads total').toBeGreaterThan(0);
     }
