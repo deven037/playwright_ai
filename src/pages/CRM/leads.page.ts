@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page } from "@playwright/test";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -90,21 +90,35 @@ export class LeadsPage extends BasePage {
         return leadName;
     }
     
+    private searchedLeadName = '';
+
+    // Rows of the leads table whose name cell is exactly the searched lead
+    private searchedLeadRows(): Locator {
+        return this.page
+            .locator("//tr[contains(@class,'row-clickable')]")
+            .filter({ has: this.page.locator('td:nth-child(2)', { hasText: this.searchedLeadName }) });
+    }
+
     async searchInLeadsTable(leadName: string) {
+        this.searchedLeadName = leadName;
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
+        // Wait for the filter to settle on exactly the searched lead
+        const allRows = this.page.locator("//tr[contains(@class,'row-clickable')]");
+        await expect(this.searchedLeadRows()).toHaveCount(1);
+        await expect(allRows).toHaveCount(1);
     }
 
     async getFirstLeadNameFromTable() {
         this.logger.info("Getting top lead name")
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.waitForElement(name, 'visible');
         return await this.helpers.getText(name);
     }
 
     async clickLeadName() {
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.click(name, "Lead Name");
     }
 
@@ -192,7 +206,8 @@ export class LeadsPage extends BasePage {
     }
 
     async getStatusFromTable() {
-        const column = this.page.locator("//tr[@class='row-clickable']/td[6]/span");
+        const column = this.searchedLeadRows().locator('td:nth-child(6) > span');
+        await this.helpers.waitForElement(column, 'visible');
         const status = await this.helpers.getText(column);
         return status;
     }
