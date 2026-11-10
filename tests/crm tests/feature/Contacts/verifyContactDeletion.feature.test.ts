@@ -21,9 +21,9 @@ test('@feature @regression Verify Contact Deletion', async ({
     await contactsPage.gotoContacts();
     await contactsPage.searchInContactsTable(contactName);
 
-    expect(await contactsPage.getFirstContactNameFromTable()).toBe(contactName);
+    expect(await contactsPage.getFirstContactNameFromTable(contactName)).toBe(contactName);
 
-    await contactsPage.clickContactName();
+    await contactsPage.clickContactName(contactName);
     await contactsPage.deleteContact();
     await contactsPage.confirmDelete(true);
 
