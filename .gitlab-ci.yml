@@ -1,0 +1,239 @@
+stages:
+  - test
+
+# Which CRM environment the tests run against (owner, 2026-10-28)
+# - staging and production are GitLab environments (Operate > Environments). Their CRM URLs are
+#   CI variables scoped to them (Settings > CI/CD > Variables, Environment scope "staging" or
+#   "production"): NEWAPP_BASE_URL (the site) and NEWAPP_BASE_API (the API). Every job below runs
+#   in the environment named by TARGET_ENV, so it gets that environment's URLs.
+# - API runs (the office's pipeline_run): TARGET_ENV and TEST_SUITE come with the request.
+# - Manual runs: Build > Pipelines > Run pipeline shows TARGET_ENV and TEST_SUITE as dropdowns.
+# - Schedules: set TARGET_ENV on the schedule; without it, staging.
+# - BASE_URL is the Automation Test Store's site, not the CRM's; it stays a project variable.
+# No secrets belong in this file.
+variables:
+  CI: "true"
+  TARGET_ENV:
+    value: "staging"
+    options: ["staging", "production"]
+    description: "CRM environment to test: its environment-scoped NEWAPP_BASE_URL and NEWAPP_BASE_API are used."
+  TEST_SUITE:
+    value: "all"
+    options: ["all", "smoke", "sanity", "regression"]
+    description: "Suite to run on a manual or scheduled pipeline (all = the full suite)."
+
+# AIO-229: shared script entry in a hidden job mapping; no credentials or browser artifacts logged.
+.warm-up:
+  script:
+    - &warm-up |
+      node <<'NODE'
+      const assert = require('node:assert/strict');
+      const required = ['NEWAPP_BASE_API', 'NEWAPP_BASE_URL', 'NEWAPP_EMAIL', 'NEWAPP_PASSWORD'];
+      async function warm(env, probe, pause, report) {
+        for (const key of required) {
+          if (!env[key]?.trim()) throw new Error('Missing configuration: ' + key);
+        }
+        let fast = 0;
+        for (let n = 1; n <= 20; n++) {
+          let result;
+          try { result = await probe(); }
+          catch { result = { status: 0, ms: Infinity, ready: false }; }
+          report(n, result);
+          fast = result.status === 200 && result.ms < 3000 && result.ready ? fast + 1 : 0;
+          if (fast === 2) return;
+          if (n < 20) await pause();
+        }
+        throw new Error('Staging warm-up exhausted 20 attempts');
+      }
+      async function regression() {
+        const env = Object.fromEntries(required.map(key => [key, 'fixture']));
+        const good = { status: 200, ms: 100, ready: true };
+        const bad = [
+          { ...good, ms: 3000 }, { ...good, status: 503 },
+          { ...good, ready: false }, new Error('transport')
+        ];
+        async function scenario(prefix, succeeds) {
+          let calls = 0, sleeps = 0, reachedTest = false;
+          const sequence = succeeds ? [...prefix, good, good] : Array(20).fill(prefix[0]);
+          const run = async () => {
+            await warm(env, async () => {
+              const value = sequence[calls++];
+              if (value instanceof Error) throw value;
+              return value;
+            }, async () => { sleeps++; }, () => {});
+            reachedTest = true; // sentinel for the command following warm-up
+          };
+          if (succeeds) await run();
+          else await assert.rejects(run, /exhausted/);
+          assert.equal(reachedTest, succeeds);
+          assert.equal(calls, sequence.length);
+          assert.equal(sleeps, succeeds ? calls - 1 : 19);
+        }
+        await scenario([], true);
+        for (const value of bad) {
+          await scenario([good, value], true); // interrupted streak must reset
+          await scenario([value], false);
+        }
+        for (const key of required) {
+          for (const value of [undefined, '', ' ']) {
+            await assert.rejects(warm({ ...env, [key]: value },
+              async () => assert.fail('probe reached with missing configuration'),
+              async () => {}, () => {}), /Missing configuration/);
+          }
+        }
+        console.log('warm-up regression: passed (including test-command continuation sentinel)');
+      }
+      (async () => {
+        await regression(); // offline checks run before credentials or network are used
+        try { require('dotenv').config({ quiet: true }); } catch { /* CI variables only */ }
+        const { chromium } = require('@playwright/test');
+        let browser;
+        try {
+          // One attempt is capped at 45 s overall (per-action 30 s timeouts do not bound it).
+          const capped = probe => async () => {
+            let timer;
+            try {
+              return await Promise.race([probe(), new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error('attempt timeout')), 45000);
+              })]);
+            } finally { clearTimeout(timer); }
+          };
+          await warm(process.env, capped(async () => {
+            const start = Date.now();
+            const response = await fetch(process.env.NEWAPP_BASE_API.replace(/\/$/, '') + '/api/health',
+              { signal: AbortSignal.timeout(30000) });
+            await response.body?.cancel();
+            const status = response.status;
+            if (status !== 200) return { status, ms: Date.now() - start, ready: false };
+            browser ??= await chromium.launch();
+            const context = await browser.newContext();
+            try {
+              const page = await context.newPage();
+              page.setDefaultTimeout(30000);
+              page.setDefaultNavigationTimeout(30000);
+              // Same entry URL and test-id locators as src/pages/CRM/crm.login.page.ts
+              await page.goto(process.env.NEWAPP_BASE_URL);
+              await page.locator("//input[@data-testid='login-email']").fill(process.env.NEWAPP_EMAIL);
+              await page.locator("//input[@data-testid='login-password']").fill(process.env.NEWAPP_PASSWORD);
+              await page.locator("//*[@data-testid='login-submit']").click();
+              await page.locator('[data-testid="avatar-menu"]').waitFor({ state: 'visible' });
+              await page.locator('[data-testid="dashboard-page"]').waitFor({ state: 'visible' });
+              return { status, ms: Date.now() - start, ready: true };
+            } finally { await context.close(); }
+          }), () => new Promise(resolve => setTimeout(resolve, 10000)),
+          (n, r) => console.log('warm-up ' + n + ': API health HTTP ' + r.status +
+            '; login/bootstrap ready=' + r.ready + '; total ms=' + r.ms));
+          console.log('warm-up complete: continuing to Playwright test command');
+        } finally { await browser?.close(); }
+      })().catch(error => {
+        // Never emit browser/fetch exception text, request data, or credentials.
+        console.error(/^(Missing configuration: |Staging warm-up exhausted)/.test(error.message)
+          ? error.message : 'Warm-up regression or browser setup failed');
+        process.exitCode = 1;
+      });
+      NODE
+
+# How to run the scheduled smoke run against staging (AIO-72)
+# - Scheduled: in GitLab, CI/CD > Schedules > New schedule (owner: Deven). Add the
+#   schedule variable SMOKE_STAGING = "true". Without it, a schedule runs the full
+#   suite in playwright-tests, as before.
+# - Manually: CI/CD > Pipelines > Run pipeline, with the variable SMOKE_STAGING = "true".
+# - Target: the staging environment's NEWAPP_BASE_URL / NEWAPP_BASE_API (see above).
+# - Report: the job artifacts (playwright-report/, test-results/, reports/, junit)
+#   are kept 5 days; open them from the job page, Browse.
+
+# Full suite on a schedule or a manual run
+playwright-tests:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.55.0-jammy
+  timeout: 1h
+  environment:
+    name: $TARGET_ENV
+    action: prepare # reads the environment's variables; records no deployment
+
+  before_script:
+    - npm ci
+    - npx playwright install --with-deps chromium
+    - *warm-up
+
+  script:
+    - npm run test:ci
+
+  artifacts:
+    when: always
+    name: playwright-artifacts
+    paths:
+      - playwright-report/
+      - test-results/
+      - reports/
+    expire_in: 5 days
+    reports:
+      junit: reports/junit/results.xml
+
+  rules:
+    # Run from GitLab Pipeline Schedule or a manual run (the smoke schedule runs staging-smoke instead)
+    - if: '($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $SMOKE_STAGING != "true" && $TEST_SUITE == "all" && ($TARGET_ENV == "staging" || $TARGET_ENV == "production")'
+
+# Scheduled smoke run against staging (AIO-70)
+staging-smoke:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.55.0-jammy
+  timeout: 30m
+  environment:
+    name: staging
+    action: prepare
+
+  before_script:
+    - npm ci
+    - npx playwright install --with-deps chromium
+    - *warm-up
+
+  script:
+    - npm run test:smoke -- --project=chromium
+
+  artifacts:
+    when: always
+    name: staging-smoke-artifacts
+    paths:
+      - playwright-report/
+      - test-results/
+      - reports/
+    expire_in: 5 days
+    reports:
+      junit: reports/junit/results.xml
+
+  rules:
+    - if: '($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $SMOKE_STAGING == "true"'
+
+# One suite against one environment: API runs (pipeline_run), or a manual or scheduled run with TEST_SUITE set
+playwright-suite:
+  stage: test
+  image: mcr.microsoft.com/playwright:v1.55.0-jammy
+  timeout: 1h
+  environment:
+    name: $TARGET_ENV
+    action: prepare
+
+  before_script:
+    - npm ci
+    - npx playwright install --with-deps chromium
+    - *warm-up
+
+  script:
+    - npm run test:$TEST_SUITE -- --project=chromium
+
+  artifacts:
+    when: always
+    name: playwright-suite-artifacts
+    paths:
+      - playwright-report/
+      - test-results/
+      - reports/
+    expire_in: 5 days
+    reports:
+      junit: reports/junit/results.xml
+
+  rules:
+    # Only the three known suites and the two environments; any other value gives no job
+    - if: '$CI_PIPELINE_SOURCE == "api" && ($TEST_SUITE == "smoke" || $TEST_SUITE == "sanity" || $TEST_SUITE == "regression") && ($TARGET_ENV == "staging" || $TARGET_ENV == "production")'
+    - if: '($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $SMOKE_STAGING != "true" && ($TEST_SUITE == "smoke" || $TEST_SUITE == "sanity" || $TEST_SUITE == "regression") && ($TARGET_ENV == "staging" || $TARGET_ENV == "production")'

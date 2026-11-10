@@ -15,6 +15,15 @@ export interface IEnvConfig {
   workers: number;
 }
 
+// --- New Application Environment Configuration (SCAFFOLD) --------------------
+// Rename once the real app name is known; not yet implemented by EnvManager's
+// IEnvConfig contract above, just documents the NEWAPP_* fields it exposes.
+export interface INewAppEnvConfig {
+  newAppBaseUrl: string;
+  newAppUsername: string;
+  newAppPassword: string;
+}
+
 // --- User Credentials ---------------------------------------------------------
 export interface ICredentials {
   username: string;
@@ -47,4 +56,4 @@ export interface ISuiteResult {
 
 // --- Wait Strategy ------------------------------------------------------------
 export type WaitStrategy = 'visible' | 'hidden' | 'attached' | 'detached';
-export type TestTag = 'smoke' | 'regression' | 'feature' | 'sanity' | 'e2e';
+export type TestTag = 'smoke' | 'regression' | 'feature' | 'sanity' | 'e2e' | 'api';

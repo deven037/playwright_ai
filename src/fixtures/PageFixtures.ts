@@ -1,22 +1,13 @@
-import { test as base, Page, BrowserContext } from '@playwright/test';
-import { Logger } from '../utils/Logger';
-import { EnvManager } from '../utils/EnvManager';
-import { LoginPage } from '../pages/login.page';
-import { HomePage } from '@pages/home.page';
-import { ProductsPage } from '@pages/products.page';
-import { CartPage } from '@pages/cart.page';
-import { OrderConfirmationPage } from '@pages/orderConfirmation.page';
-import { RegistrationPage } from '@pages/registration.page';
+import { test as base } from './BaseFixtures';
+import { LoginPage } from '@pages/Store/login.page';
+import { HomePage } from '@pages/Store/home.page';
+import { ProductsPage } from '@pages/Store/products.page';
+import { CartPage } from '@pages/Store/cart.page';
+import { OrderConfirmationPage } from '@pages/Store/orderConfirmation.page';
+import { RegistrationPage } from '@pages/Store/registration.page';
 
-const logger = Logger.getInstance();
-const env = EnvManager.getInstance();
-
-// --- Custom Fixtures with Fresh Browser Context for Parallel Execution -----
-
-type FixturesWithContext = {
-  context: BrowserContext;
-  page: Page;
-};
+// Fresh browser context + page per test now come from BaseFixtures.
+// This file only wires up this app's Page Objects on top of it.
 
 export type PageFixtures = {
   loginPage: LoginPage;
@@ -27,28 +18,8 @@ export type PageFixtures = {
   registrationPage: RegistrationPage;
 };
 
-export const test = base.extend<FixturesWithContext & PageFixtures>({
-  // Fresh browser context for each test
-  context: async ({ browser }, use) => {
-    logger.info('Creating fresh browser context for test');
-    const context = await browser.newContext({
-      viewport: { width: 1920, height: 1080 },
-      ignoreHTTPSErrors: true,
-    });
-    
-    await use(context);
-    logger.info('Closing browser context after test');
-    await context.close();
-  },
-
-  // Fresh page for each test from the context
-  page: async ({ context }, use) => {
-    logger.info('Creating fresh page in context');
-    const page = await context.newPage();
-    await use(page);
-  },
-
-  // Page fixtures using fresh page
+export const test = base.extend<PageFixtures>({
+  // Page fixtures using the fresh page from BaseFixtures
   loginPage: async ({ page }, use) => {
     const loginPage = new LoginPage(page);
     await use(loginPage);

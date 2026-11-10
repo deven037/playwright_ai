@@ -1,6 +1,8 @@
 import { Page, Locator, expect } from '@playwright/test';
 import { Logger } from './Logger';
 import { WaitStrategy } from '../types';
+import { SelfHealingEngine } from '../ai/SelfHealingEngine';
+import { HealableAction } from '../types/healing';
 
 /**
  * Helpers - Collection of reusable utility methods for test automation.
@@ -8,6 +10,7 @@ import { WaitStrategy } from '../types';
  */
 export class Helpers {
   private readonly logger = Logger.getInstance();
+  private readonly healer = SelfHealingEngine.getInstance();
 
   constructor(private readonly page: Page) {}
 
@@ -18,24 +21,82 @@ export class Helpers {
     await this.page.goto(url, { waitUntil: 'networkidle' });
   }
 
+  // --- Self-healing dispatcher ------------------------------------------------
+
+  private isTimeoutError(err: unknown): boolean {
+    if (!(err instanceof Error)) return false;
+    if (err.name === 'TimeoutError') return true;
+    // expect(locator).toBeVisible() failures throw an ExpectError (not TimeoutError),
+    // but the matcher has no other failure mode - any failure here means the element
+    // never resolved as visible within the timeout, same condition as a locator TimeoutError.
+    return err.constructor.name === 'ExpectError' && err.message.includes('toBeVisible');
+  }
+
+  /**
+   * Runs `perform` against `locator`; on a locator timeout (only), attempts an
+   * AI-driven heal and re-runs the same action closure against the healed
+   * locator. Never swallows non-timeout errors, and never swallows a failed heal.
+   */
+  private async runWithHealing(
+    locator: Locator,
+    description: string,
+    action: HealableAction,
+    perform: (loc: Locator) => Promise<void>,
+  ): Promise<void> {
+    try {
+      await perform(locator);
+    } catch (err) {
+      if (!this.isTimeoutError(err) || !this.healer.isEnabled()) throw err;
+      const label = description || locator.toString();
+      this.logger.warn(`Incorrect locator: ${label}`);
+      this.logger.info(`AI Self healing in process, fetching correct locator...`);
+      const result = await this.healer.heal({ page: this.page, locator, description, action, originalError: err as Error });
+      if (!result.healed || !result.healedLocator) {
+        this.logger.warn(`AI Self healing failed to find a correct locator for: ${label}`);
+        throw err;
+      }
+      this.logger.info(`AI Self healing found correct locator: ${result.event.healedLocator}`);
+      await perform(result.healedLocator);
+    }
+  }
+
   // --- Actions -------------------------------------------------------------
 
   async click(locator: Locator, description = ''): Promise<void> {
     this.logger.step(`Click: ${description || locator.toString()}`);
-    await locator.waitFor({ state: 'visible' });
-    await locator.click();
+    await this.runWithHealing(locator, description, 'click', async (loc) => {
+      await loc.waitFor({ state: 'visible' });
+      await loc.click();
+    });
   }
 
-  async fill(locator: Locator, value: string, description = ''): Promise<void> {
+  async fill(locator: Locator, value: string, description = '', sensitive = false): Promise<void> {
+    this.logger.step(`Fill "${sensitive ? '[redacted]' : value}" into: ${description || locator.toString()}`);
+    await this.runWithHealing(locator, description, 'fill', async (loc) => {
+      await loc.waitFor({ state: 'visible' });
+      await loc.clear();
+      await loc.fill(value);
+    });
+  }
+
+  async fillWithReturn(locator: Locator, value: string, description = ''): Promise<string> {
     this.logger.step(`Fill "${value}" into: ${description || locator.toString()}`);
     await locator.waitFor({ state: 'visible' });
     await locator.clear();
     await locator.fill(value);
+    return value;
+  }
+
+  async pressKey(locator: Locator, key: string, description = ''): Promise<void> {
+    this.logger.step(`Press "${key}" in: ${description || locator.toString()}`);
+    await locator.press(key);
   }
 
   async selectOption(locator: Locator, value: string, description = ''): Promise<void> {
     this.logger.step(`Select "${value}" in: ${description || locator.toString()}`);
-    await locator.selectOption(value);
+    await this.runWithHealing(locator, description, 'selectOption', async (loc) => {
+      await loc.selectOption(value);
+    });
   }
 
   async uploadFile(locator: Locator, filePath: string): Promise<void> {
@@ -45,8 +106,16 @@ export class Helpers {
 
   // --- Waits ----------------------------------------------------------------
 
-  async waitForElement(locator: Locator, state: WaitStrategy = 'visible', timeout = 15000): Promise<void> {
-    await locator.waitFor({ state, timeout });
+  async waitForElement(locator: Locator, state: WaitStrategy = 'visible', description = ''): Promise<void> {
+    // Only 'visible'/'attached' timeouts mean "element not found" - healing looks for a
+    // replacement element, which makes no sense when waiting for one to disappear.
+    if (state === 'hidden' || state === 'detached') {
+      await locator.waitFor({ state });
+      return;
+    }
+    await this.runWithHealing(locator, description, 'waitForElement', async (loc) => {
+      await loc.waitFor({ state });
+    });
   }
 
   async waitForURL(urlPattern: string | RegExp): Promise<void> {
@@ -58,7 +127,9 @@ export class Helpers {
 
   async assertVisible(locator: Locator, message?: string): Promise<void> {
     this.logger.step(`Assert visible: ${message ?? ''}`);
-    await expect(locator).toBeVisible();
+    await this.runWithHealing(locator, message ?? '', 'assertVisible', async (loc) => {
+      await expect(loc).toBeVisible();
+    });
   }
 
   async assertText(locator: Locator, expectedText: string): Promise<void> {

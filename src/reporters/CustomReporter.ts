@@ -8,6 +8,7 @@ import {
 } from '@playwright/test/reporter';
 import * as fs from 'fs';
 import * as path from 'path';
+import { HealingEvent } from '../types/healing';
 
 interface ITestEntry {
   title: string;
@@ -16,6 +17,7 @@ interface ITestEntry {
   duration: number;
   error?: string;
   retries: number;
+  healingEvents: HealingEvent[];
 }
 
 interface ISuiteEntry {
@@ -38,6 +40,8 @@ class CustomReporter implements Reporter {
   private totalPassed                = 0;
   private totalFailed                = 0;
   private totalSkipped               = 0;
+  private totalHealAttempts          = 0;
+  private totalHealed                = 0;
 
   private readonly reportDir = path.resolve('reports', 'custom-report');
   private readonly isCI      = !!process.env.CI;
@@ -129,6 +133,12 @@ class CustomReporter implements Reporter {
     else if (result.status === 'skipped') this.totalSkipped++;
     else this.totalFailed++; // Count other statuses (like timedOut) as failed
 
+    const healingEvents: HealingEvent[] = result.attachments
+      .filter((a) => a.name === 'ai-healing-event' && a.body)
+      .map((a) => JSON.parse(a.body!.toString('utf-8')) as HealingEvent);
+    this.totalHealAttempts += healingEvents.length;
+    this.totalHealed += healingEvents.filter((e) => e.success).length;
+
     const entry: ITestEntry = {
       title:     test.title,
       fullTitle: test.titlePath().join(' > '),
@@ -136,6 +146,7 @@ class CustomReporter implements Reporter {
       duration:  result.duration,
       retries:   result.retry,
       error:     result.error?.message,
+      healingEvents,
     };
     if (this.currentSuite) this.currentSuite.tests.push(entry);
 
@@ -143,6 +154,12 @@ class CustomReporter implements Reporter {
     if (result.status === 'failed' && result.error?.message) {
       const snippet = result.error.message.split('\n').slice(0, 4).join('\n');
       console.log(`${this.RED}         ${snippet}${this.RESET}`);
+    }
+
+    for (const heal of healingEvents) {
+      const tag = heal.success ? `${this.YELLOW}[HEALED]${this.RESET}` : `${this.RED}[HEAL FAILED]${this.RESET}`;
+      const attempts = heal.exploreRounds != null ? ` (${heal.exploreRounds} attempt${heal.exploreRounds === 1 ? '' : 's'})` : '';
+      console.log(`         ${tag}${attempts} ${heal.description || heal.originalLocator} -> ${heal.healedLocator ?? 'n/a'}`);
     }
   }
 
@@ -159,6 +176,9 @@ class CustomReporter implements Reporter {
     console.log(`  ${this.GREEN}Passed   : ${this.totalPassed}${this.RESET}`);
     console.log(`  ${this.RED}Failed   : ${this.totalFailed}${this.RESET}`);
     console.log(`  ${this.YELLOW}Skipped  : ${this.totalSkipped}${this.RESET}`);
+    if (this.totalHealAttempts > 0) {
+      console.log(`  Healed   : ${this.totalHealed}/${this.totalHealAttempts}`);
+    }
     console.log(`  Duration : ${totalDuration}s`);
     console.log(`  Status   : ${result.status === 'passed' ? `${this.GREEN}[PASS] PASSED` : `${this.RED}[FAIL] FAILED`}${this.RESET}`);
     console.log(`${this.BOLD}${this.CYAN}${sep}${this.RESET}`);
@@ -183,6 +203,11 @@ class CustomReporter implements Reporter {
         failed:  this.totalFailed,
         skipped: this.totalSkipped,
         passRate: total > 0 ? `${((this.totalPassed / total) * 100).toFixed(1)}%` : '0%',
+      },
+      healing: {
+        totalAttempts: this.totalHealAttempts,
+        totalHealed:   this.totalHealed,
+        events:        this.suites.flatMap((s) => s.tests.flatMap((t) => t.healingEvents)),
       },
       suites: this.suites,
     };
@@ -227,6 +252,31 @@ class CustomReporter implements Reporter {
       return `<tr class="suite-row"><td colspan="4">${suite.name}</td></tr>${testRows}`;
     }).join('');
 
+    const allHealingEvents = this.suites.flatMap((s) => s.tests.flatMap((t) => t.healingEvents.map((e) => ({ ...e, testTitle: e.testTitle || t.title }))));
+    const esc = (s: string) => s.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const healRows = allHealingEvents.map((h) => {
+      const color = h.success ? '#22c55e' : '#ef4444';
+      const icon  = h.success ? '[HEALED]' : '[FAILED]';
+      return `
+        <tr>
+          <td>${esc(h.testTitle)}</td>
+          <td>${esc(h.description || '-')}</td>
+          <td><code>${esc(h.originalLocator)}</code></td>
+          <td><code>${esc(h.healedLocator ?? '-')}</code></td>
+          <td>${esc(h.provider ?? '-')}</td>
+          <td>${h.exploreRounds ?? '-'}</td>
+          <td>${h.confidence != null ? `${(h.confidence * 100).toFixed(0)}%` : '-'}</td>
+          <td style="color:${color};font-weight:600">${icon}</td>
+        </tr>${!h.success && h.errorMessage ? `<tr><td colspan="8"><div class="error">${esc(h.errorMessage).split('\n').slice(0, 3).join('<br>')}</div></td></tr>` : ''}`;
+    }).join('');
+
+    const healingSection = allHealingEvents.length > 0 ? `
+  <h2 class="section-title">Healed Elements</h2>
+  <table>
+    <thead><tr><th>Test</th><th>Description</th><th>Original Locator</th><th>Healed Locator</th><th>Provider</th><th>Attempts</th><th>Confidence</th><th>Result</th></tr></thead>
+    <tbody>${healRows}</tbody>
+  </table>` : '';
+
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -250,7 +300,10 @@ class CustomReporter implements Reporter {
     .card .num{font-size:2.5rem;font-weight:800;line-height:1}
     .card .lbl{font-size:.75rem;color:#94a3b8;margin-top:.4rem;text-transform:uppercase;letter-spacing:.06em}
     .passed .num{color:#22c55e}.failed .num{color:#ef4444}.skipped .num{color:#f59e0b}.total .num{color:#38bdf8}
+    .healed .num{color:#a855f7}
     .passrate{color:#94a3b8;font-size:.875rem;margin-bottom:1.5rem}
+    .section-title{font-size:1.1rem;font-weight:700;color:#a855f7;margin:2rem 0 .75rem}
+    table code{background:#0f172a;padding:.15rem .4rem;border-radius:4px;font-size:.8rem;font-family:'Cascadia Code',monospace}
     table{width:100%;border-collapse:collapse;background:#1e293b;border-radius:12px;overflow:hidden}
     th{background:#0f172a;padding:.75rem 1rem;text-align:left;font-size:.75rem;
       text-transform:uppercase;letter-spacing:.05em;color:#64748b;border-bottom:1px solid #334155}
@@ -276,12 +329,14 @@ class CustomReporter implements Reporter {
     <div class="card passed"> <div class="num">${this.totalPassed}</div>    <div class="lbl">Passed</div></div>
     <div class="card failed"> <div class="num">${this.totalFailed}</div>    <div class="lbl">Failed</div></div>
     <div class="card skipped"><div class="num">${this.totalSkipped}</div>   <div class="lbl">Skipped</div></div>
+    ${this.totalHealAttempts > 0 ? `<div class="card healed"><div class="num">${this.totalHealed}/${this.totalHealAttempts}</div> <div class="lbl">Healed</div></div>` : ''}
   </div>
   <p class="passrate">Pass Rate: <strong style="color:#38bdf8">${passRate}%</strong></p>
   <table>
     <thead><tr><th>Test Case</th><th>Status</th><th>Duration</th><th>Retries</th></tr></thead>
     <tbody>${suiteRows}</tbody>
   </table>
+  ${healingSection}
 </body>
 </html>`;
 

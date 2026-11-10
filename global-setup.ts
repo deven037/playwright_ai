@@ -20,6 +20,13 @@ async function globalSetup(config: FullConfig): Promise<void> {
   // logger.info(`  RETRIES    : ${env.retries}`);
   logger.info(`  WORKERS   : ${env.workers}`);
 
+  //reset app
+  const baseURL = process.env.NEWAPP_BASE_API;
+  const res = await fetch(`${baseURL}/api/reset`, { method: 'POST' });
+  if (res.ok){
+    logger.info('[RESET] Application Resetted')
+  } else {throw new Error(`Failed to reset before suite: ${res.status}`);}
+
   // Ensure output directories exist
   const dirs = [
     'reports/html-report',
