@@ -59,6 +59,27 @@ jobs:
       NEWAPP_BASE_API: ${{ vars.NEWAPP_BASE_API }}
       NEWAPP_EMAIL: ${{ secrets.NEWAPP_EMAIL }}
       NEWAPP_PASSWORD: ${{ secrets.NEWAPP_PASSWORD }}
+      # The Automation Test Store login (repository secrets) and the plain settings that used to
+      # come from the committed .env; the repository is public, so .env isn't tracked.
+      API_BASE_URL: https://jsonplaceholder.typicode.com/
+      AUTH_API: https://dummyjson.com/auth/
+      APP_USERNAME: ${{ secrets.APP_USERNAME }}
+      APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+      HEADLESS: "true"
+      BROWSER: chromium
+      SLOW_MO: "0"
+      TIMEOUT: "70000"
+      RETRIES: "1"
+      WORKERS: "4"
+      AI_HEALING_ENABLED: "true"
+      AI_HEALING_PROVIDER_ORDER: groq
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ_MODEL: llama-3.3-70b-versatile
+      AI_HEALING_TIMEOUT_MS: "5000"
+      AI_HEALING_LLM_TIMEOUT_MS: "10000"
+      AI_HEALING_MAX_ATTEMPTS: "1"
+      AI_HEALING_MAX_EXPLORE_ROUNDS: "6"
+      AI_HEALING_CACHE: "true"
       HOME: /root # Firefox and Chromium in the Playwright image expect root's home
 
     steps:
