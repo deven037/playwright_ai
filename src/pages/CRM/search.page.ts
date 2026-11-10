@@ -1,13 +1,12 @@
 import { Helpers } from '../../utils/Helpers';
 import { CrmLoginPage } from './crm.login.page';
 import { DashboardPage } from './dashboard.page';
-import { searchTypes, searchRoles, searchText, searchTerms, searchFixtures, emptySearchResponse, controlledSearchResponse } from '../../data/search.data';
-
 import { BasePage } from '@core/BasePage';
 import { expect, Route, Page, BrowserContext, Locator } from '@playwright/test';
 import {
     LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
     SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel,
+    searchTypes, searchRoles, searchText, searchTerms, searchFixtures, emptySearchResponse, controlledSearchResponse,
 } from '../../data/search.data';
 
 export class SearchPage extends BasePage {
