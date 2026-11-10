@@ -167,7 +167,7 @@ export class ContactsPage extends BasePage {
     const form = this.page.getByTestId('contact-form-page');
     await this.helpers.assertVisible(form);
     for (const name of CONTACT_FORM.labels) {
-      const input = form.getByRole('textbox', { name, exact: true });
+      const input = form.getByRole('textbox', { name });
       await this.helpers.assertVisible(input);
       await this.helpers.assertEmpty(input);
     }
@@ -175,8 +175,8 @@ export class ContactsPage extends BasePage {
 
   async assertEmptySubmitErrorsAndFocus() {
     const form = this.page.getByTestId('contact-form-page');
-    const name = form.getByRole('textbox', { name: CONTACT_FORM.labels[0], exact: true });
-    const email = form.getByRole('textbox', { name: CONTACT_FORM.labels[1], exact: true });
+    const name = form.getByRole('textbox', { name: CONTACT_FORM.labels[0] });
+    const email = form.getByRole('textbox', { name: CONTACT_FORM.labels[1] });
     await this.helpers.assertVisible(form.getByText(CONTACT_FORM.nameError, { exact: true }));
     await this.helpers.assertVisible(form.getByText(CONTACT_FORM.emailError, { exact: true }));
     await this.helpers.assertAttribute(name, 'aria-invalid', 'true');
@@ -184,7 +184,7 @@ export class ContactsPage extends BasePage {
     await this.helpers.assertAccessibleDescription(name, CONTACT_FORM.nameError);
     await this.helpers.assertAccessibleDescription(email, CONTACT_FORM.emailError);
     await this.helpers.assertFocused(name);
-    await this.helpers.assertURL(/\\/contacts\\/new(?:\\?|$)/);
+    await this.helpers.assertURL(/\/contacts\/new(?:\?|$)/);
     await this.helpers.assertVisible(form);
   }
 
