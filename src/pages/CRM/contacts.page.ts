@@ -142,7 +142,8 @@ export class ContactsPage extends BasePage {
   }
 
   async getNoRecordFoundMessage() {
-    const emptyRecord = this.page.locator("//div[@class='contact-grid']/div[@class='empty-cell']");
+    // The empty message is a sibling of div.contact-grid (not a child) in the current build.
+    const emptyRecord = this.page.locator("//div[@data-testid='contacts-page']/div[@class='empty-cell']");
     const text = await this.helpers.getText(emptyRecord);
     this.logger.info(text);
     return text;
