@@ -17,8 +17,37 @@ jobs:
     name: Run Playwright tests
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # The repository is public: no credential lives in the repo. Logins come from GitHub secrets
+    # (repository: APP_USERNAME, APP_PASSWORD, optional GROQ_API_KEY; staging environment:
+    # NEWAPP_EMAIL, NEWAPP_PASSWORD), URLs from variables, the rest are plain settings below.
+    environment: staging
     env:
       CI: true
+      TARGET_ENV: staging
+      BASE_URL: ${{ vars.BASE_URL }}
+      API_BASE_URL: https://jsonplaceholder.typicode.com/
+      AUTH_API: https://dummyjson.com/auth/
+      APP_USERNAME: ${{ secrets.APP_USERNAME }}
+      APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+      NEWAPP_BASE_URL: ${{ vars.NEWAPP_BASE_URL }}
+      NEWAPP_BASE_API: ${{ vars.NEWAPP_BASE_API }}
+      NEWAPP_EMAIL: ${{ secrets.NEWAPP_EMAIL }}
+      NEWAPP_PASSWORD: ${{ secrets.NEWAPP_PASSWORD }}
+      HEADLESS: "true"
+      BROWSER: chromium
+      SLOW_MO: "0"
+      TIMEOUT: "70000"
+      RETRIES: "1"
+      WORKERS: "4"
+      AI_HEALING_ENABLED: "true"
+      AI_HEALING_PROVIDER_ORDER: groq
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ_MODEL: llama-3.3-70b-versatile
+      AI_HEALING_TIMEOUT_MS: "5000"
+      AI_HEALING_LLM_TIMEOUT_MS: "10000"
+      AI_HEALING_MAX_ATTEMPTS: "1"
+      AI_HEALING_MAX_EXPLORE_ROUNDS: "6"
+      AI_HEALING_CACHE: "true"
 
     steps:
       - name: Checkout repository
