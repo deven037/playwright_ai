@@ -37,7 +37,10 @@ export type SearchRole = keyof typeof SEARCH_ROLE_EMAILS;
 export const SEARCH_API_GROUPS = ['leads', 'contacts', 'accounts', 'deals'] as const;
 export const SEARCH_PER_TYPE_LIMIT = 3;
 export const SEARCH_GROUPING_TERM = 'an';
-export const SEARCH_LIVE_PATHS = { search: '/api/search', leads: '/api/leads' } as const;
+export const SEARCH_LIVE_PATHS = { search: '/api/search' } as const;
+
+// Seeded lead "Aarav Kapoor" (lead-1, status New) from the CRM's deterministic seed data.
+export const SEARCH_SEEDED_LEAD = { id: 'lead-1', email: 'aarav.kapoor@example.com', phoneDigits: '919864959172' } as const;
 
 export interface SearchHitData { id: string; name: string; subtitle: string; email?: string; phone?: string }
 export interface SearchGroupData { items: SearchHitData[]; total: number }

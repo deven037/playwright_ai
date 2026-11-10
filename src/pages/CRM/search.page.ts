@@ -4,7 +4,7 @@ import {
     LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
     SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel, SEARCH_API_GROUPS, SEARCH_GROUPING_TERM,
     SEARCH_LIVE_PATHS, SEARCH_PER_TYPE_LIMIT, SearchApiBody, formatPhoneWithSeparators,
-    SEARCH_ROLE_EMAILS, SearchRole,
+    SEARCH_ROLE_EMAILS, SearchRole, SEARCH_SEEDED_LEAD,
 } from '../../data/search.data';
 import { CrmLoginPage } from './crm.login.page';
 import { DashboardPage } from './dashboard.page';
@@ -94,15 +94,6 @@ export class SearchPage extends BasePage {
         return result.json();
     }
 
-    private async firstLeadFromList(): Promise<Record<string, string>> {
-        const response = this.page.waitForResponse(r => r.request().method() === 'GET'
-            && new URL(r.url()).pathname === SEARCH_LIVE_PATHS.leads);
-        await this.helpers.click(this.page.getByRole('link', { name: /^leads$/i }));
-        const body = await (await response).json();
-        // Converted leads are excluded from search, so they cannot prove a match or a non-match.
-        return body.data.find((lead: Record<string, string>) => lead.status !== 'Converted');
-    }
-
     async signInAs(role: SearchRole) {
         const loginPage = new CrmLoginPage(this.page);
         await loginPage.goto();
@@ -118,31 +109,37 @@ export class SearchPage extends BasePage {
         const body = await this.searchLive(SEARCH_GROUPING_TERM);
         expect(body.term).toBe(SEARCH_GROUPING_TERM);
         for (const group of SEARCH_API_GROUPS) {
-            expect(body[group].items.length, `${group} items`).toBeLessThanOrEqual(SEARCH_PER_TYPE_LIMIT);
-            expect(body[group].items.length, `${group} items vs total`).toBe(Math.min(body[group].total, SEARCH_PER_TYPE_LIMIT));
+            const { items, total } = body[group];
+            expect(Number.isInteger(total), `${group} total is a number`).toBe(true);
+            expect(items.length, `${group} items`).toBeLessThanOrEqual(SEARCH_PER_TYPE_LIMIT);
+            expect(items.length, `${group} items vs total`).toBe(Math.min(total, SEARCH_PER_TYPE_LIMIT));
         }
-        expect(body.leads.total, 'leads total').toBeGreaterThan(0);
+        // 'an' matches more than the per-type limit in leads, so the cap is proven against the real total.
+        expect(body.leads.total, 'leads total above the per-type limit').toBeGreaterThan(SEARCH_PER_TYPE_LIMIT);
+        expect(body.leads.items, 'leads capped').toHaveLength(SEARCH_PER_TYPE_LIMIT);
     }
 
     async assertContactDetailsReturnedAndMatched() {
-        const lead = await this.firstLeadFromList();
-        const byEmail = await this.searchLive(lead.email);
-        expect(byEmail.leads.total, 'leads matched by email').toBeGreaterThan(0);
-        const byPhone = await this.searchLive(formatPhoneWithSeparators(lead.phone.replace(/\D/g, '')));
-        expect(byPhone.leads.total, 'leads matched by formatted phone').toBeGreaterThan(0);
-        const byName = await this.searchLive(SEARCH_GROUPING_TERM);
-        expect(SearchPage.allHits(byName).some(hit => hit.email || hit.phone), 'email/phone returned').toBe(true);
+        const { id, email, phoneDigits } = SEARCH_SEEDED_LEAD;
+        const byEmail = await this.searchLive(email);
+        expect(byEmail.leads.items.map(hit => hit.id), 'leads matched by email').toContain(id);
+        const byPhone = await this.searchLive(formatPhoneWithSeparators(phoneDigits));
+        expect(byPhone.leads.items.map(hit => hit.id), 'leads matched by formatted phone').toContain(id);
+        const hit = byEmail.leads.items.find(item => item.id === id);
+        expect(hit?.email, 'email returned').toBe(email);
+        expect(hit?.phone, 'phone returned').toBeTruthy();
     }
 
     async assertContactDetailsHiddenAndNotMatched() {
-        const lead = await this.firstLeadFromList();
+        const { id, email, phoneDigits } = SEARCH_SEEDED_LEAD;
         const byName = await this.searchLive(SEARCH_GROUPING_TERM);
+        expect(SearchPage.allHits(byName).length, 'hits to inspect').toBeGreaterThan(0);
         expect(SearchPage.allHits(byName).filter(hit => 'email' in hit || 'phone' in hit), 'hits with email/phone').toEqual([]);
-        const byEmail = await this.searchLive(lead.email);
-        expect(byEmail.leads.total, 'leads matched by email').toBe(0);
+        const byEmail = await this.searchLive(email);
+        expect(byEmail.leads.items.map(hit => hit.id), 'leads matched by email').not.toContain(id);
         expect(SearchPage.allHits(byEmail).filter(hit => 'email' in hit || 'phone' in hit), 'hits with email/phone').toEqual([]);
-        const byPhone = await this.searchLive(formatPhoneWithSeparators(lead.phone.replace(/\D/g, '')));
-        expect(byPhone.leads.total, 'leads matched by phone').toBe(0);
+        const byPhone = await this.searchLive(formatPhoneWithSeparators(phoneDigits));
+        expect(byPhone.leads.items.map(hit => hit.id), 'leads matched by phone').not.toContain(id);
     }
 
     async goToSecondPage() {
