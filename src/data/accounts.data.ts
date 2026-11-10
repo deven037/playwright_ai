@@ -1,0 +1,9 @@
+export const ACCOUNT_REJECT_NAME = 'QA Reject Test';
+export const ACCOUNT_SAVE_ERROR_TEXT = 'Account couldn’t be saved. Your entries are kept. Try again.';
+export const ACCOUNT_CREATE_LABEL = 'Create account';
+export const ACCOUNT_CREATE_PATH = /\/accounts\/new/;
+export const ACCOUNTS_API_PATTERN = '**/api/accounts';
+export const ACCOUNT_VIEWPORT_WIDTHS = [375, 768, 1440] as const;
+export const ACCOUNT_VIEWPORT_HEIGHT = 900;
+export const ACCOUNT_422_BODY = { message: 'Controlled validation failure for AIO-T151' };
+export const ACCOUNT_500_BODY = { message: 'Controlled server failure for AIO-T150' };

@@ -1,5 +1,9 @@
 import { BasePage } from "@core/BasePage";
 import { Page, errors, expect } from "@playwright/test";
+import {
+  ACCOUNT_422_BODY, ACCOUNT_500_BODY, ACCOUNT_CREATE_LABEL, ACCOUNT_CREATE_PATH, ACCOUNT_SAVE_ERROR_TEXT,
+  ACCOUNT_VIEWPORT_HEIGHT, ACCOUNTS_API_PATTERN,
+} from "../../data/accounts.data";
 
 export class AccountsPage extends BasePage {
 
@@ -108,5 +112,73 @@ export class AccountsPage extends BasePage {
     await this.openAccount(accountName);
     await this.deleteAccount();
     await this.confirmDelete();
+  }
+
+  // --- Rejected save (AIO-337 / AIO-344) -----------------------------------
+
+  private get createButton() { return this.page.getByRole('button', { name: ACCOUNT_CREATE_LABEL, exact: true }); }
+  private get saveErrorBanner() { return this.page.getByRole('alert').filter({ hasText: ACCOUNT_SAVE_ERROR_TEXT }); }
+  private get nameField() { return this.page.getByTestId('account-name'); }
+  private isCreatePost(request: { method(): string }) { return request.method() === 'POST'; }
+
+  async openNewAccountForm() {
+    await this.gotoAccounts();
+    await this.clickNewAccount();
+    await this.chooseLayout();
+    await expect(this.nameField).toBeVisible();
+  }
+
+  async fillAccountName(name: string) {
+    await this.helpers.fill(this.nameField, name, 'Account Name Input');
+  }
+
+  async mockCreateStatus(status: 422 | 500) {
+    await this.page.unroute(ACCOUNTS_API_PATTERN);
+    await this.page.route(ACCOUNTS_API_PATTERN, async route => {
+      if (!this.isCreatePost(route.request())) return route.fallback();
+      await route.fulfill({
+        status,
+        contentType: 'application/json',
+        body: JSON.stringify(status === 500 ? ACCOUNT_500_BODY : ACCOUNT_422_BODY),
+      });
+    });
+  }
+
+  async mockCreateAborted() {
+    await this.page.unroute(ACCOUNTS_API_PATTERN);
+    await this.page.route(ACCOUNTS_API_PATTERN, async route => {
+      if (!this.isCreatePost(route.request())) return route.fallback();
+      await route.abort('failed');
+    });
+  }
+
+  async removeCreateMock() {
+    await this.page.unroute(ACCOUNTS_API_PATTERN);
+  }
+
+  /** Clicks Create account and returns the status of the POST /api/accounts response. */
+  async submitAndGetCreateStatus() {
+    const responsePromise = this.page.waitForResponse(
+      r => new URL(r.url()).pathname === '/api/accounts' && r.request().method() === 'POST',
+    );
+    await this.createAccount();
+    return (await responsePromise).status();
+  }
+
+  async assertSaveRejectedState(name?: string) {
+    await expect(this.saveErrorBanner).toBeVisible();
+    await expect(this.createButton).toBeEnabled();
+    await expect(this.page).toHaveURL(ACCOUNT_CREATE_PATH);
+    if (name !== undefined) await expect(this.nameField).toHaveValue(name);
+  }
+
+  async assertNoHorizontalOverflow(widths: readonly number[]) {
+    for (const width of widths) {
+      await this.page.setViewportSize({ width, height: ACCOUNT_VIEWPORT_HEIGHT });
+      await expect.poll(
+        () => this.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        { message: `horizontal overflow at ${width}px` },
+      ).toBeLessThanOrEqual(0);
+    }
   }
 }
