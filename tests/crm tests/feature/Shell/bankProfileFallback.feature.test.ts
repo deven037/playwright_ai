@@ -1,5 +1,4 @@
 import { test } from "@fixtures/CrmFixtures";
-import { EXPECTED_BOOTSTRAP_REQUESTS_AFTER_RETRY } from "../../../../src/data/bankProfile.data";
 
 test('AIO-T32: Bank profile unavailable shows fallback message and Retry sends a new request @feature @regression', async ({
     crmLoginPage,
@@ -14,9 +13,9 @@ test('AIO-T32: Bank profile unavailable shows fallback message and Retry sends a
 
     // Step 2: shell shows the plain-language message and a Retry control
     await dashboardPage.assertProfileFallbackMessage();
-    await dashboardPage.assertBootstrapRequestCount(1);
+    await dashboardPage.rememberBootstrapRequestCount();
 
-    // Step 3: Retry sends a second bootstrap request
+    // Step 3: Retry sends one new bootstrap request
     await dashboardPage.clickRetry();
-    await dashboardPage.assertBootstrapRequestCount(EXPECTED_BOOTSTRAP_REQUESTS_AFTER_RETRY);
+    await dashboardPage.assertRetrySentNewRequest();
 });

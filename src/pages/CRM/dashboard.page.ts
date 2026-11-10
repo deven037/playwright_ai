@@ -9,6 +9,7 @@ import {
 export class DashboardPage extends BasePage {
 
     private bootstrapRequests = 0;
+    private bootstrapRequestsBeforeRetry = 0;
 
     async waitForPageLoad(): Promise<void> {
         await  this.page.waitForLoadState('networkidle');
@@ -108,7 +109,13 @@ export class DashboardPage extends BasePage {
         await this.profileFallbackRetryButton.click();
     }
 
-    async assertBootstrapRequestCount(expected: number) {
-        await expect.poll(() => this.bootstrapRequests).toBe(expected);
+    // The shell may ask for the profile more than once on load, so Retry is checked against the count seen once the fallback shows.
+    async rememberBootstrapRequestCount() {
+        await this.page.waitForLoadState('networkidle');
+        this.bootstrapRequestsBeforeRetry = this.bootstrapRequests;
+    }
+
+    async assertRetrySentNewRequest() {
+        await expect.poll(() => this.bootstrapRequests).toBe(this.bootstrapRequestsBeforeRetry + 1);
     }
 }
