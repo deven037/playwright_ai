@@ -1,7 +1,15 @@
 import { BasePage } from '../../core/BasePage';
 import { Page, expect } from "@playwright/test";
+import {
+    BOOTSTRAP_URL_PATTERN,
+    PROFILE_FALLBACK_DETAIL,
+    PROFILE_FALLBACK_MESSAGE
+} from '../../data/bankProfile.data';
 
 export class DashboardPage extends BasePage {
+
+    private bootstrapRequests = 0;
+    private bootstrapRequestsBeforeRetry = 0;
 
     async waitForPageLoad(): Promise<void> {
         await  this.page.waitForLoadState('networkidle');
@@ -44,6 +52,14 @@ export class DashboardPage extends BasePage {
         return this.page.getByRole('link', { name: 'Back to Dashboard' });
     }
 
+    private get profileFallbackMessage() {
+        return this.page.getByText(PROFILE_FALLBACK_MESSAGE, { exact: true });
+    }
+
+    private get profileFallbackRetryButton() {
+        return this.page.getByRole('button', { name: 'Retry', exact: true });
+    }
+
     async assertViewAllActivityIsLink() {
         await expect(this.viewAllActivityLink).toBeVisible();
         await expect(this.page.getByRole('link', { name: /view all activity/i })).toHaveAttribute('href', '/activity');
@@ -64,5 +80,42 @@ export class DashboardPage extends BasePage {
 
     async assertDashboardUrl() {
         await expect(this.page).toHaveURL(/\/dashboard$/);
+    }
+
+    // Bank profile fallback (AIO-154 / AIO-T32): answer /api/bootstrap with 200 and bankProfile:null,
+    // count the requests, then reload so the shell asks again under the stub.
+    async failBootstrapProfile() {
+        this.bootstrapRequests = 0;
+        await this.page.route(BOOTSTRAP_URL_PATTERN, async route => {
+            this.bootstrapRequests++;
+            const response = await route.fetch();
+            const body = await response.json();
+            await route.fulfill({
+                status: 200,
+                contentType: 'application/json',
+                body: JSON.stringify({ ...body, bankProfile: null })
+            });
+        });
+        await this.page.reload();
+    }
+
+    async assertProfileFallbackMessage() {
+        await expect(this.profileFallbackMessage).toBeVisible();
+        await expect(this.page.getByText(PROFILE_FALLBACK_DETAIL, { exact: true })).toBeVisible();
+        await expect(this.profileFallbackRetryButton).toBeVisible();
+    }
+
+    async clickRetry() {
+        await this.profileFallbackRetryButton.click();
+    }
+
+    // The shell may ask for the profile more than once on load, so Retry is checked against the count seen once the fallback shows.
+    async rememberBootstrapRequestCount() {
+        await this.page.waitForLoadState('networkidle');
+        this.bootstrapRequestsBeforeRetry = this.bootstrapRequests;
+    }
+
+    async assertRetrySentNewRequest() {
+        await expect.poll(() => this.bootstrapRequests).toBe(this.bootstrapRequestsBeforeRetry + 1);
     }
 }
