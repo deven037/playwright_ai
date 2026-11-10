@@ -71,6 +71,17 @@ export class AccountsPage extends BasePage {
     await this.helpers.fill(searchInput, accountName, 'Search Input');
   }
 
+  async clearAccountsSearch() {
+    const searchInput = this.page.getByRole('searchbox', { name: 'Search accounts' });
+    await this.helpers.fill(searchInput, '', 'Search Input');
+  }
+
+  /** Waits for the "N account(s)" status next to the search box to show exactly this count. */
+  async assertAccountsCount(count: number) {
+    const status = this.page.getByRole('status').filter({ hasText: /\d+ accounts?$/ });
+    await expect(status).toHaveText(`${count} ${count === 1 ? 'account' : 'accounts'}`);
+  }
+
   async assertAccountListed(accountName: string) {
     const row = this.page.locator('table').getByText(accountName, { exact: true });
     await expect(row.first()).toBeVisible();
