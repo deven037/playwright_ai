@@ -31,7 +31,7 @@ if (require.main === module) {
   const { spawnSync } = require('node:child_process');
   const result = spawnSync(process.execPath, [
     require.resolve('@playwright/test/cli'),
-    'test', '-c', 'playwright.warmup.config.ts', '--grep', '@warmup-live',
-  ], { stdio: 'inherit' });
+    'test', '-c', 'playwright.warmup.config.ts',
+  ], { stdio: 'inherit', env: { ...process.env, WARMUP_LIVE: '1' } });
   process.exitCode = result.status ?? 1;
 }
