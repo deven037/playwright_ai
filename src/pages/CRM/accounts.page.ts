@@ -1,6 +1,6 @@
 import { BasePage } from "@core/BasePage";
 import { Page, Route, errors, expect } from "@playwright/test";
-import { EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
+import { ACCOUNT_FORM_ACCESSIBLE_NAMES, ACCOUNT_FORM_LABELS, NEW_ACCOUNT_PATH, EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
 
 export class AccountsPage extends BasePage {
   private rejectedSaveRequests = 0;
@@ -44,6 +44,14 @@ export class AccountsPage extends BasePage {
     await this.helpers.click(layout, 'Layout');
   }
 
+  /** Accounts list -> New Account -> default layout, ending on the empty new-account form. */
+  async openNewAccountForm() {
+    await this.gotoAccounts();
+    await this.clickNewAccount();
+    await this.chooseLayout();
+    await this.helpers.waitForElement(this.page.getByTestId('account-form-page'), 'visible', 'New account form');
+  }
+
   async fillAccountDetails(employees: string, phone: string) {
     const accountName = `Account_${Date.now()}`;
 
@@ -59,9 +67,79 @@ export class AccountsPage extends BasePage {
     return accountName;
   }
 
+  /** Fills name, employees and revenue; returns the generated account name. */
+  async fillNameEmployeesRevenue(employees: string, revenue: string) {
+    const accountName = `QA_Neg_${Date.now()}`;
+    await this.helpers.fill(this.page.getByTestId('account-name'), accountName, 'Account Name Input');
+    await this.setEmployees(employees);
+    await this.setRevenue(revenue);
+    return accountName;
+  }
+
+  async setEmployees(value: string) {
+    await this.helpers.fill(this.page.getByTestId('account-employees'), value, 'Employees Input');
+  }
+
+  async setRevenue(value: string) {
+    await this.helpers.fill(this.page.getByTestId('account-revenue'), value, 'Revenue Input');
+  }
+
   async createAccount() {
     const createBtn = this.page.getByRole('button', { name: 'Create account' });
     await this.helpers.click(createBtn, 'Create Account Button');
+  }
+
+  async assertStillOnNewAccountForm() {
+    await expect(this.page).toHaveURL(NEW_ACCOUNT_PATH);
+    await expect(this.page.getByTestId('account-form-page')).toBeVisible();
+  }
+
+  /** Field error is shown and wired to its input through aria-invalid / aria-describedby. */
+  async assertFieldError(field: 'employees' | 'revenue', message: string) {
+    const input = this.page.getByTestId(`account-${field}`);
+    const error = this.page.locator(`#account-${field}-error`);
+    await expect(error).toHaveText(message);
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+    await expect(input).toHaveAttribute('aria-describedby', `account-${field}-error`);
+  }
+
+  async assertNoFieldError(field: 'employees' | 'revenue') {
+    await expect(this.page.locator(`#account-${field}-error`)).toHaveCount(0);
+    await expect(this.page.getByTestId(`account-${field}`)).not.toHaveAttribute('aria-invalid', 'true');
+  }
+
+  async assertFieldValue(field: 'employees' | 'revenue', value: string) {
+    await expect(this.page.getByTestId(`account-${field}`)).toHaveValue(value);
+  }
+
+  /** Clicks each label and checks focus lands on the matching control. */
+  async assertLabelsFocusTheirControls() {
+    for (const { label, controlId } of ACCOUNT_FORM_LABELS) {
+      const labelLocator = this.page.locator(`label[for="${controlId}"]`).filter({ hasText: label });
+      const controlLocator = this.page.locator(`#${controlId}`);
+      await this.helpers.click(labelLocator, `${label} label`);
+      await expect(controlLocator, `${label} label focuses its control`).toBeFocused();
+      // close an opened Select list so it does not cover the next label
+      await this.helpers.pressKey(controlLocator, 'Escape', `${label} control`);
+    }
+  }
+
+  async assertControlAccessibleNames() {
+    for (const { controlId, name } of ACCOUNT_FORM_ACCESSIBLE_NAMES) {
+      await expect(this.page.locator(`#${controlId}`)).toHaveAccessibleName(name);
+    }
+  }
+
+  /** At each viewport the field errors are visible and the page does not scroll sideways. */
+  async assertErrorsVisibleWithoutOverflow(viewports: readonly { width: number; height: number }[]) {
+    for (const viewport of viewports) {
+      await this.page.setViewportSize(viewport);
+      await expect(this.page.locator('#account-employees-error')).toBeVisible();
+      const overflows = await this.page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      );
+      expect(overflows, `horizontal overflow at ${viewport.width}px`).toBe(false);
+    }
   }
 
   async getAccountNameFromDetailsPage() {
