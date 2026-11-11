@@ -31,6 +31,10 @@ async function authenticateRoles(): Promise<void> {
         await loginPage.loginWithCustomCredentials(emails[role], true);
         await new DashboardPage(page).waitForDashBoardPage();
         await auth.saveSession(context, role);
+        const saved = JSON.parse(fs.readFileSync(auth.getAuthFilePath(role), 'utf-8'));
+        const hasToken = (saved.origins ?? []).some((o: { localStorage: { name: string }[] }) =>
+          o.localStorage.some((item) => item.name === 'crm.token'));
+        if (!hasToken) throw new Error(`[AUTH] ${role} storageState has no crm.token in localStorage; reuse would start signed out`);
         logger.info(`[AUTH] ${role} session saved (1 login)`);
       } finally {
         await context.close();
