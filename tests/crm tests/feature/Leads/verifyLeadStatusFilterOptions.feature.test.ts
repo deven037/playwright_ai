@@ -1,5 +1,5 @@
 import { expect, test } from "@fixtures/CrmFixtures";
-import { CUSTOM_STATUS, LEAD_STATUS_SET } from '../../../../src/data/leads.data';
+import { CUSTOM_STATUS, LEAD_STATUS_SET } from '../../../../src/data/leadStatus.data';
 
 test.describe('Leads status filter reflects configured options (AIO-138 / AIO-61 AC4)', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage, leadsPage }) => {

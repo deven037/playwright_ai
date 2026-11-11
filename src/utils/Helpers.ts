@@ -21,6 +21,11 @@ export class Helpers {
     await this.page.goto(url, { waitUntil: 'networkidle' });
   }
 
+  async goBack(): Promise<void> {
+    this.logger.step('Navigate back');
+    await this.page.goBack();
+  }
+
   // --- Self-healing dispatcher ------------------------------------------------
 
   private isTimeoutError(err: unknown): boolean {
@@ -70,6 +75,12 @@ export class Helpers {
     });
   }
 
+  /** Clicks `locator` at a fixed offset from its top-left corner (no visibility wait, no healing). */
+  async clickAt(locator: Locator, position: { x: number; y: number }, description = ''): Promise<void> {
+    this.logger.step(`Click at (${position.x}, ${position.y}): ${description || locator.toString()}`);
+    await locator.click({ position });
+  }
+
   async fill(locator: Locator, value: string, description = '', sensitive = false): Promise<void> {
     this.logger.step(`Fill "${sensitive ? '[redacted]' : value}" into: ${description || locator.toString()}`);
     await this.runWithHealing(locator, description, 'fill', async (loc) => {
@@ -90,6 +101,17 @@ export class Helpers {
   async pressKey(locator: Locator, key: string, description = ''): Promise<void> {
     this.logger.step(`Press "${key}" in: ${description || locator.toString()}`);
     await locator.press(key);
+  }
+
+  /** Presses a key on the focused element of the page (keyboard navigation). */
+  async pressPageKey(key: string): Promise<void> {
+    this.logger.step(`Press page key: ${key}`);
+    await this.page.keyboard.press(key);
+  }
+
+  async focus(locator: Locator, description = ''): Promise<void> {
+    this.logger.step(`Focus: ${description || locator.toString()}`);
+    await locator.focus();
   }
 
   async selectOption(locator: Locator, value: string, description = ''): Promise<void> {

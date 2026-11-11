@@ -72,8 +72,8 @@ export class SearchPage extends BasePage {
     }
 
     async openWithShortcutFromHeader() {
-        await this.opener.focus();
-        await this.page.keyboard.press('Control+k');
+        await this.helpers.focus(this.opener, 'Global search');
+        await this.helpers.pressPageKey('Control+k');
         await expect(this.input).toBeFocused();
     }
 
@@ -111,11 +111,11 @@ export class SearchPage extends BasePage {
     }
 
     async focusClose() {
-        await this.closeButton.focus();
+        await this.helpers.focus(this.closeButton, 'Close search');
     }
 
     async pressEscape() {
-        await this.page.keyboard.press('Escape');
+        await this.helpers.pressPageKey('Escape');
     }
 
     async assertClosedWithOpenerFocused() {
