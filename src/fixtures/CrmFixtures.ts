@@ -56,6 +56,19 @@ const logger = Logger.getInstance();
  */
 export type CrmTestRole = CrmRole | 'anonymous';
 
+/** Specs that still call the login form after goto(); remove each entry when AIO-284 migrates the spec. */
+const FORM_LOGIN_SPECS = [
+  'Assignment Rule/verifyAssignmentRuleCreationOnLead.feature.test.ts',
+  'Assignment Rule/AssignmentRuleTriggerLead.feature.test.ts',
+  'Assignment Rule/VerifyAssignmentRuleCreationOnDeals.feature.test.ts',
+  'Shell/bankProfileFallback.feature.test.ts',
+  'Tickets/verifyTicketWorkflowAndDeletion.feature.test.ts',
+  'Dashboard/dashboardActivityLink.feature.test.ts',
+  'Notifications/notificationsZeroUnread.feature.test.ts',
+  'Search/seeAllRefreshesList.feature.test.ts',
+  'Search/searchErrorEscape.feature.test.ts',
+];
+
 export type CRMPageFixtures = {
   warmUpPage: WarmUpPage;
   searchPage: SearchPage;
@@ -78,12 +91,15 @@ export type CRMRoleOptions = {
 export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
   role: ['admin', { option: true }],
 
-  context: async ({ browser, role }, use) => {
-    logger.info(`Creating fresh browser context for test (role: ${role})`);
+  context: async ({ browser, role }, use, testInfo) => {
+    // Specs not yet migrated (AIO-284) still sign in through the login form, so they keep a signed-out context.
+    const file = testInfo.file.replace(/\\/g, '/');
+    const effectiveRole: CrmTestRole = FORM_LOGIN_SPECS.some((spec) => file.endsWith(spec)) ? 'anonymous' : role;
+    logger.info(`Creating fresh browser context for test (role: ${effectiveRole})`);
     const context = await browser.newContext({
       viewport: { width: 1920, height: 1080 },
       ignoreHTTPSErrors: true,
-      storageState: role === 'anonymous' ? undefined : AuthManager.getInstance().getAuthFilePath(role),
+      storageState: effectiveRole === 'anonymous' ? undefined : AuthManager.getInstance().getAuthFilePath(effectiveRole),
     });
     await use(context);
     logger.info('Closing browser context after test');

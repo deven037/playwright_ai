@@ -43,6 +43,11 @@ export class CrmLoginPage extends BasePage {
         return this.page.getByRole('checkbox', { name: 'Remember me' });
     }
 
+    async assertLoginFormVisible() {
+        await this.helpers.assertVisible(this.emailInput, 'Login email input');
+        await this.helpers.assertVisible(this.loginButton, 'Login button');
+    }
+
     async enterEmail(){
         const email = this.env.newAppEmail?.trim();
         if (!email) {

@@ -5,6 +5,7 @@ test('AIO-T23: Dashboard "view all activity" link opens the Activity view @featu
     dashboardPage
 }) => {
     await crmLoginPage.goto();
+    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     // Step 1: it is a link with href /activity

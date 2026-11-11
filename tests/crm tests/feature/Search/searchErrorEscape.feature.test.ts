@@ -6,6 +6,7 @@ test('AIO-T79: Escape closes search from focused error actions and restores head
     page
 }) => {
     await crmLoginPage.goto();
+    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     // The live API now succeeds; force the error precondition without changing server data.

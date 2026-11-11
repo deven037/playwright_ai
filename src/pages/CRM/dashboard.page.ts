@@ -33,6 +33,19 @@ export class DashboardPage extends BasePage {
         await this.helpers.assertVisible(await this.profileIcon(), 'Profile Icon is visible');
     }
 
+    /** Opens the avatar menu and returns the signed-in "email · role" line shown under the user's name. */
+    async getSignedInIdentity(): Promise<string> {
+        await this.clickAvatar();
+        const info = this.page.locator('.avatar-info');
+        await this.helpers.waitForElement(info, 'visible');
+        const lines = (await info.innerText()).split('\n').map((l) => l.trim()).filter(Boolean);
+        return lines[1] ?? '';
+    }
+
+    async assertSignedInAs(identity: string) {
+        expect(await this.getSignedInIdentity()).toBe(identity);
+    }
+
     async clickAvatar() {
         const profileIcon = this.page.locator("//button[@data-testid='avatar-menu']");
         await this.helpers.click(profileIcon, 'Profile');
