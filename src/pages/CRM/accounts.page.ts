@@ -1,14 +1,27 @@
 import { BasePage } from "@core/BasePage";
-import { Page, errors, expect } from "@playwright/test";
+import { Page, Route, errors, expect } from "@playwright/test";
+import { ACCOUNT_FORM_ACCESSIBLE_NAMES, ACCOUNT_FORM_LABELS, NEW_ACCOUNT_PATH, EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
 
 export class AccountsPage extends BasePage {
+  private rejectedSaveRequests = 0;
+  private readonly accountApiPattern = `**/api/accounts/${EDIT_ACCOUNT.id}`;
+  private readonly rejectSaveRoute = async (route: Route) => {
+    const method = route.request().method();
+    if (method !== 'PUT' && method !== 'PATCH') return route.continue();
+    this.rejectedSaveRequests++;
+    return route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify(REJECTED_SAVE_BODY),
+    });
+  };
 
   constructor(page: Page) {
     super(page);
   }
 
   private searchBox() {
-    return this.page.getByRole('searchbox', { name: 'Search accounts' });
+    return this.page.getByRole('searchbox', { name: 'Search accounts', exact: true });
   }
 
   async waitForPageLoad() {
@@ -31,6 +44,14 @@ export class AccountsPage extends BasePage {
     await this.helpers.click(layout, 'Layout');
   }
 
+  /** Accounts list -> New Account -> default layout, ending on the empty new-account form. */
+  async openNewAccountForm() {
+    await this.gotoAccounts();
+    await this.clickNewAccount();
+    await this.chooseLayout();
+    await this.helpers.waitForElement(this.page.getByTestId('account-form-page'), 'visible', 'New account form');
+  }
+
   async fillAccountDetails(employees: string, phone: string) {
     const accountName = `Account_${Date.now()}`;
 
@@ -46,9 +67,79 @@ export class AccountsPage extends BasePage {
     return accountName;
   }
 
+  /** Fills name, employees and revenue; returns the generated account name. */
+  async fillNameEmployeesRevenue(employees: string, revenue: string) {
+    const accountName = `QA_Neg_${Date.now()}`;
+    await this.helpers.fill(this.page.getByTestId('account-name'), accountName, 'Account Name Input');
+    await this.setEmployees(employees);
+    await this.setRevenue(revenue);
+    return accountName;
+  }
+
+  async setEmployees(value: string) {
+    await this.helpers.fill(this.page.getByTestId('account-employees'), value, 'Employees Input');
+  }
+
+  async setRevenue(value: string) {
+    await this.helpers.fill(this.page.getByTestId('account-revenue'), value, 'Revenue Input');
+  }
+
   async createAccount() {
     const createBtn = this.page.getByRole('button', { name: 'Create account' });
     await this.helpers.click(createBtn, 'Create Account Button');
+  }
+
+  async assertStillOnNewAccountForm() {
+    await expect(this.page).toHaveURL(NEW_ACCOUNT_PATH);
+    await expect(this.page.getByTestId('account-form-page')).toBeVisible();
+  }
+
+  /** Field error is shown and wired to its input through aria-invalid / aria-describedby. */
+  async assertFieldError(field: 'employees' | 'revenue', message: string) {
+    const input = this.page.getByTestId(`account-${field}`);
+    const error = this.page.locator(`#account-${field}-error`);
+    await expect(error).toHaveText(message);
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+    await expect(input).toHaveAttribute('aria-describedby', `account-${field}-error`);
+  }
+
+  async assertNoFieldError(field: 'employees' | 'revenue') {
+    await expect(this.page.locator(`#account-${field}-error`)).toHaveCount(0);
+    await expect(this.page.getByTestId(`account-${field}`)).not.toHaveAttribute('aria-invalid', 'true');
+  }
+
+  async assertFieldValue(field: 'employees' | 'revenue', value: string) {
+    await expect(this.page.getByTestId(`account-${field}`)).toHaveValue(value);
+  }
+
+  /** Clicks each label and checks focus lands on the matching control. */
+  async assertLabelsFocusTheirControls() {
+    for (const { label, controlId } of ACCOUNT_FORM_LABELS) {
+      const labelLocator = this.page.locator(`label[for="${controlId}"]`).filter({ hasText: label });
+      const controlLocator = this.page.locator(`#${controlId}`);
+      await this.helpers.click(labelLocator, `${label} label`);
+      await expect(controlLocator, `${label} label focuses its control`).toBeFocused();
+      // close an opened Select list so it does not cover the next label
+      await this.helpers.pressKey(controlLocator, 'Escape', `${label} control`);
+    }
+  }
+
+  async assertControlAccessibleNames() {
+    for (const { controlId, name } of ACCOUNT_FORM_ACCESSIBLE_NAMES) {
+      await expect(this.page.locator(`#${controlId}`)).toHaveAccessibleName(name);
+    }
+  }
+
+  /** At each viewport the field errors are visible and the page does not scroll sideways. */
+  async assertErrorsVisibleWithoutOverflow(viewports: readonly { width: number; height: number }[]) {
+    for (const viewport of viewports) {
+      await this.page.setViewportSize(viewport);
+      await expect(this.page.locator('#account-employees-error')).toBeVisible();
+      const overflows = await this.page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      );
+      expect(overflows, `horizontal overflow at ${viewport.width}px`).toBe(false);
+    }
   }
 
   async getAccountNameFromDetailsPage() {
@@ -92,6 +183,60 @@ export class AccountsPage extends BasePage {
   async assertNoRecordFoundMessage() {
     const empty = this.page.getByText(/No accounts match/);
     await this.helpers.assertVisible(empty, 'Empty search result message');
+  }
+
+  // --- AIO-331: inline edit and rejected save ------------------------------
+
+  private get editButton() { return this.page.getByTestId('edit-account-btn'); }
+  private get saveButton() { return this.page.getByTestId('save-account-btn'); }
+  private get saveError() { return this.page.getByTestId('save-account-error'); }
+  private get phoneField() {
+    return this.page.getByTestId('account-detail-page').locator('.field', { hasText: 'Phone' }).getByRole('textbox');
+  }
+
+  async openSeededAccountForEdit() {
+    await this.gotoAccounts();
+    await this.searchInAccountsTable(EDIT_ACCOUNT.name);
+    await this.openAccount(EDIT_ACCOUNT.name);
+    await this.helpers.assertURL(new RegExp(`/accounts/${EDIT_ACCOUNT.id}$`));
+    await this.helpers.click(this.editButton, 'Edit Account Button');
+  }
+
+  async assertEditFormWithSaveEnabled() {
+    await expect(this.saveButton).toBeVisible();
+    await expect(this.saveButton).toBeEnabled();
+    await expect(this.phoneField).toBeVisible();
+  }
+
+  async rejectAccountSaves() {
+    this.rejectedSaveRequests = 0;
+    await this.page.route(this.accountApiPattern, this.rejectSaveRoute);
+  }
+
+  async stopRejectingAccountSaves() {
+    await this.page.unroute(this.accountApiPattern, this.rejectSaveRoute);
+  }
+
+  async editPhone(phone: string) {
+    await this.helpers.fill(this.phoneField, phone, 'Phone Input');
+  }
+
+  async clickSave() {
+    await this.helpers.click(this.saveButton, 'Save Account Button');
+  }
+
+  async assertSaveErrorShown() {
+    await expect(this.saveError).toHaveAttribute('role', 'alert');
+    await expect(this.saveError).toHaveText(SAVE_ACCOUNT_ERROR);
+  }
+
+  async assertEditFormKept(phone: string) {
+    await expect(this.saveButton).toBeEnabled();
+    await expect(this.phoneField).toHaveValue(phone);
+  }
+
+  async assertRejectedSaveRequests(count: number) {
+    await expect.poll(() => this.rejectedSaveRequests).toBe(count);
   }
 
   /** Cleanup: removes the account if it is still listed; does nothing if already deleted. */
