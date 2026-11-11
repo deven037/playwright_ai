@@ -88,7 +88,9 @@ export class DashboardPage extends BasePage {
         this.bootstrapRequests = 0;
         await this.page.route(BOOTSTRAP_URL_PATTERN, async route => {
             this.bootstrapRequests++;
-            const response = await route.fetch();
+            // A request still in flight when the test ends fails with "Request context disposed"; nothing is left to answer.
+            const response = await route.fetch().catch(() => undefined);
+            if (!response) return;
             const body = await response.json();
             await route.fulfill({
                 status: 200,
