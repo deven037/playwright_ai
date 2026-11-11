@@ -76,3 +76,5 @@ export const searchScenarioNames = [
     "Controlled loading, error, retry of retained term and empty state",
     "An older delayed response cannot replace a newer result"
 ] as const;
+
+export const SEARCH_ERROR = { term: 'an', heading: 'Search did not finish', response: { message: 'Controlled search failure for AIO-T79' } } as const;

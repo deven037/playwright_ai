@@ -4,7 +4,7 @@ import { DashboardPage } from './dashboard.page';
 import { BasePage } from '@core/BasePage';
 import { expect, Route, Page, BrowserContext, Locator } from '@playwright/test';
 import {
-    LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
+    SEARCH_ERROR, LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
     SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel,
     searchTypes, searchRoles, searchText, searchTerms, searchFixtures, emptySearchResponse, controlledSearchResponse,
 } from '../../data/search.data';
@@ -47,6 +47,7 @@ export class SearchPage extends BasePage {
     }
 
     async cleanupFixtures() {
+        await this.page.unroute('**/api/search?**', this.errorRoute);
         this.releaseSearch?.();
         await this.page.unroute(this.apiPattern, this.fixtureRoute);
     }
@@ -393,4 +394,65 @@ export class SearchPage extends BasePage {
         await expect(this.result(page, 'leads')).toContainText(searchTerms.newer);
         await expect(this.globalPanel(page)).not.toContainText(searchTerms.older);
     }
+
+    private searchErrorRequests = 0;
+    private get headerSearch() { return this.page.getByTestId('global-search'); }
+    private get retry() { return this.panel.getByRole('button', { name: 'Try again', exact: true }); }
+    private readonly errorRoute = async (route: Route) => {
+        this.searchErrorRequests++;
+        await route.fulfill({ status: 503, json: SEARCH_ERROR.response });
+    };
+
+    async failSearchRequests() {
+        await this.page.route('**/api/search?**', this.errorRoute);
+    }
+
+    async openErrorSearchWithShortcut() {
+        await this.headerSearch.focus();
+        await this.helpers.pressKey(this.headerSearch, 'Control+k');
+        await this.helpers.assertFocused(this.input);
+        await this.helpers.fill(this.input, SEARCH_ERROR.term);
+        await this.helpers.assertVisible(this.panel.getByText(SEARCH_ERROR.heading, { exact: true }));
+        await this.helpers.assertFocused(this.retry);
+    }
+
+    async openErrorSearchFromHeader() {
+        await this.helpers.click(this.headerSearch);
+        // Opening resets query/status and schedules input focus; wait before filling.
+        await this.helpers.assertFocused(this.input);
+        await this.helpers.fill(this.input, SEARCH_ERROR.term);
+        await this.helpers.assertFocused(this.retry);
+    }
+
+    async assertRetryKeepsTermAndFocus() {
+        const previousRequests = this.searchErrorRequests;
+        await this.helpers.click(this.retry);
+        await expect.poll(() => this.searchErrorRequests).toBeGreaterThan(previousRequests);
+        await this.helpers.assertAttribute(this.input, 'aria-busy', 'false');
+        await this.helpers.assertFocused(this.retry);
+        await expect(this.input).toHaveValue(SEARCH_ERROR.term);
+    }
+
+    async assertEscapeFromRetryRestoresFocus() {
+        await this.helpers.pressKey(this.retry, 'Escape');
+        await expect(this.panel).toHaveCount(0);
+        await this.helpers.assertFocused(this.headerSearch);
+    }
+
+    async assertEscapeFromCloseRestoresFocus() {
+        const close = this.panel.getByRole('button', { name: 'Close', exact: true });
+        await close.focus();
+        await this.helpers.pressKey(close, 'Escape');
+        await expect(this.panel).toHaveCount(0);
+        await this.helpers.assertFocused(this.headerSearch);
+    }
+
+    async assertEscapeFromInputRestoresFocus() {
+        await this.helpers.click(this.headerSearch);
+        await this.helpers.assertFocused(this.input);
+        await this.helpers.pressKey(this.input, 'Escape');
+        await expect(this.panel).toHaveCount(0);
+        await this.helpers.assertFocused(this.headerSearch);
+    }
+
 }
