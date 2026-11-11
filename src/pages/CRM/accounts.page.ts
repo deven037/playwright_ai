@@ -1,6 +1,6 @@
 import { BasePage } from "@core/BasePage";
 import { Page, Route, errors, expect } from "@playwright/test";
-import { EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
+import { EDIT_ACCOUNT, NARROW_VIEWPORT, OVERFLOW_ACCOUNT_ID, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
 
 export class AccountsPage extends BasePage {
   private rejectedSaveRequests = 0;
@@ -159,6 +159,25 @@ export class AccountsPage extends BasePage {
 
   async assertRejectedSaveRequests(count: number) {
     await expect.poll(() => this.rejectedSaveRequests).toBe(count);
+  }
+
+  // --- AIO-325: detail page at 375 px ---------------------------------------
+
+  async setNarrowViewport() {
+    await this.page.setViewportSize(NARROW_VIEWPORT);
+  }
+
+  async openOverflowAccountDetail() {
+    await this.navigateTo(`/accounts/${OVERFLOW_ACCOUNT_ID}`);
+    await this.helpers.waitForElement(this.page.getByTestId('account-detail-page'), 'visible', 'Account detail page');
+  }
+
+  async assertDetailPageFitsViewport(width: number) {
+    await expect.poll(() => this.page.evaluate(() => document.documentElement.scrollWidth)).toBe(width);
+    // Every Details value (e.g. the website link) stays inside the viewport.
+    await expect.poll(() => this.page.evaluate(() =>
+      Math.max(0, ...Array.from(document.querySelectorAll('.detail-list dd')).map(el => el.getBoundingClientRect().right))
+    )).toBeLessThanOrEqual(width);
   }
 
   /** Cleanup: removes the account if it is still listed; does nothing if already deleted. */
