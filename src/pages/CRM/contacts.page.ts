@@ -142,7 +142,7 @@ export class ContactsPage extends BasePage {
   }
 
   async getNoRecordFoundMessage() {
-    const emptyRecord = this.page.locator("//div[@class='contact-grid']/div[@class='empty-cell']");
+    const emptyRecord = this.page.locator("//div[contains(@class, 'contact-grid')]//div[@class='empty-cell']");
     const text = await this.helpers.getText(emptyRecord);
     this.logger.info(text);
     return text;
