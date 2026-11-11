@@ -102,13 +102,20 @@ export class LeadsPage extends BasePage {
             .filter({ has: this.page.locator('td:nth-child(2)', { hasText: this.searchedLeadName }) });
     }
 
-    async searchInLeadsTable(leadName: string) {
+    // expectResult = false filters without waiting for a row (use before assertSearchedLeadAbsent)
+    async searchInLeadsTable(leadName: string, expectResult: boolean = true) {
         this.searchedLeadName = leadName;
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
-        // Wait for the filter to show the searched lead (lead names are timestamped, so unique per run)
-        await this.helpers.waitForElement(this.searchedLeadRows().first(), 'visible', `Row for ${leadName}`);
+        if (expectResult) {
+            // Lead names are timestamped, so unique per run
+            await this.helpers.waitForElement(this.searchedLeadRows().first(), 'visible', `Row for ${leadName}`);
+        }
+    }
+
+    async assertSearchedLeadAbsent() {
+        await expect(this.searchedLeadRows(), `No row for ${this.searchedLeadName}`).toHaveCount(0);
     }
 
     async getFirstLeadNameFromTable() {
