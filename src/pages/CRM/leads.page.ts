@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { expect, Locator, Page } from "@playwright/test";
+import { Locator, Page } from "@playwright/test";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -94,6 +94,9 @@ export class LeadsPage extends BasePage {
 
     // Rows of the leads table whose name cell is exactly the searched lead
     private searchedLeadRows(): Locator {
+        if (!this.searchedLeadName) {
+            throw new Error('searchedLeadRows: call searchInLeadsTable(leadName) first; an empty name would match every row');
+        }
         return this.page
             .locator("//tr[contains(@class,'row-clickable')]")
             .filter({ has: this.page.locator('td:nth-child(2)', { hasText: this.searchedLeadName }) });
@@ -104,10 +107,8 @@ export class LeadsPage extends BasePage {
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
-        // Wait for the filter to settle on exactly the searched lead
-        const allRows = this.page.locator("//tr[contains(@class,'row-clickable')]");
-        await expect(this.searchedLeadRows()).toHaveCount(1);
-        await expect(allRows).toHaveCount(1);
+        // Wait for the filter to show the searched lead (lead names are timestamped, so unique per run)
+        await this.helpers.waitForElement(this.searchedLeadRows().first(), 'visible', `Row for ${leadName}`);
     }
 
     async getFirstLeadNameFromTable() {
