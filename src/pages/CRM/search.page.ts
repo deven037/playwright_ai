@@ -396,8 +396,6 @@ export class SearchPage extends BasePage {
     }
 
     private searchErrorRequests = 0;
-    private get headerSearch() { return this.page.getByTestId('global-search'); }
-    private get retry() { return this.panel.getByRole('button', { name: 'Try again', exact: true }); }
     private readonly errorRoute = async (route: Route) => {
         this.searchErrorRequests++;
         await route.fulfill({ status: 503, json: SEARCH_ERROR.response });
@@ -408,35 +406,35 @@ export class SearchPage extends BasePage {
     }
 
     async openErrorSearchWithShortcut() {
-        await this.headerSearch.focus();
-        await this.helpers.pressKey(this.headerSearch, 'Control+k');
+        await this.opener(this.page).focus();
+        await this.helpers.pressKey(this.opener(this.page), 'Control+k');
         await this.helpers.assertFocused(this.input);
         await this.helpers.fill(this.input, SEARCH_ERROR.term);
         await this.helpers.assertVisible(this.panel.getByText(SEARCH_ERROR.heading, { exact: true }));
-        await this.helpers.assertFocused(this.retry);
+        await this.helpers.assertFocused(this.retryButton(this.page));
     }
 
     async openErrorSearchFromHeader() {
-        await this.helpers.click(this.headerSearch);
+        await this.helpers.click(this.opener(this.page));
         // Opening resets query/status and schedules input focus; wait before filling.
         await this.helpers.assertFocused(this.input);
         await this.helpers.fill(this.input, SEARCH_ERROR.term);
-        await this.helpers.assertFocused(this.retry);
+        await this.helpers.assertFocused(this.retryButton(this.page));
     }
 
     async assertRetryKeepsTermAndFocus() {
         const previousRequests = this.searchErrorRequests;
-        await this.helpers.click(this.retry);
+        await this.helpers.click(this.retryButton(this.page));
         await expect.poll(() => this.searchErrorRequests).toBeGreaterThan(previousRequests);
         await this.helpers.assertAttribute(this.input, 'aria-busy', 'false');
-        await this.helpers.assertFocused(this.retry);
+        await this.helpers.assertFocused(this.retryButton(this.page));
         await expect(this.input).toHaveValue(SEARCH_ERROR.term);
     }
 
     async assertEscapeFromRetryRestoresFocus() {
-        await this.helpers.pressKey(this.retry, 'Escape');
+        await this.helpers.pressKey(this.retryButton(this.page), 'Escape');
         await expect(this.panel).toHaveCount(0);
-        await this.helpers.assertFocused(this.headerSearch);
+        await this.helpers.assertFocused(this.opener(this.page));
     }
 
     async assertEscapeFromCloseRestoresFocus() {
@@ -444,15 +442,15 @@ export class SearchPage extends BasePage {
         await close.focus();
         await this.helpers.pressKey(close, 'Escape');
         await expect(this.panel).toHaveCount(0);
-        await this.helpers.assertFocused(this.headerSearch);
+        await this.helpers.assertFocused(this.opener(this.page));
     }
 
     async assertEscapeFromInputRestoresFocus() {
-        await this.helpers.click(this.headerSearch);
+        await this.helpers.click(this.opener(this.page));
         await this.helpers.assertFocused(this.input);
         await this.helpers.pressKey(this.input, 'Escape');
         await expect(this.panel).toHaveCount(0);
-        await this.helpers.assertFocused(this.headerSearch);
+        await this.helpers.assertFocused(this.opener(this.page));
     }
 
 }
