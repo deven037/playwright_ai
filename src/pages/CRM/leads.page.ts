@@ -267,6 +267,23 @@ export class LeadsPage extends BasePage {
         await this.helpers.assertVisible(toast, 'Converted toast');
     }
 
+    async assertLeadsTableLoaded() {
+        const firstRow = this.page.locator('tbody tr.row-clickable').first();
+        await this.helpers.assertVisible(firstRow, 'First lead row');
+    }
+
+    async getColumnHeaders(): Promise<string[]> {
+        const headers = this.page.locator('table.table thead th');
+        await this.helpers.waitForElement(headers.first(), 'visible');
+        return (await headers.allInnerTexts()).map((t) => t.trim());
+    }
+
+    async getFirstRowCellTexts(): Promise<string[]> {
+        const cells = this.page.locator('tbody tr.row-clickable').first().locator('td');
+        await this.helpers.waitForElement(cells.first(), 'visible');
+        return (await cells.allInnerTexts()).map((t) => t.trim());
+    }
+
     async chooseLayout(layoutName: string) {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
