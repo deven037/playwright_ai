@@ -104,6 +104,17 @@ export class Helpers {
     await locator.setInputFiles(filePath);
   }
 
+  /** Presses a key on the page keyboard (shortcuts such as Control+k). */
+  async pressPageKey(key: string): Promise<void> {
+    this.logger.step(`Press page key: ${key}`);
+    await this.page.keyboard.press(key);
+  }
+
+  async focus(locator: Locator, description = ''): Promise<void> {
+    this.logger.step(`Focus: ${description || locator.toString()}`);
+    await locator.focus();
+  }
+
   // --- Waits ----------------------------------------------------------------
 
   async waitForElement(locator: Locator, state: WaitStrategy = 'visible', description = ''): Promise<void> {
@@ -132,6 +143,16 @@ export class Helpers {
     });
   }
 
+  async assertFocused(locator: Locator, message?: string): Promise<void> {
+    this.logger.step(`Assert focused: ${message ?? locator.toString()}`);
+    await expect(locator).toBeFocused();
+  }
+
+  async assertAttribute(locator: Locator, name: string, value: string | RegExp): Promise<void> {
+    this.logger.step(`Assert attribute ${name}=${value}`);
+    await expect(locator).toHaveAttribute(name, value);
+  }
+
   async assertText(locator: Locator, expectedText: string): Promise<void> {
     this.logger.step(`Assert text: "${expectedText}"`);
     await expect(locator).toContainText(expectedText);
@@ -140,6 +161,14 @@ export class Helpers {
   async assertURL(expected: string | RegExp): Promise<void> {
     this.logger.step(`Assert URL contains: ${expected}`);
     await expect(this.page).toHaveURL(expected);
+  }
+
+  async assertAccessibleDescription(locator: Locator, description: string): Promise<void> {
+    await expect(locator).toHaveAccessibleDescription(description);
+  }
+
+  async assertEmpty(locator: Locator): Promise<void> {
+    await expect(locator).toHaveValue('');
   }
 
   async assertTitle(expected: string | RegExp): Promise<void> {

@@ -1,14 +1,27 @@
 import { BasePage } from "@core/BasePage";
-import { Page, errors, expect } from "@playwright/test";
+import { Page, Route, errors, expect } from "@playwright/test";
+import { EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
 
 export class AccountsPage extends BasePage {
+  private rejectedSaveRequests = 0;
+  private readonly accountApiPattern = `**/api/accounts/${EDIT_ACCOUNT.id}`;
+  private readonly rejectSaveRoute = async (route: Route) => {
+    const method = route.request().method();
+    if (method !== 'PUT' && method !== 'PATCH') return route.continue();
+    this.rejectedSaveRequests++;
+    return route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      body: JSON.stringify(REJECTED_SAVE_BODY),
+    });
+  };
 
   constructor(page: Page) {
     super(page);
   }
 
   private searchBox() {
-    return this.page.getByRole('searchbox', { name: 'Search accounts' });
+    return this.page.getByRole('searchbox', { name: 'Search accounts', exact: true });
   }
 
   async waitForPageLoad() {
@@ -92,6 +105,60 @@ export class AccountsPage extends BasePage {
   async assertNoRecordFoundMessage() {
     const empty = this.page.getByText(/No accounts match/);
     await this.helpers.assertVisible(empty, 'Empty search result message');
+  }
+
+  // --- AIO-331: inline edit and rejected save ------------------------------
+
+  private get editButton() { return this.page.getByTestId('edit-account-btn'); }
+  private get saveButton() { return this.page.getByTestId('save-account-btn'); }
+  private get saveError() { return this.page.getByTestId('save-account-error'); }
+  private get phoneField() {
+    return this.page.getByTestId('account-detail-page').locator('.field', { hasText: 'Phone' }).getByRole('textbox');
+  }
+
+  async openSeededAccountForEdit() {
+    await this.gotoAccounts();
+    await this.searchInAccountsTable(EDIT_ACCOUNT.name);
+    await this.openAccount(EDIT_ACCOUNT.name);
+    await this.helpers.assertURL(new RegExp(`/accounts/${EDIT_ACCOUNT.id}$`));
+    await this.helpers.click(this.editButton, 'Edit Account Button');
+  }
+
+  async assertEditFormWithSaveEnabled() {
+    await expect(this.saveButton).toBeVisible();
+    await expect(this.saveButton).toBeEnabled();
+    await expect(this.phoneField).toBeVisible();
+  }
+
+  async rejectAccountSaves() {
+    this.rejectedSaveRequests = 0;
+    await this.page.route(this.accountApiPattern, this.rejectSaveRoute);
+  }
+
+  async stopRejectingAccountSaves() {
+    await this.page.unroute(this.accountApiPattern, this.rejectSaveRoute);
+  }
+
+  async editPhone(phone: string) {
+    await this.helpers.fill(this.phoneField, phone, 'Phone Input');
+  }
+
+  async clickSave() {
+    await this.helpers.click(this.saveButton, 'Save Account Button');
+  }
+
+  async assertSaveErrorShown() {
+    await expect(this.saveError).toHaveAttribute('role', 'alert');
+    await expect(this.saveError).toHaveText(SAVE_ACCOUNT_ERROR);
+  }
+
+  async assertEditFormKept(phone: string) {
+    await expect(this.saveButton).toBeEnabled();
+    await expect(this.phoneField).toHaveValue(phone);
+  }
+
+  async assertRejectedSaveRequests(count: number) {
+    await expect.poll(() => this.rejectedSaveRequests).toBe(count);
   }
 
   /** Cleanup: removes the account if it is still listed; does nothing if already deleted. */
