@@ -7,8 +7,12 @@ export class AccountsPage extends BasePage {
     super(page);
   }
 
+  private searchBox() {
+    return this.page.getByRole('searchbox', { name: 'Search accounts' });
+  }
+
   async waitForPageLoad() {
-    await this.page.getByPlaceholder('Search accounts…').waitFor({ state: 'visible' });
+    await this.searchBox().waitFor({ state: 'visible' });
   }
 
   async gotoAccounts() {
@@ -67,8 +71,7 @@ export class AccountsPage extends BasePage {
   }
 
   async searchInAccountsTable(accountName: string) {
-    const searchInput = this.page.getByPlaceholder('Search accounts…');
-    await this.helpers.fill(searchInput, accountName, 'Search Input');
+    await this.helpers.fill(this.searchBox(), accountName, 'Search Input');
   }
 
   async assertAccountListed(accountName: string) {
