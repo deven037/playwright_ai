@@ -143,6 +143,16 @@ export class Helpers {
     });
   }
 
+  async assertFocused(locator: Locator, message?: string): Promise<void> {
+    this.logger.step(`Assert focused: ${message ?? locator.toString()}`);
+    await expect(locator).toBeFocused();
+  }
+
+  async assertAttribute(locator: Locator, name: string, value: string | RegExp): Promise<void> {
+    this.logger.step(`Assert attribute ${name}=${value}`);
+    await expect(locator).toHaveAttribute(name, value);
+  }
+
   async assertText(locator: Locator, expectedText: string): Promise<void> {
     this.logger.step(`Assert text: "${expectedText}"`);
     await expect(locator).toContainText(expectedText);
