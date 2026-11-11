@@ -74,6 +74,8 @@ const FORM_LOGIN_SPECS = [
   'Notifications/notificationsZeroUnread.feature.test.ts',
   'Search/seeAllRefreshesList.feature.test.ts',
   'Search/searchErrorEscape.feature.test.ts',
+  'Search/globalSearch.feature.test.ts',
+  'Contacts/contactFormAccessibility.feature.test.ts',
 ];
 
 export type CRMPageFixtures = {
