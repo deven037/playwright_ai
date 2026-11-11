@@ -5,7 +5,9 @@
 
 const REQUIRED_CONFIG = ['NEWAPP_BASE_API', 'NEWAPP_BASE_URL', 'NEWAPP_EMAIL', 'NEWAPP_PASSWORD'];
 const MAX_ATTEMPTS = 20;
-const FAST_MS = 3000;
+// A full browser login from a GitHub runner to warm staging takes 3.1-4.4 s (run 42836215466: 20 of 20
+// probes HTTP 200 and ready, none under 3000 ms), so 3000 ms never passed and each try logged in again.
+const FAST_MS = 6000;
 const FAST_STREAK = 2;
 
 async function warm(env, probe, pause, report) {
@@ -31,7 +33,7 @@ if (require.main === module) {
   const { spawnSync } = require('node:child_process');
   const result = spawnSync(process.execPath, [
     require.resolve('@playwright/test/cli'),
-    'test', '-c', 'playwright.warmup.config.ts', '--grep', '@warmup-live',
-  ], { stdio: 'inherit' });
+    'test', '-c', 'playwright.warmup.config.ts',
+  ], { stdio: 'inherit', env: { ...process.env, WARMUP_LIVE: '1' } });
   process.exitCode = result.status ?? 1;
 }
