@@ -18,4 +18,5 @@ test('AIO-T32: Bank profile unavailable shows fallback message and Retry sends a
     // Step 3: Retry sends one new bootstrap request
     await dashboardPage.clickRetry();
     await dashboardPage.assertRetrySentNewRequest();
+    await dashboardPage.stopBootstrapStub();
 });
