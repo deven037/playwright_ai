@@ -3,4 +3,5 @@
 export const VIEWER_EMAIL = 'viewer@crm.com';
 export const HIDDEN_LEAD_COLUMNS = ['Email', 'Phone'] as const;
 export const EMAIL_VALUE_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
-export const PHONE_VALUE_PATTERN = /\+?\d[\d\s-]{6,}\d/;
+// Whole-cell match: a phone cell is only digits, spaces, dashes and an optional +, so names like "Lead_1794384305536" don't match.
+export const PHONE_VALUE_PATTERN = /^\+?\d[\d\s-]{6,}\d$/;
