@@ -152,6 +152,7 @@ export class ContactsPage extends BasePage {
   private contactCreateRequests = 0;
 
   async observeContactCreation() {
+    // This page object is single-use per test; its request listener ends with the page.
     this.page.on('request', request => {
       if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/contacts') {
         this.contactCreateRequests++;
