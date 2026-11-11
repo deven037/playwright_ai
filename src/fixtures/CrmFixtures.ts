@@ -11,6 +11,7 @@ import { AssignmentRulePage } from '@pages/CRM/Rules/assignment.rule.page';
 import { DealsPage } from '@pages/CRM/deals.page';
 import { AccountsPage } from '@pages/CRM/accounts.page';
 import { TicketsPage } from '@pages/CRM/tickets.page';
+import { ThemePage } from '@pages/CRM/theme.page';
 import { AuthManager, CrmRole } from '../utils/AuthManager';
 import { Logger } from '../utils/Logger';
 
@@ -58,6 +59,8 @@ export type CrmTestRole = CrmRole | 'anonymous';
 
 /** Specs that still call the login form after goto(); remove each entry when AIO-284 migrates the spec. */
 const FORM_LOGIN_SPECS = [
+  'WarmUp/warmUp.feature.test.ts',
+  'WarmUp/warmUpLive.feature.test.ts',
   'Assignment Rule/verifyAssignmentRuleCreationOnLead.feature.test.ts',
   'Assignment Rule/AssignmentRuleTriggerLead.feature.test.ts',
   'Assignment Rule/VerifyAssignmentRuleCreationOnDeals.feature.test.ts',
@@ -82,6 +85,7 @@ export type CRMPageFixtures = {
   dealsPage: DealsPage;
   accountsPage: AccountsPage;
   ticketsPage: TicketsPage;
+  themePage: ThemePage;
 };
 
 export type CRMRoleOptions = {
@@ -159,6 +163,10 @@ export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
   ticketsPage: async ({page}, use) => {
     const ticketsPage = new TicketsPage(page);
     await use(ticketsPage);
+  },
+  themePage: async ({page}, use) => {
+    const themePage = new ThemePage(page);
+    await use(themePage);
   },
 });
 
