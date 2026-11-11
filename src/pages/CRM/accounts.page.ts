@@ -115,10 +115,12 @@ export class AccountsPage extends BasePage {
   /** Clicks each label and checks focus lands on the matching control. */
   async assertLabelsFocusTheirControls() {
     for (const { label, controlId } of ACCOUNT_FORM_LABELS) {
-      await this.page.locator(`label[for="${controlId}"]`).filter({ hasText: label }).click();
-      await expect(this.page.locator(`#${controlId}`), `${label} label focuses its control`).toBeFocused();
+      const labelLocator = this.page.locator(`label[for="${controlId}"]`).filter({ hasText: label });
+      const controlLocator = this.page.locator(`#${controlId}`);
+      await this.helpers.click(labelLocator, `${label} label`);
+      await expect(controlLocator, `${label} label focuses its control`).toBeFocused();
       // close an opened Select list so it does not cover the next label
-      await this.page.keyboard.press('Escape');
+      await this.helpers.pressKey(controlLocator, 'Escape', `${label} control`);
     }
   }
 
