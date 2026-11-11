@@ -12,6 +12,7 @@ import { DealsPage } from '@pages/CRM/deals.page';
 import { AccountsPage } from '@pages/CRM/accounts.page';
 import { AccountFormPage } from '@pages/CRM/accountForm.page';
 import { TicketsPage } from '@pages/CRM/tickets.page';
+import { ThemePage } from '@pages/CRM/theme.page';
 // import { Logger } from '../utils/Logger'; // uncomment if you add logging here
 
 /**
@@ -59,6 +60,7 @@ export type CRMPageFixtures = {
   accountsPage: AccountsPage;
   accountFormPage: AccountFormPage;
   ticketsPage: TicketsPage;
+  themePage: ThemePage;
 };
 
 export const test = base.extend<CRMPageFixtures>({
@@ -120,6 +122,11 @@ export const test = base.extend<CRMPageFixtures>({
   ticketsPage: async ({page}, use) => {
     const ticketsPage = new TicketsPage(page);
     await use(ticketsPage);
+  },
+
+  themePage: async ({page}, use) => {
+    const themePage = new ThemePage(page);
+    await use(themePage);
   },
 });
 

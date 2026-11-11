@@ -111,11 +111,16 @@ export class DashboardPage extends BasePage {
 
     // The shell may ask for the profile more than once on load, so Retry is checked against the count seen once the fallback shows.
     async rememberBootstrapRequestCount() {
-        await this.page.waitForLoadState('networkidle');
+        await this.helpers.assertVisible(this.profileFallbackMessage);
         this.bootstrapRequestsBeforeRetry = this.bootstrapRequests;
     }
 
     async assertRetrySentNewRequest() {
         await expect.poll(() => this.bootstrapRequests).toBe(this.bootstrapRequestsBeforeRetry + 1);
+    }
+
+    // Removes the stub and waits for in-flight handlers, so none calls route.fetch after the test's request context is disposed.
+    async stopBootstrapStub() {
+        await this.page.unrouteAll({ behavior: 'wait' });
     }
 }
