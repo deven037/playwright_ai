@@ -118,4 +118,9 @@ export class DashboardPage extends BasePage {
     async assertRetrySentNewRequest() {
         await expect.poll(() => this.bootstrapRequests).toBe(this.bootstrapRequestsBeforeRetry + 1);
     }
+
+    // Removes the stub and waits for in-flight handlers, so none calls route.fetch after the test's request context is disposed.
+    async stopBootstrapStub() {
+        await this.page.unrouteAll({ behavior: 'wait' });
+    }
 }
