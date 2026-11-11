@@ -104,6 +104,17 @@ export class Helpers {
     await locator.setInputFiles(filePath);
   }
 
+  /** Presses a key on the page keyboard (shortcuts such as Control+k). */
+  async pressPageKey(key: string): Promise<void> {
+    this.logger.step(`Press page key: ${key}`);
+    await this.page.keyboard.press(key);
+  }
+
+  async focus(locator: Locator, description = ''): Promise<void> {
+    this.logger.step(`Focus: ${description || locator.toString()}`);
+    await locator.focus();
+  }
+
   // --- Waits ----------------------------------------------------------------
 
   async waitForElement(locator: Locator, state: WaitStrategy = 'visible', description = ''): Promise<void> {
@@ -130,6 +141,16 @@ export class Helpers {
     await this.runWithHealing(locator, message ?? '', 'assertVisible', async (loc) => {
       await expect(loc).toBeVisible();
     });
+  }
+
+  async assertFocused(locator: Locator, message?: string): Promise<void> {
+    this.logger.step(`Assert focused: ${message ?? locator.toString()}`);
+    await expect(locator).toBeFocused();
+  }
+
+  async assertAttribute(locator: Locator, name: string, value: string | RegExp): Promise<void> {
+    this.logger.step(`Assert attribute ${name}=${value}`);
+    await expect(locator).toHaveAttribute(name, value);
   }
 
   async assertText(locator: Locator, expectedText: string): Promise<void> {
