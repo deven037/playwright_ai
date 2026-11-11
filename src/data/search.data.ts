@@ -30,3 +30,5 @@ export function searchResponse(term: string) {
         })) }];
     })) };
 }
+
+export const SEARCH_ERROR = { term: 'an', heading: 'Search did not finish', response: { message: 'Controlled search failure for AIO-T79' } } as const;
