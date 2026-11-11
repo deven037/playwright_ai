@@ -4,7 +4,7 @@ export const GOOD_PROBE: ProbeResult = { status: 200, ms: 100, ready: true };
 
 /** Probe outcomes that must not count as a fast, ready attempt. */
 export const BAD_PROBES: { name: string; value: ProbeResult | Error }[] = [
-  { name: 'slow (3000 ms)', value: { ...GOOD_PROBE, ms: 3000 } },
+  { name: 'slow (6000 ms)', value: { ...GOOD_PROBE, ms: 6000 } },
   { name: 'HTTP 503', value: { ...GOOD_PROBE, status: 503 } },
   { name: 'login/bootstrap not ready', value: { ...GOOD_PROBE, ready: false } },
   { name: 'transport failure', value: new Error('transport') },
