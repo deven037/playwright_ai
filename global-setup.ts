@@ -27,7 +27,8 @@ async function authenticateRoles(): Promise<void> {
         const page = await context.newPage();
         const loginPage = new CrmLoginPage(page);
         await loginPage.goto();
-        await loginPage.loginWithCustomCredentials(emails[role]);
+        // Remember me stores the token in localStorage, which Playwright storageState preserves.
+        await loginPage.loginWithCustomCredentials(emails[role], true);
         await new DashboardPage(page).waitForDashBoardPage();
         await auth.saveSession(context, role);
         logger.info(`[AUTH] ${role} session saved (1 login)`);
