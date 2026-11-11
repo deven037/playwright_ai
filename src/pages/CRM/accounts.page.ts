@@ -1,6 +1,15 @@
 import { BasePage } from "@core/BasePage";
 import { Page, Route, errors, expect } from "@playwright/test";
-import { EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
+import {
+  CREATE_ACCOUNT_BUTTON,
+  EDIT_ACCOUNT,
+  REJECTED_CREATE_422_BODY,
+  REJECTED_CREATE_BODY,
+  REJECTED_SAVE_BODY,
+  SAVE_ACCOUNT_ERROR,
+} from "../../data/accounts.data";
+
+export type CreateFailureMode = 'http500' | 'abort' | 'http422';
 
 export class AccountsPage extends BasePage {
   private rejectedSaveRequests = 0;
@@ -13,6 +22,21 @@ export class AccountsPage extends BasePage {
       status: 500,
       contentType: 'application/json',
       body: JSON.stringify(REJECTED_SAVE_BODY),
+    });
+  };
+
+  private createFailureMode: CreateFailureMode = 'http500';
+  private rejectedCreateRequests = 0;
+  private readonly accountsCollectionPattern = '**/api/accounts';
+  private readonly rejectCreateRoute = async (route: Route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    this.rejectedCreateRequests++;
+    if (this.createFailureMode === 'abort') return route.abort('failed');
+    const isValidation = this.createFailureMode === 'http422';
+    return route.fulfill({
+      status: isValidation ? 422 : 500,
+      contentType: 'application/json',
+      body: JSON.stringify(isValidation ? REJECTED_CREATE_422_BODY : REJECTED_CREATE_BODY),
     });
   };
 
@@ -159,6 +183,59 @@ export class AccountsPage extends BasePage {
 
   async assertRejectedSaveRequests(count: number) {
     await expect.poll(() => this.rejectedSaveRequests).toBe(count);
+  }
+
+  // --- AIO-337: create form, rejected save ---------------------------------
+
+  private get accountNameInput() { return this.page.getByTestId('account-name'); }
+  private get createButton() { return this.page.getByRole('button', { name: CREATE_ACCOUNT_BUTTON, exact: true }); }
+  private get createError() { return this.page.getByRole('alert').filter({ hasText: SAVE_ACCOUNT_ERROR }); }
+
+  async openNewAccountForm() {
+    await this.gotoAccounts();
+    await this.clickNewAccount();
+    await this.chooseLayout();
+    await expect(this.accountNameInput).toBeVisible();
+  }
+
+  async failAccountCreates(mode: CreateFailureMode) {
+    this.createFailureMode = mode;
+    this.rejectedCreateRequests = 0;
+    await this.page.route(this.accountsCollectionPattern, this.rejectCreateRoute);
+  }
+
+  async stopFailingAccountCreates() {
+    await this.page.unroute(this.accountsCollectionPattern, this.rejectCreateRoute);
+  }
+
+  async switchCreateFailure(mode: CreateFailureMode) {
+    this.createFailureMode = mode;
+    this.rejectedCreateRequests = 0;
+  }
+
+  async enterAccountName(name: string) {
+    await this.helpers.fill(this.accountNameInput, name, 'Account Name Input');
+  }
+
+  async assertRejectedCreateRequests(count: number) {
+    await expect.poll(() => this.rejectedCreateRequests).toBe(count);
+  }
+
+  async assertCreateRejectedAndFormKept(name: string) {
+    await expect(this.createError).toBeVisible();
+    await expect(this.createButton).toBeEnabled();
+    await expect(this.accountNameInput).toHaveValue(name);
+    await expect(this.page).toHaveURL(/\/accounts\/new$/);
+  }
+
+  async setViewportWidth(width: number) {
+    await this.page.setViewportSize({ width, height: 900 });
+  }
+
+  async assertNoHorizontalOverflow() {
+    await expect
+      .poll(() => this.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth))
+      .toBe(true);
   }
 
   /** Cleanup: removes the account if it is still listed; does nothing if already deleted. */
