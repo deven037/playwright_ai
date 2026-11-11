@@ -124,7 +124,7 @@ export class DashboardPage extends BasePage {
 
     // The shell may ask for the profile more than once on load, so Retry is checked against the count seen once the fallback shows.
     async rememberBootstrapRequestCount() {
-        await this.page.waitForLoadState('networkidle');
+        await this.helpers.assertVisible(this.profileFallbackMessage);
         this.bootstrapRequestsBeforeRetry = this.bootstrapRequests;
     }
 
