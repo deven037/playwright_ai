@@ -8,7 +8,7 @@ export class AccountsPage extends BasePage {
   }
 
   async waitForPageLoad() {
-    await this.page.getByPlaceholder('Search accounts…').waitFor({ state: 'visible' });
+    await this.page.getByRole('searchbox', { name: 'Search accounts' }).waitFor({ state: 'visible' });
   }
 
   async gotoAccounts() {
@@ -67,7 +67,7 @@ export class AccountsPage extends BasePage {
   }
 
   async searchInAccountsTable(accountName: string) {
-    const searchInput = this.page.getByPlaceholder('Search accounts…');
+    const searchInput = this.page.getByRole('searchbox', { name: 'Search accounts' });
     await this.helpers.fill(searchInput, accountName, 'Search Input');
   }
 
