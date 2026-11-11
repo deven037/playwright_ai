@@ -88,7 +88,7 @@ export class SearchPage extends BasePage {
     private async searchLive(term: string): Promise<SearchApiBody> {
         const response = this.page.waitForResponse(r => r.request().method() === 'GET'
             && new URL(r.url()).pathname === SEARCH_LIVE_PATHS.search && new URL(r.url()).searchParams.get('q') === term);
-        if (!(await this.panel.isVisible())) await this.helpers.click(this.page.getByTestId('global-search'));
+        if (!(await this.panel.isVisible())) await this.helpers.click(this.opener(this.page));
         // Clear first so a repeated term is a real input change and sends a new request.
         await this.helpers.fill(this.input, '');
         await this.helpers.fill(this.input, term);
