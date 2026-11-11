@@ -1,5 +1,6 @@
 import { BasePage } from "@core/BasePage";
-import { Page, errors, expect } from "@playwright/test";
+import { ACCOUNT_SAVE } from "../../data/accounts.data";
+import { Page, Route, errors, expect } from "@playwright/test";
 
 export class AccountsPage extends BasePage {
 
@@ -108,5 +109,71 @@ export class AccountsPage extends BasePage {
     await this.openAccount(accountName);
     await this.deleteAccount();
     await this.confirmDelete();
+  }
+
+  private saveFailure: 'abort' | 500 | 422 = 500;
+  private readonly savePattern = '**/api/accounts';
+  private readonly rejectSave = async (route: Route) => {
+    if (route.request().method() !== 'POST') return route.continue();
+    if (this.saveFailure === 'abort') return route.abort('failed');
+    return route.fulfill({ status: this.saveFailure, json: ACCOUNT_SAVE.response });
+  };
+
+  async openCreateForm(name: string) {
+    await this.gotoAccounts();
+    await this.clickNewAccount();
+    await this.chooseLayout();
+    await this.helpers.waitForElement(this.page.getByTestId('account-form-page'));
+    await this.helpers.fill(this.page.getByTestId('account-name'), name, 'Account name');
+  }
+
+  async rejectAccountSaves(failure: 'abort' | 500 | 422) {
+    await this.page.unroute(this.savePattern, this.rejectSave);
+    this.saveFailure = failure;
+    await this.page.route(this.savePattern, this.rejectSave);
+  }
+
+  async removeSaveMock() {
+    await this.page.unroute(this.savePattern, this.rejectSave);
+  }
+
+  async submitAndAssertStatus(status: number) {
+    const response = this.page.waitForResponse(response =>
+      new URL(response.url()).pathname === '/api/accounts' &&
+      response.request().method() === 'POST');
+    await this.createAccount();
+    expect((await response).status()).toBe(status);
+  }
+
+  async assertRejectedSave(name: string) {
+    const form = this.page.getByTestId('account-form-page');
+    await expect(form.getByRole('alert')).toHaveText(ACCOUNT_SAVE.banner);
+    const button = form.getByRole('button', { name: ACCOUNT_SAVE.button, exact: true });
+    await expect(button).toHaveText(ACCOUNT_SAVE.button);
+    await expect(button).toBeEnabled();
+    await expect(form.getByTestId('account-name')).toHaveValue(name);
+    await this.helpers.assertURL(/\/accounts\/new(?:[?].*)?$/);
+  }
+
+  async assertNoOverflowAtWidths(widths: readonly number[]) {
+    for (const width of widths) {
+      await this.page.setViewportSize({ width, height: 900 });
+      await this.helpers.assertVisible(this.page.getByTestId('account-form-page'));
+      await expect.poll(() => this.page.evaluate(() =>
+        document.documentElement.scrollWidth - document.documentElement.clientWidth),
+        { message: 'No horizontal overflow at ' + width + 'px' }).toBeLessThanOrEqual(0);
+    }
+  }
+
+  async retryAndAssertCreated() {
+    await this.removeSaveMock();
+    const response = this.page.waitForResponse(response =>
+      new URL(response.url()).pathname === '/api/accounts' &&
+      response.request().method() === 'POST');
+    await this.createAccount();
+    const saved = await response;
+    expect(saved.ok()).toBeTruthy();
+    await this.helpers.assertURL(/\/accounts\/(?!new(?:[?]|$))[^/?]+$/);
+    await this.helpers.assertVisible(this.page.getByTestId('account-detail-page'));
   }
 }
