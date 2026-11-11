@@ -21,7 +21,7 @@ export class AccountsPage extends BasePage {
   }
 
   private searchBox() {
-    return this.page.getByRole('searchbox', { name: 'Search accounts' });
+    return this.page.getByRole('searchbox', { name: 'Search accounts', exact: true });
   }
 
   async waitForPageLoad() {
