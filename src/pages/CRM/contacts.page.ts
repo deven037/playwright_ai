@@ -1,7 +1,8 @@
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 import { BasePage } from "../../core/BasePage";
 
 export class ContactsPage extends BasePage {
+  private consoleErrors: string[] = [];
 
   constructor(page: Page) {
     super(page);
@@ -151,5 +152,29 @@ export class ContactsPage extends BasePage {
   async chooseLayout(layoutName: string) {
     const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
     await this.helpers.click(layout, "Layout");
+  }
+
+  // --- Contact detail: shared .detail-list layout (AIO-325 regression) --------
+
+  /** Starts collecting browser console errors; call before navigating. */
+  trackConsoleErrors() {
+    this.consoleErrors = [];
+    this.page.on('console', msg => {
+      if (msg.type() === 'error') this.consoleErrors.push(msg.text());
+    });
+  }
+
+  /** Opens /contacts/<id> by URL (the session is already signed in) and waits for the contact detail page. */
+  async openContactDetail(contactId: string) {
+    const baseUrl = this.env.newAppBaseUrl?.trim();
+    if (!baseUrl) {
+      throw new Error('NEWAPP_BASE_URL is not configured. Set it in .env or CI environment variables.');
+    }
+    await this.page.goto(`${baseUrl}/contacts/${contactId}`);
+    await this.page.locator("//div[@data-testid='contact-detail-page']").waitFor({ state: 'visible' });
+  }
+
+  async assertNoConsoleErrors() {
+    expect(this.consoleErrors).toEqual([]);
   }
 }

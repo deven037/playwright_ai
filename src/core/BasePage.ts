@@ -1,4 +1,4 @@
-import { Page } from '@playwright/test';
+import { Page, expect } from '@playwright/test';
 import { Logger } from '../utils/Logger';
 import { Helpers } from '../utils/Helpers';
 import { EnvManager } from '../utils/EnvManager';
@@ -75,5 +75,23 @@ export abstract class BasePage {
 
   async dismissDialog(): Promise<void> {
     this.page.on('dialog', (dialog) => dialog.dismiss());
+  }
+
+  // --- Responsive layout ---------------------------------------------------
+
+  async setViewport(width: number, height: number): Promise<void> {
+    this.logger.step(`Set viewport ${width}x${height}`);
+    await this.page.setViewportSize({ width, height });
+  }
+
+  /** Page-level horizontal overflow check: scrollWidth must equal clientWidth, both equal to the viewport width. */
+  async assertNoHorizontalOverflow(width: number): Promise<void> {
+    await expect.poll(
+      () => this.page.evaluate(() => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth,
+      })),
+      { message: `scrollWidth and clientWidth should both be ${width}` },
+    ).toEqual({ scrollWidth: width, clientWidth: width });
   }
 }

@@ -109,4 +109,44 @@ export class AccountsPage extends BasePage {
     await this.deleteAccount();
     await this.confirmDelete();
   }
+
+  // --- Account detail: Details tab layout (AIO-325) ---------------------------
+
+  private get detailValues() {
+    return this.page.locator('.detail-list dd');
+  }
+
+  /** Opens /accounts/<id> by URL (the session is already signed in) and waits for the Details list. */
+  async openAccountDetail(accountId: string) {
+    const baseUrl = this.env.newAppBaseUrl?.trim();
+    if (!baseUrl) {
+      throw new Error('NEWAPP_BASE_URL is not configured. Set it in .env or CI environment variables.');
+    }
+    await this.page.goto(`${baseUrl}/accounts/${accountId}`);
+    await this.detailValues.first().waitFor({ state: 'visible' });
+  }
+
+  async assertDetailValueCount(expected: number) {
+    await expect(this.detailValues).toHaveCount(expected);
+  }
+
+  /** Every Details value must end at or before the viewport's right edge. */
+  async assertDetailValuesWithinViewport(width: number) {
+    await expect.poll(
+      () => this.detailValues.evaluateAll(
+        els => Math.max(...els.map(el => el.getBoundingClientRect().right)),
+      ),
+      { message: `every .detail-list dd right edge should be <= ${width}` },
+    ).toBeLessThanOrEqual(width);
+  }
+
+  /** Simulates an account with a very long website by replacing the first Details value with an unbroken link. */
+  async setFirstDetailValueToLink(href: string) {
+    await this.detailValues.first().evaluate((el, link) => {
+      const anchor = document.createElement('a');
+      anchor.href = link;
+      anchor.textContent = link;
+      el.replaceChildren(anchor);
+    }, href);
+  }
 }
