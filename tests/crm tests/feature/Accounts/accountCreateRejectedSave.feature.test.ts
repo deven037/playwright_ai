@@ -29,6 +29,7 @@ test.describe('AIO-337: account create form after a rejected save', () => {
             await accountsPage.assertRejectedCreateRequests(1);
             await accountsPage.assertCreateFailedAndFormReset(REJECTED_CREATE_NAME);
 
+            // Installing the 422 stub resets the request count for this attempt.
             await accountsPage.rejectAccountCreates(422, INVALID_CREATE_BODY);
             await accountsPage.createAccount();
             await accountsPage.assertRejectedCreateRequests(1);
@@ -44,6 +45,7 @@ test.describe('AIO-337: account create form after a rejected save', () => {
             await accountsPage.rejectAccountCreates(500, REJECTED_CREATE_BODY);
             await accountsPage.fillAccountName(accountName);
             await accountsPage.createAccount();
+            await accountsPage.assertRejectedCreateRequests(1);
             await accountsPage.assertCreateFailedAndFormReset(accountName);
 
             await accountsPage.assertNoHorizontalOverflowAtCreateViewports();
