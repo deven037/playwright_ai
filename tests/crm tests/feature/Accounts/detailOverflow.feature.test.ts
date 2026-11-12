@@ -1,53 +1,31 @@
 import { expect, test } from '@fixtures/CrmFixtures';
-import type { Page } from '@playwright/test';
+import { ACCOUNT_IDS, DETAIL_WIDTHS, LONG_WEBSITE_LENGTH, NARROW_WIDTH } from '../../../src/data/detailOverflow.data';
 
-async function assertNoOverflow(page: Page) {
-    await expect.poll(() => page.evaluate(() => ({
-        scroll: document.documentElement.scrollWidth,
-        client: document.documentElement.clientWidth,
-    }))).toEqual({ scroll: page.viewportSize()!.width, client: page.viewportSize()!.width });
-    const outside = await page.locator('.detail-list dd').evaluateAll(elements =>
-        elements.filter(element => {
-            const box = element.getBoundingClientRect();
-            return box.left < 0 || box.right > document.documentElement.clientWidth ||
-                element.scrollWidth > element.clientWidth + 1;
-        }).length);
-    expect(outside, 'detail values fit inside the viewport and their column').toBe(0);
-}
-
-test('AIO-T157/T158: Account Details fit at 375/768/1440 @regression', async ({ page, crmLoginPage }) => {
+test('AIO-T157/T158: Account Details fit at 375/768/1440 @regression', async ({ crmLoginPage, detailOverflowPage }) => {
     await crmLoginPage.goto();
-    for (const width of [375, 768, 1440]) {
-        await page.setViewportSize({ width, height: 900 });
-        for (const id of ['account-1', 'account-2', 'account-3']) {
-            await page.goto(new URL('/accounts/' + id, page.url()).href);
-            await expect(page.getByTestId('account-detail-page')).toBeVisible();
-            await expect(page.locator('.detail-list dd').first()).toBeVisible();
-            await assertNoOverflow(page);
+    for (const width of DETAIL_WIDTHS) {
+        await detailOverflowPage.setViewport(width);
+        for (const id of ACCOUNT_IDS) {
+            await detailOverflowPage.gotoAccount(id);
+            await detailOverflowPage.assertNoHorizontalOverflow();
         }
     }
 });
 
-test('AIO-T159: unbroken website wraps at 375 @regression', async ({ page, crmLoginPage }) => {
+test('AIO-T159: unbroken website wraps at 375 @regression', async ({ crmLoginPage, detailOverflowPage }) => {
     await crmLoginPage.goto();
-    await page.setViewportSize({ width: 375, height: 900 });
-    await page.goto(new URL('/accounts/account-1', page.url()).href);
-    await expect(page.getByTestId('account-detail-page')).toBeVisible();
-    const website = page.locator('.detail-list dd a').first();
-    await expect(website).toBeVisible();
-    // Reproduce the manual edge case in the rendered DOM without persisting account changes.
-    await website.evaluate(element => { element.textContent = 'https://' + 'a'.repeat(100) + '.example'; });
-    await assertNoOverflow(page);
+    await detailOverflowPage.setViewport(NARROW_WIDTH);
+    await detailOverflowPage.gotoAccount(ACCOUNT_IDS[0]);
+    await detailOverflowPage.injectLongWebsite(LONG_WEBSITE_LENGTH);
+    await detailOverflowPage.assertNoHorizontalOverflow();
 });
 
-test('AIO-T160: Contact Details fit at 375/768/1440 @regression', async ({ page, crmLoginPage }) => {
+test('AIO-T160: Contact Details fit at 375/768/1440 @regression', async ({ crmLoginPage, detailOverflowPage }) => {
     await crmLoginPage.goto();
-    await page.goto(new URL('/contacts', page.url()).href);
-    await page.locator('tbody tr.row-clickable').first().click();
-    await expect(page.getByTestId('contact-detail-page')).toBeVisible();
-    for (const width of [375, 768, 1440]) {
-        await page.setViewportSize({ width, height: 900 });
-        await expect(page.locator('.detail-list dd').first()).toBeVisible();
-        await assertNoOverflow(page);
+    await detailOverflowPage.openFirstContact();
+    for (const width of DETAIL_WIDTHS) {
+        await detailOverflowPage.setViewport(width);
+        await detailOverflowPage.assertDetailValuesVisible();
+        await detailOverflowPage.assertNoHorizontalOverflow();
     }
 });
