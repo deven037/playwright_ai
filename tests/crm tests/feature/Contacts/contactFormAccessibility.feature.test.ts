@@ -8,7 +8,6 @@ test('AIO-T139: Contact form labels and first-error focus @regression', async ({
   contactsPage,
 }) => {
   await crmLoginPage.goto();
-  await crmLoginPage.loginWithDefaultCredentials();
   await dashboardPage.waitForDashBoardPage();
 
   await contactsPage.gotoContacts();

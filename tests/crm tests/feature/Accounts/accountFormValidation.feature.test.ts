@@ -7,7 +7,6 @@ import {
 
 test.beforeEach(async ({ crmLoginPage, dashboardPage, accountsPage }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await accountsPage.openNewAccountForm();
 });

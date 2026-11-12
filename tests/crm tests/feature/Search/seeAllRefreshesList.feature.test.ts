@@ -5,7 +5,6 @@ test.describe('AIO-220 See all same-route refresh', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage, searchPage }) => {
         await searchPage.installFixtures();
         await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForDashBoardPage();
         await searchPage.openList('leads');
     });

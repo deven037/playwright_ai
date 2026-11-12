@@ -8,7 +8,6 @@ test('@regression Verify Deals Assignment Rule Creation', async({
 }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();

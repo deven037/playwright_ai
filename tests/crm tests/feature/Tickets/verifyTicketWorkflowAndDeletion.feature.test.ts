@@ -9,7 +9,6 @@ test('@feature @smoke @regression Verify Ticket Creation, Status Workflow and De
 
     try {
         await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForDashBoardPage();
         await dashboardPage.assertProfileIconVisible();
 
