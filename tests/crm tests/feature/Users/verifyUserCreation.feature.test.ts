@@ -7,6 +7,7 @@ test('@regression User Creation', async({
 }) => {
 
     await crmLoginPage.goto();
+    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.clickAvatar();
     await adminPage.gotoSetup();

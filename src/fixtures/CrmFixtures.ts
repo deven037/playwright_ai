@@ -78,6 +78,7 @@ const FORM_LOGIN_SPECS = [
   'Search/searchErrorEscape.feature.test.ts',
   'Search/globalSearch.feature.test.ts',
   'Search/searchApiRoles.feature.test.ts',
+  'Users/verifyUserCreation.feature.test.ts',
   'Contacts/contactFormAccessibility.feature.test.ts',
 ];
 
