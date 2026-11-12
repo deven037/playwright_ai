@@ -77,6 +77,7 @@ const FORM_LOGIN_SPECS = [
   'Search/seeAllRefreshesList.feature.test.ts',
   'Search/searchErrorEscape.feature.test.ts',
   'Search/globalSearch.feature.test.ts',
+  'Search/searchApiRoles.feature.test.ts',
   'Contacts/contactFormAccessibility.feature.test.ts',
 ];
 
