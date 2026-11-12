@@ -461,4 +461,41 @@ export class LeadsPage extends BasePage {
             await expect(options.filter({ hasText: status }).first()).toBeVisible();
         }
     }
+
+    // AIO-125 / AIO-T101: pagination footer, e.g. "75 lead(s) · page 1 of 8"
+    async assertPaginationFooter(total: number, page: number, totalPages: number) {
+        const footer = this.page.getByTestId('pagination').locator('span.muted');
+        await expect(footer).toHaveText(`${total} lead(s) · page ${page} of ${totalPages}`);
+    }
+
+    async goToNextLeadsPage(times: number) {
+        const nextPage = this.page.getByRole('button', { name: 'Next page' });
+        for (let i = 0; i < times; i++) {
+            await this.helpers.click(nextPage, 'Next leads page');
+        }
+    }
+
+    async assertNextPageDisabled() {
+        await expect(this.page.getByRole('button', { name: 'Next page' })).toBeDisabled();
+    }
+
+    async assertLeadRowCount(count: number) {
+        await expect(this.leadRows).toHaveCount(count);
+    }
+
+    // The page-number buttons show a sliding window; assert its first and last numbers.
+    async assertPageButtonWindow(first: number, last: number) {
+        const pageButtons = this.page.getByTestId('pagination').locator('button.btn-page');
+        await expect(pageButtons.first()).toHaveText(String(first));
+        await expect(pageButtons.last()).toHaveText(String(last));
+    }
+
+    async searchLeadsList(text: string) {
+        const searchInput = this.page.locator("//div[@class='toolbar']/input");
+        await this.helpers.fill(searchInput, text, 'Search Input');
+    }
+
+    async assertEmptyLeadsMessage(message: string) {
+        await expect(this.page.locator('td.empty-cell')).toHaveText(message);
+    }
 }
