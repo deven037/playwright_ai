@@ -202,6 +202,16 @@ export class Helpers {
     return this.page.title();
   }
 
+  async setViewport(size: { width: number; height: number }): Promise<void> {
+    this.logger.step(`Set viewport: ${size.width}x${size.height}`);
+    await this.page.setViewportSize(size);
+  }
+
+  /** Pixels the document is wider than the viewport (0 or less = no sideways scroll). */
+  async getHorizontalOverflow(): Promise<number> {
+    return this.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  }
+
   async refreshPage(): Promise<void> {
     await this.page.reload({ waitUntil: 'networkidle' });
   }

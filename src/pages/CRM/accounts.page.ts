@@ -1,9 +1,12 @@
 import { BasePage } from "@core/BasePage";
 import { Page, Route, errors, expect } from "@playwright/test";
-import { ACCOUNT_FORM_ACCESSIBLE_NAMES, ACCOUNT_FORM_LABELS, NEW_ACCOUNT_PATH, EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
+import { ACCOUNT_FORM_ACCESSIBLE_NAMES, ACCOUNT_FORM_LABELS, ACCOUNT_FORM_VIEWPORTS, NEW_ACCOUNT_PATH, EDIT_ACCOUNT, REJECTED_SAVE_BODY, RETRY_ACCOUNT_NAME_PREFIX, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
 
 export class AccountsPage extends BasePage {
   private rejectedSaveRequests = 0;
+  private rejectedCreateRequests = 0;
+  private readonly createApiPattern = '**/api/accounts';
+  private createRoute?: (route: Route) => Promise<void>;
   private readonly accountApiPattern = `**/api/accounts/${EDIT_ACCOUNT.id}`;
   private readonly rejectSaveRoute = async (route: Route) => {
     const method = route.request().method();
@@ -237,6 +240,79 @@ export class AccountsPage extends BasePage {
 
   async assertRejectedSaveRequests(count: number) {
     await expect.poll(() => this.rejectedSaveRequests).toBe(count);
+  }
+
+  // --- AIO-344 / AIO-337: rejected save on the create form -----------------
+
+  private get createButton() { return this.page.getByRole('button', { name: /^(Create account|Creating…)$/ }); }
+  private get createError() { return this.page.getByRole('alert').filter({ hasText: SAVE_ACCOUNT_ERROR }); }
+  private get nameField() { return this.page.getByTestId('account-name'); }
+
+  async fillAccountName(name: string) {
+    await this.helpers.fill(this.nameField, name, 'Account Name Input');
+  }
+
+  /** Fills the name with a unique retry-test name and returns it. */
+  async fillGeneratedAccountName() {
+    const name = `${RETRY_ACCOUNT_NAME_PREFIX}${Date.now()}`;
+    await this.fillAccountName(name);
+    return name;
+  }
+
+  /** Answers every POST /api/accounts with the given HTTP status; other methods pass through. */
+  async rejectAccountCreates(status: number, body: object) {
+    await this.stopInterceptingAccountCreates();
+    this.rejectedCreateRequests = 0;
+    this.createRoute = async (route: Route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      this.rejectedCreateRequests++;
+      return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+    };
+    await this.page.route(this.createApiPattern, this.createRoute);
+  }
+
+  /** Aborts every POST /api/accounts as a network failure; other methods pass through. */
+  async abortAccountCreates() {
+    await this.stopInterceptingAccountCreates();
+    this.rejectedCreateRequests = 0;
+    this.createRoute = async (route: Route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      this.rejectedCreateRequests++;
+      return route.abort('failed');
+    };
+    await this.page.route(this.createApiPattern, this.createRoute);
+  }
+
+  async stopInterceptingAccountCreates() {
+    if (!this.createRoute) return;
+    await this.page.unroute(this.createApiPattern, this.createRoute);
+    this.createRoute = undefined;
+  }
+
+  async assertRejectedCreateRequests(count: number) {
+    await expect.poll(() => this.rejectedCreateRequests).toBe(count);
+  }
+
+  async assertCreateFailedAndFormReset(name: string) {
+    await expect(this.createError).toBeVisible();
+    await expect(this.createError).toHaveText(SAVE_ACCOUNT_ERROR);
+    await expect(this.createButton).toHaveText('Create account');
+    await expect(this.createButton).toBeEnabled();
+    await expect(this.nameField).toHaveValue(name);
+    await this.helpers.assertURL(NEW_ACCOUNT_PATH);
+  }
+
+  async assertNoHorizontalOverflowAtFormViewports() {
+    for (const viewport of ACCOUNT_FORM_VIEWPORTS) {
+      await this.helpers.setViewport(viewport);
+      await expect
+        .poll(() => this.helpers.getHorizontalOverflow(), { message: `horizontal overflow at ${viewport.width}px` })
+        .toBeLessThanOrEqual(0);
+    }
+  }
+
+  async assertAccountDetailShown(name: string) {
+    expect(await this.getAccountNameFromDetailsPage()).toBe(name);
   }
 
   /** Cleanup: removes the account if it is still listed; does nothing if already deleted. */
