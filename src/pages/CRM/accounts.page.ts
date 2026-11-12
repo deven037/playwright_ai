@@ -399,7 +399,16 @@ export class AccountsPage extends BasePage {
           const response = await page.request.delete(`${this.deleteApiBase()}/api/accounts/${ACCOUNT_DELETE.blockedId}?cascade=${cascade}`, { headers });
           expect(response.status(), `${role} cascade=${cascade}: ${await response.text()}`).toBe(409);
           expect(await response.json()).toMatchObject({ error: { code: 'open_deals' } });
-          expect(await this.deleteSnapshot(page, role === 'admin'), `${role} cascade=${cascade} has no API-visible writes`).toEqual(before);
+          const after = await this.deleteSnapshot(page, role === 'admin');
+          // The audit log is shared and capped, so parallel tests append and rotate rows; only rows this delete could write count.
+          const { audit: auditBefore = [], ...dataBefore } = before;
+          const { audit: auditAfter = [], ...dataAfter } = after;
+          expect(dataAfter, `${role} cascade=${cascade} has no API-visible writes`).toEqual(dataBefore);
+          const knownIds = new Set(auditBefore.map(row => row.id));
+          const accountName = before.accounts.find(row => row.id === ACCOUNT_DELETE.blockedId).name;
+          const deleteRows = auditAfter.filter(row => !knownIds.has(row.id)
+            && (/^(account|deal)\./.test(String(row.action)) || String(row.detail ?? '').includes(accountName)));
+          expect(deleteRows, `${role} cascade=${cascade} wrote no account audit entry`).toEqual([]);
         }
       } finally {
         await context?.close();
