@@ -18,7 +18,8 @@ export class DealsPage extends BasePage {
   }
 
   async gotoDealsList() {
-    await this.page.goto('/deals?view=list');
+    await this.gotoDeals();
+    await this.helpers.click(this.page.getByRole('button', { name: 'List', exact: true }), 'List view');
     await this.page.waitForLoadState('networkidle');
     await expect(this.page.locator('table tbody tr').first()).toBeVisible();
   }
