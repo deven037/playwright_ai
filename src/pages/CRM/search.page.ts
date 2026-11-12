@@ -187,8 +187,9 @@ export class SearchPage extends BasePage {
     private globalSeeAll(page: Page, type: string) { return page.getByTestId(`search-see-all-${type}`); }
     private loading(page: Page) { return page.getByTestId('search-loading'); }
     private emptyState(page: Page) { return page.getByTestId('search-empty'); }
-    private groups(page: Page) { return page.getByRole('group'); }
-    private namedGroup(page: Page, name: string) { return page.getByRole('group', { name, exact: true }); }
+    // Scoped to the search panel: module pages (e.g. the Deals Kanban) also render role="group".
+    private groups(page: Page) { return this.globalPanel(page).getByRole('group'); }
+    private namedGroup(page: Page, name: string) { return this.globalPanel(page).getByRole('group', { name, exact: true }); }
     private alert(page: Page) { return this.globalPanel(page).getByRole('alert'); }
     private retryButton(page: Page) { return page.getByRole('button', { name: searchText.retry, exact: true }); }
     private modulePage(page: Page, type: string) { return page.getByTestId(`${type}-page`); }
