@@ -1,0 +1,3 @@
+export const NOTIFICATIONS_EMPTY_TEXT = 'No notifications';
+export const NOTIFICATIONS_SEEDED_ITEM_COUNT = 5;
+export const NOTIFICATIONS_SEEDED_UNREAD_COUNT = 3;
