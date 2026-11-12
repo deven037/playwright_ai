@@ -18,7 +18,7 @@ test('AIO-T79: Escape closes search from focused error actions and restores head
 });
 
 test.describe('Escape after successful search retry', () => {
-    test.use({ role: 'rep', trace: 'on' });
+    test.use({ role: 'rep' });
 
     test('AIO-T205: Escape closes search after successful retry and restores opener focus @regression', async ({
         crmLoginPage, dashboardPage, searchPage
