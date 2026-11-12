@@ -1,5 +1,6 @@
 import { BasePage } from "@core/BasePage";
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
+import { DEALS_VIEWPORT_HEIGHT } from "../../data/deals.data";
 
 export class DealsPage extends BasePage {
 
@@ -15,6 +16,36 @@ export class DealsPage extends BasePage {
     const dealsBtn = this.page.locator("//a[contains(@class, 'nav-link') and contains(@href, '/deals')]");
     await this.helpers.click(dealsBtn, 'Deals');
     await this.page.waitForLoadState('networkidle');
+  }
+
+  async gotoDealsList() {
+    await this.gotoDeals();
+    await this.helpers.click(this.page.getByRole('button', { name: 'List', exact: true }), 'List view');
+    await this.page.waitForLoadState('networkidle');
+    await expect(this.page.locator('table tbody tr').first()).toBeVisible();
+  }
+
+  async assertNoActiveSortHeader() {
+    const headers = this.page.locator('table thead th');
+    const count = await headers.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(headers.nth(i)).toHaveAttribute('aria-sort', 'none');
+    }
+  }
+
+  async getListAmounts(): Promise<number[]> {
+    const rows = this.page.locator('table tbody tr');
+    return rows.evaluateAll(trs =>
+      trs.map(tr => Number((tr.textContent ?? '').match(/\$([\d,]+)/)?.[1]?.replace(/,/g, '') ?? NaN)));
+  }
+
+  async clickAmountHeader() {
+    await this.page.locator('table thead th', { hasText: 'Amount' }).click();
+  }
+
+  async assertAmountHeaderSort(sort: 'ascending' | 'descending') {
+    await expect(this.page.locator('table thead th', { hasText: 'Amount' })).toHaveAttribute('aria-sort', sort);
   }
 
   async clickNewDeal() {
@@ -71,5 +102,37 @@ export class DealsPage extends BasePage {
 
   async getDealCardLocator(dealName: string) {
     return this.page.locator(`//div[@class='kanban-card-title' and text()='${dealName}']`);
+  }
+
+  // Board layout at narrow widths (AIO-394 / AIO-T197).
+  private get kanbanBoard() {
+    return this.page.getByTestId('kanban-board');
+  }
+
+  async setViewport(width: number) {
+    await this.helpers.setViewport({ width, height: DEALS_VIEWPORT_HEIGHT });
+  }
+
+  // Relative to the origin of the page the user is signed in on.
+  async openBoard() {
+    await this.helpers.navigateTo(new URL('/deals', this.page.url()).href);
+    await this.helpers.click(this.page.getByRole('button', { name: 'Board', exact: true }), 'Deals Board view');
+    await expect(this.kanbanBoard).toBeVisible();
+  }
+
+  async assertPageDoesNotScrollSideways() {
+    const width = this.page.viewportSize()!.width;
+    await expect.poll(() => this.page.evaluate(() => document.scrollingElement!.scrollWidth)).toBe(width);
+  }
+
+  async assertBoardScrollsInsideItself() {
+    await expect(this.kanbanBoard).toBeVisible();
+    const box = await this.kanbanBoard.evaluate(element => ({
+      client: element.clientWidth,
+      scroll: element.scrollWidth,
+      right: element.getBoundingClientRect().right,
+    }));
+    expect(box.scroll, 'columns scroll inside the board').toBeGreaterThan(box.client);
+    expect(box.right, 'board stays inside the viewport').toBeLessThanOrEqual(this.page.viewportSize()!.width);
   }
 }
