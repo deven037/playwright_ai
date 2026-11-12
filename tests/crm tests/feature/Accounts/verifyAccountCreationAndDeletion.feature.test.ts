@@ -1,6 +1,6 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 
-test('@feature @smoke @regression Verify Account Creation and Deletion', async ({
+test('AIO-T164: @feature @smoke @regression Verify Account Creation and Deletion', async ({
     crmLoginPage,
     dashboardPage,
     accountsPage
