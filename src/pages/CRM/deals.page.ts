@@ -32,13 +32,6 @@ export class DealsPage extends BasePage {
     }
   }
 
-  async getFirstRowAmount(): Promise<number> {
-    const rows = this.page.locator('table tbody tr');
-    const amounts = await rows.evaluateAll(trs =>
-      trs.map(tr => Number((tr.textContent ?? '').match(/\$([\d,]+)/)?.[1]?.replace(/,/g, '') ?? NaN)));
-    return amounts[0];
-  }
-
   async getListAmounts(): Promise<number[]> {
     const rows = this.page.locator('table tbody tr');
     return rows.evaluateAll(trs =>
