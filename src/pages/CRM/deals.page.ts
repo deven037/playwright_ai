@@ -1,5 +1,6 @@
 import { BasePage } from "@core/BasePage";
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
+import { DEALS_VIEWPORT_HEIGHT } from "../../data/deals.data";
 
 export class DealsPage extends BasePage {
 
@@ -71,5 +72,37 @@ export class DealsPage extends BasePage {
 
   async getDealCardLocator(dealName: string) {
     return this.page.locator(`//div[@class='kanban-card-title' and text()='${dealName}']`);
+  }
+
+  // Board layout at narrow widths (AIO-394 / AIO-T197).
+  private get kanbanBoard() {
+    return this.page.getByTestId('kanban-board');
+  }
+
+  async setViewport(width: number) {
+    await this.helpers.setViewport({ width, height: DEALS_VIEWPORT_HEIGHT });
+  }
+
+  // Relative to the origin of the page the user is signed in on.
+  async openBoard() {
+    await this.helpers.navigateTo(new URL('/deals', this.page.url()).href);
+    await this.helpers.click(this.page.getByRole('button', { name: 'Board', exact: true }), 'Deals Board view');
+    await expect(this.kanbanBoard).toBeVisible();
+  }
+
+  async assertPageDoesNotScrollSideways() {
+    const width = this.page.viewportSize()!.width;
+    await expect.poll(() => this.page.evaluate(() => document.scrollingElement!.scrollWidth)).toBe(width);
+  }
+
+  async assertBoardScrollsInsideItself() {
+    await expect(this.kanbanBoard).toBeVisible();
+    const box = await this.kanbanBoard.evaluate(element => ({
+      client: element.clientWidth,
+      scroll: element.scrollWidth,
+      right: element.getBoundingClientRect().right,
+    }));
+    expect(box.scroll, 'columns scroll inside the board').toBeGreaterThan(box.client);
+    expect(box.right, 'board stays inside the viewport').toBeLessThanOrEqual(this.page.viewportSize()!.width);
   }
 }
