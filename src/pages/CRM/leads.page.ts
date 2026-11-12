@@ -90,21 +90,43 @@ export class LeadsPage extends BasePage {
         return leadName;
     }
     
-    async searchInLeadsTable(leadName: string) {
+    private searchedLeadName = '';
+
+    // Rows of the leads table whose name cell is exactly the searched lead
+    private searchedLeadRows(): Locator {
+        if (!this.searchedLeadName) {
+            throw new Error('searchedLeadRows: call searchInLeadsTable(leadName) first; an empty name would match every row');
+        }
+        return this.page
+            .locator("//tr[contains(@class,'row-clickable')]")
+            .filter({ has: this.page.locator('td:nth-child(2)', { hasText: this.searchedLeadName }) });
+    }
+
+    // expectResult = false filters without waiting for a row (use before assertSearchedLeadAbsent)
+    async searchInLeadsTable(leadName: string, expectResult: boolean = true) {
+        this.searchedLeadName = leadName;
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
+        if (expectResult) {
+            // Lead names are timestamped, so unique per run
+            await this.helpers.waitForElement(this.searchedLeadRows().first(), 'visible', `Row for ${leadName}`);
+        }
+    }
+
+    async assertSearchedLeadAbsent() {
+        await expect(this.searchedLeadRows(), `No row for ${this.searchedLeadName}`).toHaveCount(0);
     }
 
     async getFirstLeadNameFromTable() {
         this.logger.info("Getting top lead name")
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.waitForElement(name, 'visible');
         return await this.helpers.getText(name);
     }
 
     async clickLeadName() {
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.click(name, "Lead Name");
     }
 
@@ -254,7 +276,8 @@ export class LeadsPage extends BasePage {
     }
 
     async getStatusFromTable() {
-        const column = this.page.locator("//tr[@class='row-clickable']/td[6]/span");
+        const column = this.searchedLeadRows().locator('td:nth-child(6) > span');
+        await this.helpers.waitForElement(column, 'visible');
         const status = await this.helpers.getText(column);
         return status;
     }
