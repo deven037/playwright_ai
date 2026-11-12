@@ -13,6 +13,7 @@ import { DealsPage } from '@pages/CRM/deals.page';
 import { AccountsPage } from '@pages/CRM/accounts.page';
 import { TicketsPage } from '@pages/CRM/tickets.page';
 import { ThemePage } from '@pages/CRM/theme.page';
+import { DetailOverflowPage } from '@pages/CRM/detailOverflow.page';
 import { AuthManager, CrmRole } from '../utils/AuthManager';
 import { Logger } from '../utils/Logger';
 
@@ -85,6 +86,7 @@ export type CRMPageFixtures = {
   accountsPage: AccountsPage;
   ticketsPage: TicketsPage;
   themePage: ThemePage;
+  detailOverflowPage: DetailOverflowPage;
   secondSession: { crmLoginPage: CrmLoginPage; productsPage: Product };
 };
 
@@ -171,6 +173,10 @@ export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
   themePage: async ({page}, use) => {
     const themePage = new ThemePage(page);
     await use(themePage);
+  },
+
+  detailOverflowPage: async ({ page }, use) => {
+    await use(new DetailOverflowPage(page));
   },
 
   secondSession: async ({ browser }, use) => {
