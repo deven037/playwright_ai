@@ -50,6 +50,10 @@ export class DetailOverflowPage extends BasePage {
 
     async openFirstContact() {
         await this.gotoPath('/contacts');
+        await this.helpers.click(
+            this.page.getByRole('button', { name: 'List view', exact: true }),
+            'Contacts List view',
+        );
         await this.helpers.click(this.contactRows.first(), 'first contact row');
         await expect(this.contactDetail).toBeVisible();
     }
