@@ -1,5 +1,6 @@
 import { BasePage } from "@core/BasePage";
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
+import { DEALS_VIEWPORT_HEIGHT, DEAL_STAGES, LIST_COLUMNS } from "../../data/deals.data";
 
 export class DealsPage extends BasePage {
 
@@ -71,5 +72,241 @@ export class DealsPage extends BasePage {
 
   async getDealCardLocator(dealName: string) {
     return this.page.locator(`//div[@class='kanban-card-title' and text()='${dealName}']`);
+  }
+
+  // --- Harbor redesign (AIO-392 / AIO-T192–T195) -----------------------------
+
+  private stageColumn(stage: string) {
+    return this.page.getByRole('group', { name: new RegExp(`^${stage}, \\d+ cards?$`) });
+  }
+
+  private boardCard(deal: string) {
+    return this.page.getByRole('group', { name: deal, exact: true });
+  }
+
+  private moveSelect(deal: string) {
+    return this.page.getByRole('combobox', { name: `Move ${deal} to…`, exact: true });
+  }
+
+  private openCardButton(deal: string) {
+    return this.page.getByRole('button', { name: `Open ${deal}`, exact: true });
+  }
+
+  private get listRows() {
+    return this.page.locator('tbody tr');
+  }
+
+  private get searchBox() {
+    return this.page.getByRole('searchbox', { name: 'Search deals' });
+  }
+
+  private get stageFilter() {
+    return this.page.getByRole('combobox', { name: 'Filter by stage' });
+  }
+
+  private amountHeader() {
+    return this.page.getByRole('columnheader', { name: 'Amount', exact: true });
+  }
+
+  private get detailPage() {
+    return this.page.getByTestId('deal-detail-page');
+  }
+
+  // Relative to the origin of the page the user is signed in on.
+  private async gotoPath(path: string) {
+    await this.helpers.navigateTo(new URL(path, this.page.url()).href);
+  }
+
+  async openBoard() {
+    await this.gotoPath('/deals');
+    await this.helpers.assertVisible(this.stageColumn(DEAL_STAGES[0]), 'Deals board');
+  }
+
+  async openList() {
+    await this.gotoPath('/deals?view=list');
+    await this.helpers.assertVisible(this.searchBox, 'Deals list');
+  }
+
+  async showListView() {
+    await this.helpers.click(this.page.getByRole('button', { name: 'List', exact: true }), 'List view');
+    await this.helpers.assertVisible(this.searchBox, 'Deals list');
+  }
+
+  async reload() {
+    await this.helpers.refreshPage();
+  }
+
+  async setViewportWidth(width: number) {
+    await this.helpers.setViewport({ width, height: DEALS_VIEWPORT_HEIGHT });
+  }
+
+  // --- Board ---
+
+  async assertBoardColumns(stages: string[]) {
+    for (const stage of stages) {
+      await this.helpers.assertVisible(this.stageColumn(stage), `${stage} column`);
+      await expect(this.stageColumn(stage).locator('.kanban-meta')).toHaveText(/^\d+ · \$[\d,]+$/);
+    }
+    await expect(this.page.getByRole('group', { name: /, \d+ cards?$/ })).toHaveCount(stages.length);
+  }
+
+  async assertCardDetails(deal: string, account: string, amount: string, probability: string, close: string) {
+    const card = this.boardCard(deal);
+    await this.helpers.assertVisible(card, `${deal} card`);
+    for (const text of [deal, account, amount, probability, close]) {
+      await this.helpers.assertText(card, text);
+    }
+    await this.helpers.assertVisible(this.moveSelect(deal), `Move ${deal} to…`);
+  }
+
+  async getStageCount(stage: string): Promise<number> {
+    const meta = await this.helpers.getInnerText(this.stageColumn(stage).locator('.kanban-meta'), `${stage} count`);
+    return Number(meta.split('·')[0].trim());
+  }
+
+  async moveDeal(deal: string, stage: string) {
+    await this.helpers.selectOption(this.moveSelect(deal), stage, `Move ${deal} to…`);
+  }
+
+  async assertMoveToast(deal: string, stage: string) {
+    const toast = this.page.getByRole('alert').or(this.page.getByRole('status'))
+      .filter({ hasText: `"${deal}" moved to ${stage}.` });
+    await this.helpers.assertVisible(toast.first(), 'Move toast');
+  }
+
+  async assertMoveMenuFocused(deal: string) {
+    await this.helpers.assertFocused(this.moveSelect(deal), `Move ${deal} to… menu`);
+  }
+
+  async assertStageCount(stage: string, count: number) {
+    await expect.poll(() => this.getStageCount(stage)).toBe(count);
+  }
+
+  async assertDealInStage(deal: string, stage: string) {
+    await this.helpers.assertVisible(this.stageColumn(stage).getByRole('group', { name: deal, exact: true }), `${deal} in ${stage}`);
+  }
+
+  // Leaves the seed data as found if a step failed after the move.
+  async restoreDealStage(deal: string, stage: string) {
+    await this.openBoard();
+    if (await this.helpers.isElementPresent(this.stageColumn(stage).getByRole('group', { name: deal, exact: true }))) return;
+    await this.moveDeal(deal, stage);
+    await this.assertDealInStage(deal, stage);
+  }
+
+  async openCardEditorWithKeyboard(deal: string) {
+    await this.helpers.focus(this.openCardButton(deal), `Open ${deal}`);
+    await this.helpers.pressKey(this.openCardButton(deal), 'Enter', `Open ${deal}`);
+    await this.helpers.assertVisible(this.page.getByRole('dialog', { name: `Edit deal — ${deal}` }), 'Edit deal dialog');
+  }
+
+  async closeEditorWithEscape(deal: string) {
+    await this.helpers.pressPageKey('Escape');
+    await expect(this.page.getByRole('dialog')).toHaveCount(0);
+    await this.helpers.assertFocused(this.openCardButton(deal), `Open ${deal}`);
+  }
+
+  // --- List ---
+
+  async assertListColumns(columns: string[] = LIST_COLUMNS) {
+    for (const column of columns) {
+      await this.helpers.assertVisible(this.page.getByRole('columnheader', { name: column, exact: true }), `${column} header`);
+    }
+    await expect(this.page.getByRole('columnheader')).toHaveCount(columns.length);
+  }
+
+  async assertListRowCount(count: number) {
+    await expect(this.listRows).toHaveCount(count);
+  }
+
+  async assertListViewSelected() {
+    await this.helpers.assertURL(/view=list/);
+    await this.helpers.assertAttribute(this.page.getByRole('button', { name: 'List', exact: true }), 'aria-pressed', 'true');
+  }
+
+  async assertNoColumnSorted() {
+    await expect(this.page.locator('th[aria-sort="ascending"], th[aria-sort="descending"]')).toHaveCount(0);
+  }
+
+  async clickAmountHeader() {
+    await this.helpers.click(this.amountHeader().getByRole('button'), 'Amount header');
+  }
+
+  async assertAmountSort(direction: 'ascending' | 'descending') {
+    await this.helpers.assertAttribute(this.amountHeader(), 'aria-sort', direction);
+  }
+
+  async assertFirstRowAmount(amount: string) {
+    await this.helpers.assertText(this.listRows.first().locator('td').nth(3), amount);
+  }
+
+  async filterByStage(stage: string) {
+    await this.helpers.selectOption(this.stageFilter, stage, 'Filter by stage');
+  }
+
+  async assertAllRowsInStage(stage: string, count: number) {
+    await this.assertListRowCount(count);
+    const stages = await this.listRows.locator('td:nth-child(3)').allInnerTexts();
+    expect(stages.every((s) => s.trim() === stage), `every row is ${stage}`).toBe(true);
+  }
+
+  async searchDeals(term: string) {
+    await this.helpers.fill(this.searchBox, term, 'Search deals');
+  }
+
+  async assertAllRowsMatch(term: string) {
+    await expect.poll(async () => {
+      const names = await this.listRows.locator('td:first-child').allInnerTexts();
+      return names.length > 0 && names.every((n) => n.toLowerCase().includes(term.toLowerCase()));
+    }).toBe(true);
+  }
+
+  async assertNoMatchMessage(term: string) {
+    await this.helpers.assertVisible(this.page.getByText(`No deals match “${term}”.`), 'No match message');
+  }
+
+  async clearFilters() {
+    await this.helpers.click(this.page.getByRole('button', { name: 'Clear filters' }), 'Clear filters');
+  }
+
+  // --- Viewer and record ---
+
+  async assertBoardAndListToggleVisible() {
+    await this.helpers.assertVisible(this.page.getByRole('button', { name: 'Board', exact: true }), 'Board toggle');
+    await this.helpers.assertVisible(this.page.getByRole('button', { name: 'List', exact: true }), 'List toggle');
+  }
+
+  async assertReadOnlyBoard(loadedDeal: string) {
+    await this.helpers.assertVisible(this.boardCard(loadedDeal), 'board cards loaded');
+    await expect(this.page.getByRole('button', { name: '+ New Deal' })).toHaveCount(0);
+    await expect(this.page.getByRole('combobox', { name: /^Move .* to…$/ })).toHaveCount(0);
+  }
+
+  async openCardRecord(deal: string) {
+    await this.helpers.click(this.boardCard(deal).locator('.kanban-card-title'), `${deal} card`);
+    await this.helpers.assertVisible(this.detailPage, 'Deal record');
+  }
+
+  async assertRecordUrl(pattern: RegExp) {
+    await this.helpers.assertURL(pattern);
+  }
+
+  async assertRecordDetails(deal: string, account: string, values: string[]) {
+    await this.helpers.assertVisible(this.detailPage.getByRole('heading', { name: deal, level: 1 }), 'Deal name');
+    await this.helpers.assertVisible(this.detailPage.getByRole('link', { name: account }), 'Account link');
+    for (const value of values) {
+      await this.helpers.assertText(this.detailPage, value);
+    }
+  }
+
+  async assertNoRecordWriteActions() {
+    await expect(this.detailPage.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0);
+    await expect(this.detailPage.getByRole('button', { name: 'Delete', exact: true })).toHaveCount(0);
+  }
+
+  // --- Responsive ---
+
+  async assertNoPageOverflow() {
+    await expect.poll(() => this.helpers.getHorizontalOverflow()).toBeLessThanOrEqual(0);
   }
 }
