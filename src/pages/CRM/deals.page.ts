@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { Page } from "@playwright/test";
+import { Page, expect } from "@playwright/test";
 
 export class DealsPage extends BasePage {
 
@@ -15,6 +15,42 @@ export class DealsPage extends BasePage {
     const dealsBtn = this.page.locator("//a[contains(@class, 'nav-link') and contains(@href, '/deals')]");
     await this.helpers.click(dealsBtn, 'Deals');
     await this.page.waitForLoadState('networkidle');
+  }
+
+  async gotoDealsList() {
+    await this.page.goto('/deals?view=list');
+    await this.page.waitForLoadState('networkidle');
+    await expect(this.page.locator('table tbody tr').first()).toBeVisible();
+  }
+
+  async assertNoActiveSortHeader() {
+    const headers = this.page.locator('table thead th');
+    const count = await headers.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(headers.nth(i)).toHaveAttribute('aria-sort', 'none');
+    }
+  }
+
+  async getFirstRowAmount(): Promise<number> {
+    const rows = this.page.locator('table tbody tr');
+    const amounts = await rows.evaluateAll(trs =>
+      trs.map(tr => Number((tr.textContent ?? '').match(/\$([\d,]+)/)?.[1]?.replace(/,/g, '') ?? NaN)));
+    return amounts[0];
+  }
+
+  async getListAmounts(): Promise<number[]> {
+    const rows = this.page.locator('table tbody tr');
+    return rows.evaluateAll(trs =>
+      trs.map(tr => Number((tr.textContent ?? '').match(/\$([\d,]+)/)?.[1]?.replace(/,/g, '') ?? NaN)));
+  }
+
+  async clickAmountHeader() {
+    await this.page.locator('table thead th', { hasText: 'Amount' }).click();
+  }
+
+  async assertAmountHeaderSort(sort: 'ascending' | 'descending') {
+    await expect(this.page.locator('table thead th', { hasText: 'Amount' })).toHaveAttribute('aria-sort', sort);
   }
 
   async clickNewDeal() {
