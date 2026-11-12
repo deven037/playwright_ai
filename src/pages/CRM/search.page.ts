@@ -373,7 +373,8 @@ export class SearchPage extends BasePage {
                 for (const row of [...created].reverse()) {
                     try {
                         const response = await this.page.request.delete(`${base}/api/${row.type}/${row.id}`, { headers: adminHeaders });
-                        if (response.status() !== 204) failures.push(`${row.type}/${row.id}: HTTP ${response.status()} ${await response.text()}`);
+                        // 404 means the record is already gone (shared staging can be reset mid-run); the cleanup goal is met.
+                        if (![204, 404].includes(response.status())) failures.push(`${row.type}/${row.id}: HTTP ${response.status()} ${await response.text()}`);
                     } catch (error) {
                         failures.push(`${row.type}/${row.id}: ${String(error)}`);
                     }
