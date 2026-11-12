@@ -62,6 +62,7 @@ const FORM_LOGIN_SPECS = [
   'Accounts/accountEditRejectedSave.feature.test.ts',
   'Leads/verifyLeadRecordConvertAction.feature.test.ts',
   'Leads/verifyViewerLeadsHideContactFields.feature.test.ts',
+  'Leads/verifyLeadsKeyboardAccessibility.feature.test.ts',
   'Shell/themeVariables.feature.test.ts',
   'WarmUp/warmUp.feature.test.ts',
   'WarmUp/warmUpLive.feature.test.ts',

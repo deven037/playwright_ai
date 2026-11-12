@@ -37,8 +37,7 @@ export class DashboardPage extends BasePage {
     async getSignedInIdentity(): Promise<string> {
         await this.clickAvatar();
         const info = this.page.locator('.avatar-info');
-        await this.helpers.waitForElement(info, 'visible');
-        const lines = (await info.innerText()).split('\n').map((l) => l.trim()).filter(Boolean);
+        const lines = (await this.helpers.getInnerText(info, 'Avatar identity')).split('\n').map((l) => l.trim()).filter(Boolean);
         return lines[1] ?? '';
     }
 
