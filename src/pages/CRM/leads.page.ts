@@ -468,6 +468,18 @@ export class LeadsPage extends BasePage {
         await expect(footer).toHaveText(`${total} lead(s) · page ${page} of ${totalPages}`);
     }
 
+    // Other specs create leads on shared staging, so the total is read from the footer, not hardcoded.
+    async getLeadsTotal(): Promise<number> {
+        const footer = this.page.getByTestId('pagination').locator('span.muted');
+        await expect(footer).toHaveText(/^\d+ lead\(s\) · page 1 of \d+$/);
+        const text = (await footer.textContent()) ?? '';
+        return Number(text.match(/^(\d+) lead/)![1]);
+    }
+
+    async assertLeadsTotalAtLeast(total: number, minimum: number) {
+        expect(total).toBeGreaterThanOrEqual(minimum);
+    }
+
     async goToNextLeadsPage(times: number) {
         const nextPage = this.page.getByRole('button', { name: 'Next page' });
         for (let i = 0; i < times; i++) {
