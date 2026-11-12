@@ -60,6 +60,7 @@ export type CrmTestRole = CrmRole | 'anonymous';
 /** Warm-up runs before auth setup. Other entries still use form login until AIO-284 migrates them. */
 const FORM_LOGIN_SPECS = [
   'Accounts/accountEditRejectedSave.feature.test.ts',
+  'Accounts/accountFormValidation.feature.test.ts',
   'Leads/verifyLeadRecordConvertAction.feature.test.ts',
   'Leads/verifyViewerLeadsHideContactFields.feature.test.ts',
   'Leads/verifyLeadsKeyboardAccessibility.feature.test.ts',
