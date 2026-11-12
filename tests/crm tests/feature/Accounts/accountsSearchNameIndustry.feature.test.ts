@@ -5,12 +5,12 @@ import {
     NAME_SEARCH_ACCOUNTS,
     NAME_SEARCH_UPPERCASE,
 } from "../../../../src/data/accounts.data";
-import { VIEWER_EMAIL } from "../../../../src/data/leads.data";
 
 test.describe('Accounts search matches name and industry (AIO-323 / AIO-148 AC2)', () => {
+    test.use({ role: 'viewer' });
+
     test('AIO-T162: Accounts search matches name and industry, case-insensitive and trimmed @regression', async ({ crmLoginPage, dashboardPage, accountsPage }) => {
         await crmLoginPage.goto();
-        await crmLoginPage.loginWithCustomCredentials(VIEWER_EMAIL);
         await dashboardPage.waitForPageLoad();
         await accountsPage.gotoAccounts();
 
