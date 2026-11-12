@@ -13,3 +13,8 @@ export const LEADS_PAGE_SIZE = 10;
 export const PAGE_BUTTON_WINDOW_SIZE = 7;
 export const NO_MATCH_SEARCH_TEXT = 'zzz-no-such-lead';
 export const NO_MATCH_MESSAGE = 'No leads match the current filters.';
+
+// AIO-395 / AIO-T203: shared expected status and block message.
+export const CONVERTED_LEAD_STATUS = 'Converted';
+export const NON_CONVERTED_LEAD_STATUS = 'New';
+export const ALREADY_CONVERTED_MESSAGE = 'This lead is already converted.';
