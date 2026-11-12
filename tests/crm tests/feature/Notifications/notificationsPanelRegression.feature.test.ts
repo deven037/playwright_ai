@@ -7,7 +7,6 @@ test('AIO-T53: Notifications panel lists items while unread>0 and shows "No noti
     notificationsPage
 }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     // Step 1: Open Notifications with unread items; items are listed and Mark all read is enabled.

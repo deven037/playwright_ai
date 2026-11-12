@@ -13,6 +13,9 @@ import { test } from '../../../../src/fixtures/CrmFixtures';
  *      (e.g. "@feature TC_NEWAPP_001 - Should ...").
  */
 
+// The login form is the subject here, so start signed out instead of from the saved admin session.
+test.use({ role: 'anonymous' });
+
 test('@feature @smoke @regression CRM Login - Should log in with default credentials', async ({ crmLoginPage, dashboardPage }) => {
   
   await crmLoginPage.goto();

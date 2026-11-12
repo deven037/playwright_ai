@@ -4,7 +4,6 @@ import { CUSTOM_STATUS, LEAD_STATUS_SET } from '../../../../src/data/leadStatus.
 test.describe('Leads status filter reflects configured options (AIO-138 / AIO-61 AC4)', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage, leadsPage }) => {
         await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForPageLoad();
         await dashboardPage.assertProfileIconVisible();
         await leadsPage.goToLeads();

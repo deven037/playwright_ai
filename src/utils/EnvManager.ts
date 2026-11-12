@@ -37,6 +37,8 @@ export class EnvManager implements IEnvConfig {
   // NEWAPP_BASE_URL etc. are added to .env.
   private readonly _newAppBaseUrl: string;
   private readonly _newAppEmail: string;
+  private readonly _newAppRepEmail: string;
+  private readonly _newAppViewerEmail: string;
   private readonly _newAppPassword: string;
   private readonly _newAppBaseAPI: string;
 
@@ -66,6 +68,9 @@ export class EnvManager implements IEnvConfig {
 
     this._newAppBaseUrl  = process.env.NEWAPP_BASE_URL ?? '';
     this._newAppEmail = process.env.NEWAPP_EMAIL ?? '';
+    // Rep and Viewer are the CRM README's public demo accounts; they share NEWAPP_PASSWORD.
+    this._newAppRepEmail = process.env.NEWAPP_REP_EMAIL?.trim() || 'rep@crm.com';
+    this._newAppViewerEmail = process.env.NEWAPP_VIEWER_EMAIL?.trim() || 'viewer@crm.com';
     this._newAppPassword = process.env.NEWAPP_PASSWORD ?? '';
     this._newAppBaseAPI = process.env.NEWAPP_BASE_API ?? '';
 
@@ -107,6 +112,8 @@ export class EnvManager implements IEnvConfig {
   // New application (SCAFFOLD) — rename once the real app name is known
   get newAppBaseUrl():  string { return this._newAppBaseUrl;  }
   get newAppEmail(): string { return this._newAppEmail; }
+  get newAppRepEmail(): string { return this._newAppRepEmail; }
+  get newAppViewerEmail(): string { return this._newAppViewerEmail; }
   get newAppPassword(): string { return this._newAppPassword; }
   get newAppBaseAPI(): string {return this._newAppBaseAPI; }
 

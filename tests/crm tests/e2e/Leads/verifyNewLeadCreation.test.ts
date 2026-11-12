@@ -3,7 +3,6 @@ import { expect, test } from "@fixtures/CrmFixtures";
 test('@e2e @smoke @regression Verify new lead creation - Should create a new lead successfully', async ({ crmLoginPage, dashboardPage, leadsPage }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();

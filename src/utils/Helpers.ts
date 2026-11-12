@@ -212,6 +212,19 @@ export class Helpers {
     return (await locator.textContent()) ?? '';
   }
 
+  /** Rendered text (keeps line breaks between block elements), unlike getText which reads textContent. */
+  async getInnerText(locator: Locator, description = ''): Promise<string> {
+    this.logger.step(`Read rendered text: ${description || locator.toString()}`);
+    await locator.waitFor({ state: 'visible' });
+    return locator.innerText();
+  }
+
+  async setChecked(locator: Locator, checked: boolean, description = ''): Promise<void> {
+    this.logger.step(`Set ${checked ? 'checked' : 'unchecked'}: ${description || locator.toString()}`);
+    await locator.waitFor({ state: 'visible' });
+    await locator.setChecked(checked);
+  }
+
   async getAttributeValue(locator: Locator, attribute: string): Promise<string | null> {
     return locator.getAttribute(attribute);
   }
