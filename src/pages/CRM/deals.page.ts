@@ -310,4 +310,52 @@ export class DealsPage extends BasePage {
   async assertNoPageOverflow() {
     await expect.poll(() => this.helpers.getHorizontalOverflow()).toBeLessThanOrEqual(0);
   }
+
+  // --- From main: Deals list default order (AIO-393 / AIO-T196) and board overflow (AIO-394 / AIO-T197) ---
+
+  async gotoDealsList() {
+    await this.gotoDeals();
+    await this.helpers.click(this.page.getByRole('button', { name: 'List', exact: true }), 'List view');
+    await this.page.waitForLoadState('networkidle');
+    await expect(this.page.locator('table tbody tr').first()).toBeVisible();
+  }
+
+  async assertNoActiveSortHeader() {
+    const headers = this.page.locator('table thead th');
+    const count = await headers.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(headers.nth(i)).toHaveAttribute('aria-sort', 'none');
+    }
+  }
+
+  async getListAmounts(): Promise<number[]> {
+    const rows = this.page.locator('table tbody tr');
+    return rows.evaluateAll(trs =>
+      trs.map(tr => Number((tr.textContent ?? '').match(/\$([\d,]+)/)?.[1]?.replace(/,/g, '') ?? NaN)));
+  }
+
+  async assertAmountHeaderSort(sort: 'ascending' | 'descending') {
+    await expect(this.page.locator('table thead th', { hasText: 'Amount' })).toHaveAttribute('aria-sort', sort);
+  }
+
+  private get kanbanBoard() {
+    return this.page.getByTestId('kanban-board');
+  }
+
+  async assertPageDoesNotScrollSideways() {
+    const width = this.page.viewportSize()!.width;
+    await expect.poll(() => this.page.evaluate(() => document.scrollingElement!.scrollWidth)).toBe(width);
+  }
+
+  async assertBoardScrollsInsideItself() {
+    await expect(this.kanbanBoard).toBeVisible();
+    const box = await this.kanbanBoard.evaluate(element => ({
+      client: element.clientWidth,
+      scroll: element.scrollWidth,
+      right: element.getBoundingClientRect().right,
+    }));
+    expect(box.scroll, 'columns scroll inside the board').toBeGreaterThan(box.client);
+    expect(box.right, 'board stays inside the viewport').toBeLessThanOrEqual(this.page.viewportSize()!.width);
+  }
 }

@@ -187,8 +187,9 @@ export class SearchPage extends BasePage {
     private globalSeeAll(page: Page, type: string) { return page.getByTestId(`search-see-all-${type}`); }
     private loading(page: Page) { return page.getByTestId('search-loading'); }
     private emptyState(page: Page) { return page.getByTestId('search-empty'); }
-    private groups(page: Page) { return page.getByRole('group'); }
-    private namedGroup(page: Page, name: string) { return page.getByRole('group', { name, exact: true }); }
+    // Scoped to the search panel: the page behind it has its own group roles.
+    private groups(page: Page) { return this.globalPanel(page).getByRole('group'); }
+    private namedGroup(page: Page, name: string) { return this.globalPanel(page).getByRole('group', { name, exact: true }); }
     private alert(page: Page) { return this.globalPanel(page).getByRole('alert'); }
     private retryButton(page: Page) { return page.getByRole('button', { name: searchText.retry, exact: true }); }
     private modulePage(page: Page, type: string) { return page.getByTestId(`${type}-page`); }
@@ -372,7 +373,8 @@ export class SearchPage extends BasePage {
                 for (const row of [...created].reverse()) {
                     try {
                         const response = await this.page.request.delete(`${base}/api/${row.type}/${row.id}`, { headers: adminHeaders });
-                        if (response.status() !== 204) failures.push(`${row.type}/${row.id}: HTTP ${response.status()} ${await response.text()}`);
+                        // 404 means the record is already gone (shared staging can be reset mid-run); the cleanup goal is met.
+                        if (![204, 404].includes(response.status())) failures.push(`${row.type}/${row.id}: HTTP ${response.status()} ${await response.text()}`);
                     } catch (error) {
                         failures.push(`${row.type}/${row.id}: ${String(error)}`);
                     }
