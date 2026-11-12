@@ -16,6 +16,7 @@ export const SEARCH_API = {
     seededEmailPart: 'aarav.kapoor@example',
     seededPhones: ['98649 59172', '98649-59172', '(98649) 59172', '9864959172', '+91 98649 59172'],
     seededName: 'AARAV',
+    companyOnly: { term: 'Aurora Analytics', expectedLead: { id: 'lead-1', name: 'Aarav Kapoor', subtitle: 'Aurora Analytics' } },
     nameOnly: { term: 'aarav', leads: 4, contacts: 2 },
     noMatchTerms: ['zzzzqq', '%\\_'],
     timingCalls: 20,

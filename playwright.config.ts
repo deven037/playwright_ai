@@ -12,9 +12,7 @@ export default defineConfig({
 
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  // AIO-T198 compares complete staging collections before/after a rejected delete.
-  // Other tests must not mutate those collections while its snapshots are taken.
-  workers: 1,
+  workers: process.env.CI ? 4 : env.workers,
 
   globalSetup: './global-setup.ts',
   globalTeardown: './global-teardown.ts',

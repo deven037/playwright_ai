@@ -86,6 +86,10 @@ export class SearchApiPage extends BasePage {
         const ids = (body: SearchApiResult) => body.leads.items.map(hit => hit.id);
         expect(ids(await this.search(SEARCH_API.seededName, 'admin')), 'case-insensitive name').toContain(SEARCH_API.seededLeadId);
         expect(ids(await this.search(SEARCH_API.seededEmailPart, 'admin')), 'email').toContain(SEARCH_API.seededLeadId);
+        const byCompany = await this.search(SEARCH_API.companyOnly.term, 'admin', '&limit=10');
+        expect(byCompany.leads.items, 'company-only match (AC2)').toEqual(
+            expect.arrayContaining([expect.objectContaining(SEARCH_API.companyOnly.expectedLead)]),
+        );
         for (const phone of SEARCH_API.seededPhones) {
             expect(ids(await this.search(phone, 'admin')), `phone ${phone}`).toContain(SEARCH_API.seededLeadId);
         }
