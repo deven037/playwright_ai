@@ -178,6 +178,14 @@ export class AccountsPage extends BasePage {
     await expect(row).toHaveCount(0);
   }
 
+  /** The list shows exactly these accounts (by name), no more and no fewer. */
+  async assertListedAccounts(names: readonly string[]) {
+    await expect(this.page.locator('table tbody tr')).toHaveCount(names.length);
+    for (const name of names) {
+      await this.assertAccountListed(name);
+    }
+  }
+
   async openAccount(accountName: string) {
     const row = this.page.locator('table').getByText(accountName, { exact: true }).first();
     await this.helpers.click(row, 'Account Name in table');

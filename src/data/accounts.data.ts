@@ -36,3 +36,9 @@ export const ACCOUNT_FORM_VIEWPORTS = [
   { width: 768, height: 1024 },
   { width: 1440, height: 900 },
 ] as const;
+
+// AIO-345 / AIO-T162: search matches name and industry, case-insensitive and trimmed (AIO-148 AC2).
+export const INDUSTRY_SEARCH_PADDED = '  Finance ';
+export const INDUSTRY_SEARCH_ACCOUNTS = ['Nimbus Tech', 'PixelForge'] as const;
+export const NAME_SEARCH_UPPERCASE = 'ZENITH';
+export const NAME_SEARCH_ACCOUNTS = ['Zenith Corp'] as const;
