@@ -1,5 +1,5 @@
 import { expect, test } from '@fixtures/CrmFixtures';
-import { ACCOUNT_IDS, DETAIL_WIDTHS, LONG_WEBSITE_LENGTH, NARROW_WIDTH } from '../../../src/data/detailOverflow.data';
+import { ACCOUNT_IDS, DETAIL_WIDTHS, LONG_WEBSITE_LENGTH, NARROW_WIDTH } from '../../../../src/data/detailOverflow.data';
 
 test('AIO-T157/T158: Account Details fit at 375/768/1440 @regression', async ({ crmLoginPage, detailOverflowPage }) => {
     await crmLoginPage.goto();

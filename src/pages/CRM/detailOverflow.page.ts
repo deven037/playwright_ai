@@ -35,11 +35,11 @@ export class DetailOverflowPage extends BasePage {
 
     // Relative to the origin of the page the user is signed in on.
     private async gotoPath(path: string) {
-        await this.page.goto(new URL(path, this.page.url()).href);
+        await this.helpers.navigateTo(new URL(path, this.page.url()).href);
     }
 
     async setViewport(width: number) {
-        await this.page.setViewportSize({ width, height: VIEWPORT_HEIGHT });
+        await this.helpers.setViewport({ width, height: VIEWPORT_HEIGHT });
     }
 
     async gotoAccount(id: string) {
@@ -50,7 +50,7 @@ export class DetailOverflowPage extends BasePage {
 
     async openFirstContact() {
         await this.gotoPath('/contacts');
-        await this.contactRows.first().click();
+        await this.helpers.click(this.contactRows.first(), 'first contact row');
         await expect(this.contactDetail).toBeVisible();
     }
 
