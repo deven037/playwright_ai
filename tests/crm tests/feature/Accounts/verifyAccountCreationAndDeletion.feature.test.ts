@@ -4,7 +4,6 @@ import { INVALID_CREATE_BODY, REJECTED_CREATE_BODY, REJECTED_CREATE_NAME } from 
 test.describe('AIO-337: account create form after a rejected save', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage, accountsPage }) => {
         await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForDashBoardPage();
         await accountsPage.openNewAccountForm();
     });
