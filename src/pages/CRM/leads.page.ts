@@ -512,24 +512,22 @@ export class LeadsPage extends BasePage {
     async assertEmptyLeadsMessage(message: string) {
         await expect(this.page.locator('td.empty-cell')).toHaveText(message);
     }
-    private rowWithStatus(status: string): Locator {
+    private namedLeadRow(leadName: string): Locator {
         return this.page.getByRole('row').filter({
-            has: this.page.getByRole('cell', { name: status, exact: true }),
-        }).first();
+            has: this.page.getByRole('cell', { name: leadName, exact: true }),
+        });
     }
 
-    async filterLeadsByStatus(status: string) {
-        await this.openStatusFilter();
-        await this.helpers.click(this.page.getByRole('option', { name: status, exact: true }), 'Lead status filter');
-        await this.helpers.click(this.page.getByRole('heading', { name: 'Leads', exact: true }), 'Close status options');
-        await this.helpers.waitForElement(this.page.getByRole('listbox'), 'hidden', 'Status options closed');
-        await this.helpers.assertVisible(this.rowWithStatus(status), `Lead with status ${status}`);
+    async assertNamedLeadStatus(leadName: string, status: string) {
+        const row = this.namedLeadRow(leadName);
+        await expect(row).toHaveCount(1);
+        await this.helpers.assertVisible(row.getByRole('cell', { name: status, exact: true }), 'Lead status');
     }
 
-    async assertConvertedRowCannotOpenWizard() {
-        const row = this.rowWithStatus(CONVERTED_LEAD_STATUS);
+    async assertConvertedRowCannotOpenWizard(leadName: string) {
+        const row = this.namedLeadRow(leadName);
         const convert = row.getByRole('button', { name: 'Convert', exact: true });
-        await this.helpers.assertVisible(row, 'Converted lead row');
+        await this.assertNamedLeadStatus(leadName, CONVERTED_LEAD_STATUS);
         await expect(convert).toBeDisabled();
         await this.helpers.assertAttribute(convert, 'title', ALREADY_CONVERTED_MESSAGE);
         // Bypass Playwright's enabled check to exercise the disabled browser control.
@@ -538,20 +536,15 @@ export class LeadsPage extends BasePage {
         await this.helpers.assertVisible(this.page.getByTestId('leads-page'), 'Leads list stays open');
     }
 
-    async assertConvertedContextMenuBlocked() {
-        await this.helpers.click(this.rowWithStatus(CONVERTED_LEAD_STATUS), 'Converted row context menu', { button: 'right' });
+    async assertConvertedContextMenuBlocked(leadName: string) {
+        await this.helpers.click(this.namedLeadRow(leadName), 'Converted row context menu', { button: 'right' });
         await this.helpers.click(this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true }), 'Convert lead menu item');
         await expect(this.page.getByTestId('toast').filter({ hasText: ALREADY_CONVERTED_MESSAGE })).toBeVisible();
         await this.assertConversionWizardClosed();
     }
 
-    async clearLeadStatusFilters() {
-        await this.helpers.click(this.page.getByTestId('filter-panel').getByRole('button', { name: 'Clear filters', exact: true }), 'Clear filters');
-        await this.helpers.click(this.page.getByTestId('filters-toggle'), 'Close filters');
-    }
-
-    async openConversionForStatus(status: string) {
-        const convert = this.rowWithStatus(status).getByRole('button', { name: 'Convert', exact: true });
+    async openConversionForLead(leadName: string) {
+        const convert = this.namedLeadRow(leadName).getByRole('button', { name: 'Convert', exact: true });
         await expect(convert).toBeEnabled();
         await this.helpers.click(convert, 'Convert non-converted lead');
     }
