@@ -25,6 +25,12 @@ export const ACCOUNT_FORM_ACCESSIBLE_NAMES = [
   { controlId: 'account-phone-input', name: 'Phone' },
 ] as const;
 
+// AIO-344 / AIO-337: rejected save on the create form (AIO-T150, AIO-T151, AIO-T152).
+export const REJECTED_CREATE_NAME = 'QA Reject Test';
+export const RETRY_ACCOUNT_NAME_PREFIX = 'Account_Retry_';
+export const REJECTED_CREATE_BODY = { message: 'Controlled create failure for AIO-T150' };
+export const INVALID_CREATE_BODY = { message: 'Controlled validation failure for AIO-T151' };
+
 export const ACCOUNT_FORM_VIEWPORTS = [
   { width: 375, height: 800 },
   { width: 768, height: 1024 },
