@@ -59,6 +59,7 @@ export type CRMPageFixtures = {
   accountsPage: AccountsPage;
   ticketsPage: TicketsPage;
   themePage: ThemePage;
+  secondSession: { crmLoginPage: CrmLoginPage; productsPage: Product };
 };
 
 export const test = base.extend<CRMPageFixtures>({
@@ -120,6 +121,16 @@ export const test = base.extend<CRMPageFixtures>({
   themePage: async ({page}, use) => {
     const themePage = new ThemePage(page);
     await use(themePage);
+  },
+
+  secondSession: async ({ browser }, use) => {
+    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, ignoreHTTPSErrors: true });
+    const page = await context.newPage();
+    try {
+      await use({ crmLoginPage: new CrmLoginPage(page), productsPage: new Product(page) });
+    } finally {
+      await context.close();
+    }
   },
 });
 
