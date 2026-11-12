@@ -105,7 +105,8 @@ export class DealsPage extends BasePage {
   }
 
   private amountHeader() {
-    return this.page.getByRole('columnheader', { name: 'Amount', exact: true });
+    // The sorted column's label gains an arrow ("Amount ↓" / "Amount ↑").
+    return this.page.getByRole('columnheader', { name: /^Amount( [↑↓])?$/ });
   }
 
   private get detailPage() {
