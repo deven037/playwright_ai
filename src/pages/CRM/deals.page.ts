@@ -18,6 +18,36 @@ export class DealsPage extends BasePage {
     await this.page.waitForLoadState('networkidle');
   }
 
+  async gotoDealsList() {
+    await this.gotoDeals();
+    await this.helpers.click(this.page.getByRole('button', { name: 'List', exact: true }), 'List view');
+    await this.page.waitForLoadState('networkidle');
+    await expect(this.page.locator('table tbody tr').first()).toBeVisible();
+  }
+
+  async assertNoActiveSortHeader() {
+    const headers = this.page.locator('table thead th');
+    const count = await headers.count();
+    expect(count).toBeGreaterThan(0);
+    for (let i = 0; i < count; i++) {
+      await expect(headers.nth(i)).toHaveAttribute('aria-sort', 'none');
+    }
+  }
+
+  async getListAmounts(): Promise<number[]> {
+    const rows = this.page.locator('table tbody tr');
+    return rows.evaluateAll(trs =>
+      trs.map(tr => Number((tr.textContent ?? '').match(/\$([\d,]+)/)?.[1]?.replace(/,/g, '') ?? NaN)));
+  }
+
+  async clickAmountHeader() {
+    await this.page.locator('table thead th', { hasText: 'Amount' }).click();
+  }
+
+  async assertAmountHeaderSort(sort: 'ascending' | 'descending') {
+    await expect(this.page.locator('table thead th', { hasText: 'Amount' })).toHaveAttribute('aria-sort', sort);
+  }
+
   async clickNewDeal() {
     const newDealBtn = this.page.locator("//div[@class='page-actions']/button[contains(text(), 'New Deal')]");
     await this.helpers.click(newDealBtn, 'New Deal Button');
