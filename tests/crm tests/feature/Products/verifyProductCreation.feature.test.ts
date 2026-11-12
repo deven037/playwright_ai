@@ -8,7 +8,6 @@ test('@smoke @regression @sanity Product Creation', async({
 }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.clickAvatar();
     await adminPage.gotoSetup();

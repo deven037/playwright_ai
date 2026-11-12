@@ -90,21 +90,43 @@ export class LeadsPage extends BasePage {
         return leadName;
     }
     
-    async searchInLeadsTable(leadName: string) {
+    private searchedLeadName = '';
+
+    // Rows of the leads table whose name cell is exactly the searched lead
+    private searchedLeadRows(): Locator {
+        if (!this.searchedLeadName) {
+            throw new Error('searchedLeadRows: call searchInLeadsTable(leadName) first; an empty name would match every row');
+        }
+        return this.page
+            .locator("//tr[contains(@class,'row-clickable')]")
+            .filter({ has: this.page.locator('td:nth-child(2)', { hasText: this.searchedLeadName }) });
+    }
+
+    // expectResult = false filters without waiting for a row (use before assertSearchedLeadAbsent)
+    async searchInLeadsTable(leadName: string, expectResult: boolean = true) {
+        this.searchedLeadName = leadName;
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
+        if (expectResult) {
+            // Lead names are timestamped, so unique per run
+            await this.helpers.waitForElement(this.searchedLeadRows().first(), 'visible', `Row for ${leadName}`);
+        }
+    }
+
+    async assertSearchedLeadAbsent() {
+        await expect(this.searchedLeadRows(), `No row for ${this.searchedLeadName}`).toHaveCount(0);
     }
 
     async getFirstLeadNameFromTable() {
         this.logger.info("Getting top lead name")
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.waitForElement(name, 'visible');
         return await this.helpers.getText(name);
     }
 
     async clickLeadName() {
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.click(name, "Lead Name");
     }
 
@@ -254,7 +276,8 @@ export class LeadsPage extends BasePage {
     }
 
     async getStatusFromTable() {
-        const column = this.page.locator("//tr[@class='row-clickable']/td[6]/span");
+        const column = this.searchedLeadRows().locator('td:nth-child(6) > span');
+        await this.helpers.waitForElement(column, 'visible');
         const status = await this.helpers.getText(column);
         return status;
     }
@@ -349,5 +372,73 @@ export class LeadsPage extends BasePage {
     async chooseLayout(layoutName: string) {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
+    }
+
+    private get leadRows() { return this.page.locator('tbody tr.row-clickable'); }
+    private get focusedLeadRows() { return this.page.locator('tbody tr.row-clickable:focus'); }
+    private get nameHeader() { return this.page.locator('th[tabindex="0"]').filter({ hasText: /^\s*Name/ }); }
+
+    async assertLeadRowsVisible() {
+        await expect(this.leadRows.first()).toBeVisible();
+    }
+
+    async assertFirstRowKeyboardReachable() {
+        await expect(this.leadRows.first()).toHaveAttribute('tabindex', '0');
+    }
+
+    async tabToLeadRow() {
+        await this.helpers.clickAt(this.page.locator('body'), { x: 0, y: 0 }, 'Page body');
+        let focused = false;
+        for (let i = 0; i < 80 && !focused; i++) {
+            await this.helpers.pressPageKey('Tab');
+            focused = await this.helpers.isElementPresent(this.focusedLeadRows);
+        }
+        expect(focused, 'a lead row receives keyboard focus via Tab').toBe(true);
+    }
+
+    async pressEnter() {
+        await this.helpers.pressPageKey('Enter');
+    }
+
+    async assertLeadDetailOpen() {
+        await this.helpers.assertURL(/\/leads\/[^/]+$/);
+        await expect(this.page.getByTestId('lead-detail-page')).toBeVisible();
+    }
+
+    async goBackToLeadsList() {
+        await this.helpers.goBack();
+        await this.assertLeadRowsVisible();
+    }
+
+    async assertFirstRowHasVisibleConvertButton() {
+        const convertButtons = this.leadRows.first().getByRole('button', { name: /convert/i });
+        await expect(convertButtons).toHaveCount(1);
+        await expect(convertButtons).toBeVisible();
+    }
+
+    async focusNameHeader() {
+        await expect(this.nameHeader).toHaveCount(1);
+        await this.helpers.focus(this.nameHeader, 'Name column header');
+        await expect(this.nameHeader).toBeFocused();
+    }
+
+    async assertNameHeaderSort(direction: 'ascending' | 'descending') {
+        await expect(this.nameHeader).toHaveAttribute('aria-sort', direction);
+    }
+
+    async openStatusFilter() {
+        await this.helpers.click(this.page.getByTestId('filters-toggle'), 'Filters');
+        const filterPanel = this.page.getByTestId('filter-panel');
+        await expect(filterPanel).toBeVisible();
+        await this.helpers.click(filterPanel.getByRole('button', { name: 'Any status' }), 'Any status');
+    }
+
+    async assertStatusFilterOptions(baseline: string[], addedStatus: string) {
+        const options = this.page.getByRole('listbox').getByRole('option');
+        await expect(options).toHaveCount(baseline.length + 1);
+        await expect(options.filter({ hasText: addedStatus })).toHaveCount(1);
+        for (const status of baseline) {
+            await expect(options.filter({ hasText: status }).first()).toBeVisible();
+        }
     }
 }

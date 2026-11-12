@@ -6,7 +6,6 @@ test('@regression Convert a lead through the 3-step wizard with a new account an
     leadsPage }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.waitForPageLoad();
     await dashboardPage.assertProfileIconVisible();

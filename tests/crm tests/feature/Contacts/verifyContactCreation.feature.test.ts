@@ -7,7 +7,6 @@ test('@feature @smoke @regression Verify Contact Creation', async ({
 }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();
 

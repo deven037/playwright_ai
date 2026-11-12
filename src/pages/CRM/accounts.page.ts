@@ -1,9 +1,12 @@
 import { BasePage } from "@core/BasePage";
 import { Page, Route, errors, expect } from "@playwright/test";
-import { EDIT_ACCOUNT, REJECTED_SAVE_BODY, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
+import { ACCOUNT_FORM_ACCESSIBLE_NAMES, ACCOUNT_FORM_LABELS, ACCOUNT_FORM_VIEWPORTS, NEW_ACCOUNT_PATH, EDIT_ACCOUNT, REJECTED_SAVE_BODY, RETRY_ACCOUNT_NAME_PREFIX, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
 
 export class AccountsPage extends BasePage {
   private rejectedSaveRequests = 0;
+  private rejectedCreateRequests = 0;
+  private readonly createApiPattern = '**/api/accounts';
+  private createRoute?: (route: Route) => Promise<void>;
   private readonly accountApiPattern = `**/api/accounts/${EDIT_ACCOUNT.id}`;
   private readonly rejectSaveRoute = async (route: Route) => {
     const method = route.request().method();
@@ -44,6 +47,14 @@ export class AccountsPage extends BasePage {
     await this.helpers.click(layout, 'Layout');
   }
 
+  /** Accounts list -> New Account -> default layout, ending on the empty new-account form. */
+  async openNewAccountForm() {
+    await this.gotoAccounts();
+    await this.clickNewAccount();
+    await this.chooseLayout();
+    await this.helpers.waitForElement(this.page.getByTestId('account-form-page'), 'visible', 'New account form');
+  }
+
   async fillAccountDetails(employees: string, phone: string) {
     const accountName = `Account_${Date.now()}`;
 
@@ -59,9 +70,79 @@ export class AccountsPage extends BasePage {
     return accountName;
   }
 
+  /** Fills name, employees and revenue; returns the generated account name. */
+  async fillNameEmployeesRevenue(employees: string, revenue: string) {
+    const accountName = `QA_Neg_${Date.now()}`;
+    await this.helpers.fill(this.page.getByTestId('account-name'), accountName, 'Account Name Input');
+    await this.setEmployees(employees);
+    await this.setRevenue(revenue);
+    return accountName;
+  }
+
+  async setEmployees(value: string) {
+    await this.helpers.fill(this.page.getByTestId('account-employees'), value, 'Employees Input');
+  }
+
+  async setRevenue(value: string) {
+    await this.helpers.fill(this.page.getByTestId('account-revenue'), value, 'Revenue Input');
+  }
+
   async createAccount() {
     const createBtn = this.page.getByRole('button', { name: 'Create account' });
     await this.helpers.click(createBtn, 'Create Account Button');
+  }
+
+  async assertStillOnNewAccountForm() {
+    await expect(this.page).toHaveURL(NEW_ACCOUNT_PATH);
+    await expect(this.page.getByTestId('account-form-page')).toBeVisible();
+  }
+
+  /** Field error is shown and wired to its input through aria-invalid / aria-describedby. */
+  async assertFieldError(field: 'employees' | 'revenue', message: string) {
+    const input = this.page.getByTestId(`account-${field}`);
+    const error = this.page.locator(`#account-${field}-error`);
+    await expect(error).toHaveText(message);
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+    await expect(input).toHaveAttribute('aria-describedby', `account-${field}-error`);
+  }
+
+  async assertNoFieldError(field: 'employees' | 'revenue') {
+    await expect(this.page.locator(`#account-${field}-error`)).toHaveCount(0);
+    await expect(this.page.getByTestId(`account-${field}`)).not.toHaveAttribute('aria-invalid', 'true');
+  }
+
+  async assertFieldValue(field: 'employees' | 'revenue', value: string) {
+    await expect(this.page.getByTestId(`account-${field}`)).toHaveValue(value);
+  }
+
+  /** Clicks each label and checks focus lands on the matching control. */
+  async assertLabelsFocusTheirControls() {
+    for (const { label, controlId } of ACCOUNT_FORM_LABELS) {
+      const labelLocator = this.page.locator(`label[for="${controlId}"]`).filter({ hasText: label });
+      const controlLocator = this.page.locator(`#${controlId}`);
+      await this.helpers.click(labelLocator, `${label} label`);
+      await expect(controlLocator, `${label} label focuses its control`).toBeFocused();
+      // close an opened Select list so it does not cover the next label
+      await this.helpers.pressKey(controlLocator, 'Escape', `${label} control`);
+    }
+  }
+
+  async assertControlAccessibleNames() {
+    for (const { controlId, name } of ACCOUNT_FORM_ACCESSIBLE_NAMES) {
+      await expect(this.page.locator(`#${controlId}`)).toHaveAccessibleName(name);
+    }
+  }
+
+  /** At each viewport the field errors are visible and the page does not scroll sideways. */
+  async assertErrorsVisibleWithoutOverflow(viewports: readonly { width: number; height: number }[]) {
+    for (const viewport of viewports) {
+      await this.page.setViewportSize(viewport);
+      await expect(this.page.locator('#account-employees-error')).toBeVisible();
+      const overflows = await this.page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+      );
+      expect(overflows, `horizontal overflow at ${viewport.width}px`).toBe(false);
+    }
   }
 
   async getAccountNameFromDetailsPage() {
@@ -159,6 +240,79 @@ export class AccountsPage extends BasePage {
 
   async assertRejectedSaveRequests(count: number) {
     await expect.poll(() => this.rejectedSaveRequests).toBe(count);
+  }
+
+  // --- AIO-344 / AIO-337: rejected save on the create form -----------------
+
+  private get createButton() { return this.page.getByRole('button', { name: /^(Create account|Creating…)$/ }); }
+  private get createError() { return this.page.getByRole('alert').filter({ hasText: SAVE_ACCOUNT_ERROR }); }
+  private get nameField() { return this.page.getByTestId('account-name'); }
+
+  async fillAccountName(name: string) {
+    await this.helpers.fill(this.nameField, name, 'Account Name Input');
+  }
+
+  /** Fills the name with a unique retry-test name and returns it. */
+  async fillGeneratedAccountName() {
+    const name = `${RETRY_ACCOUNT_NAME_PREFIX}${Date.now()}`;
+    await this.fillAccountName(name);
+    return name;
+  }
+
+  /** Answers every POST /api/accounts with the given HTTP status; other methods pass through. */
+  async rejectAccountCreates(status: number, body: object) {
+    await this.stopInterceptingAccountCreates();
+    this.rejectedCreateRequests = 0;
+    this.createRoute = async (route: Route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      this.rejectedCreateRequests++;
+      return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
+    };
+    await this.page.route(this.createApiPattern, this.createRoute);
+  }
+
+  /** Aborts every POST /api/accounts as a network failure; other methods pass through. */
+  async abortAccountCreates() {
+    await this.stopInterceptingAccountCreates();
+    this.rejectedCreateRequests = 0;
+    this.createRoute = async (route: Route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      this.rejectedCreateRequests++;
+      return route.abort('failed');
+    };
+    await this.page.route(this.createApiPattern, this.createRoute);
+  }
+
+  async stopInterceptingAccountCreates() {
+    if (!this.createRoute) return;
+    await this.page.unroute(this.createApiPattern, this.createRoute);
+    this.createRoute = undefined;
+  }
+
+  async assertRejectedCreateRequests(count: number) {
+    await expect.poll(() => this.rejectedCreateRequests).toBe(count);
+  }
+
+  async assertCreateFailedAndFormReset(name: string) {
+    await expect(this.createError).toBeVisible();
+    await expect(this.createError).toHaveText(SAVE_ACCOUNT_ERROR);
+    await expect(this.createButton).toHaveText('Create account');
+    await expect(this.createButton).toBeEnabled();
+    await expect(this.nameField).toHaveValue(name);
+    await this.helpers.assertURL(NEW_ACCOUNT_PATH);
+  }
+
+  async assertNoHorizontalOverflowAtFormViewports() {
+    for (const viewport of ACCOUNT_FORM_VIEWPORTS) {
+      await this.helpers.setViewport(viewport);
+      await expect
+        .poll(() => this.helpers.getHorizontalOverflow(), { message: `horizontal overflow at ${viewport.width}px` })
+        .toBeLessThanOrEqual(0);
+    }
+  }
+
+  async assertAccountDetailShown(name: string) {
+    expect(await this.getAccountNameFromDetailsPage()).toBe(name);
   }
 
   /** Cleanup: removes the account if it is still listed; does nothing if already deleted. */

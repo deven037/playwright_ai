@@ -9,7 +9,6 @@ test('@e2e @regression Product + Lead Creation', async({
 }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.clickAvatar();
     await adminPage.gotoSetup();
