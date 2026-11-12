@@ -1,5 +1,6 @@
 import { WarmUpPage } from '@pages/CRM/warmUp.page';
 import { SearchPage } from '@pages/CRM/search.page';
+import { NotificationsPage } from '@pages/CRM/notifications.page';
 import { CrmLoginPage } from '@pages/CRM/crm.login.page';
 import { test as base } from './BaseFixtures';
 import { DashboardPage } from '@pages/CRM/dashboard.page';
@@ -11,7 +12,11 @@ import { AssignmentRulePage } from '@pages/CRM/Rules/assignment.rule.page';
 import { DealsPage } from '@pages/CRM/deals.page';
 import { AccountsPage } from '@pages/CRM/accounts.page';
 import { TicketsPage } from '@pages/CRM/tickets.page';
-// import { Logger } from '../utils/Logger'; // uncomment if you add logging here
+import { ThemePage } from '@pages/CRM/theme.page';
+import { AuthManager, CrmRole } from '../utils/AuthManager';
+import { Logger } from '../utils/Logger';
+
+const logger = Logger.getInstance();
 
 /**
  * NewAppFixtures (SCAFFOLD)
@@ -44,9 +49,31 @@ import { TicketsPage } from '@pages/CRM/tickets.page';
  *   });
  */
 
+/**
+ * Signed-in role of the test's browser context. The default is 'admin': the context starts with the
+ * storageState saved by global-setup.ts, so specs do not log in. Use 'anonymous' (a fresh, signed-out
+ * context) for specs that exercise the login form itself:
+ *   test.use({ role: 'anonymous' });
+ * and 'rep' / 'viewer' for role-specific checks.
+ */
+export type CrmTestRole = CrmRole | 'anonymous';
+
+/**
+ * Specs that must start signed out: warm-up runs before auth setup, themeVariables checks the login page,
+ * and the viewer/search-role specs sign in with custom credentials. Every other spec uses the admin state.
+ */
+const FORM_LOGIN_SPECS = [
+  'Leads/verifyViewerLeadsHideContactFields.feature.test.ts',
+  'Shell/themeVariables.feature.test.ts',
+  'WarmUp/warmUp.feature.test.ts',
+  'WarmUp/warmUpLive.feature.test.ts',
+  'Search/searchApiRoles.feature.test.ts',
+];
+
 export type CRMPageFixtures = {
   warmUpPage: WarmUpPage;
   searchPage: SearchPage;
+  notificationsPage: NotificationsPage;
   crmLoginPage: CrmLoginPage;
   dashboardPage: DashboardPage;
   leadsPage: LeadsPage;
@@ -57,13 +84,40 @@ export type CRMPageFixtures = {
   dealsPage: DealsPage;
   accountsPage: AccountsPage;
   ticketsPage: TicketsPage;
+  themePage: ThemePage;
+  secondSession: { crmLoginPage: CrmLoginPage; productsPage: Product };
 };
 
-export const test = base.extend<CRMPageFixtures>({
+export type CRMRoleOptions = {
+  role: CrmTestRole;
+};
+
+export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
+  role: ['admin', { option: true }],
+
+  context: async ({ browser, role }, use, testInfo) => {
+    // Specs not yet migrated (AIO-284) still sign in through the login form, so they keep a signed-out context.
+    const file = testInfo.file.replace(/\\/g, '/');
+    const effectiveRole: CrmTestRole = FORM_LOGIN_SPECS.some((spec) => file.endsWith(spec)) ? 'anonymous' : role;
+    logger.info(`Creating fresh browser context for test (role: ${effectiveRole})`);
+    const context = await browser.newContext({
+      viewport: { width: 1920, height: 1080 },
+      ignoreHTTPSErrors: true,
+      storageState: effectiveRole === 'anonymous' ? undefined : AuthManager.getInstance().getAuthFilePath(effectiveRole),
+    });
+    await use(context);
+    logger.info('Closing browser context after test');
+    await context.close();
+  },
+
   warmUpPage: async ({ page }, use) => { await use(new WarmUpPage(page)); },
   searchPage: async ({ page }, use) => {
     const searchPage = new SearchPage(page);
     try { await use(searchPage); } finally { await searchPage.cleanupFixtures(); }
+  },
+  notificationsPage: async ({ page }, use) => {
+    const notificationsPage = new NotificationsPage(page);
+    await use(notificationsPage);
   },
   crmLoginPage: async ({ page }, use) => {
     const crmLoginPage = new CrmLoginPage(page);
@@ -113,6 +167,20 @@ export const test = base.extend<CRMPageFixtures>({
   ticketsPage: async ({page}, use) => {
     const ticketsPage = new TicketsPage(page);
     await use(ticketsPage);
+  },
+  themePage: async ({page}, use) => {
+    const themePage = new ThemePage(page);
+    await use(themePage);
+  },
+
+  secondSession: async ({ browser }, use) => {
+    const context = await browser.newContext({ viewport: { width: 1920, height: 1080 }, ignoreHTTPSErrors: true });
+    const page = await context.newPage();
+    try {
+      await use({ crmLoginPage: new CrmLoginPage(page), productsPage: new Product(page) });
+    } finally {
+      await context.close();
+    }
   },
 });
 

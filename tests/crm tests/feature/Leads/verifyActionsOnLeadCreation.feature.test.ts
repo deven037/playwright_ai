@@ -6,7 +6,6 @@ test('@regression Perform actions save, edit and delete on lead after creation '
     leadsPage }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
 
     await dashboardPage.waitForPageLoad();
     await dashboardPage.assertProfileIconVisible();
@@ -49,6 +48,6 @@ test('@regression Perform actions save, edit and delete on lead after creation '
     await leadsPage.deleteLead();
     await leadsPage.confirmDelete(true);
 
-    await leadsPage.searchInLeadsTable(leadName);
-    await leadsPage.getNoRecordFoundMessaage();
+    await leadsPage.searchInLeadsTable(leadName, false);
+    await leadsPage.assertSearchedLeadAbsent();
 });

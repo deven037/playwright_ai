@@ -1,4 +1,5 @@
 import { Page } from "@playwright/test";
+import { CONTACT_FORM } from '../../data/contacts.data';
 import { BasePage } from "../../core/BasePage";
 
 export class ContactsPage extends BasePage {
@@ -121,23 +122,71 @@ export class ContactsPage extends BasePage {
     await this.page.waitForLoadState('domcontentloaded');
   }
 
-  async getFirstContactNameFromTable() {
-    this.logger.info("Getting first contact name")
-    const name = this.page.locator("//div[@class='contact-name']");
-    const contactName = await this.helpers.getText(name);
-    return contactName;
+  private contactNameLink(contactName: string) {
+    const xpathName = this.toXPathLiteral(contactName.trim());
+    return this.page.locator(`//a[starts-with(@href, '/contacts/contact-') and normalize-space(.)=${xpathName}]`);
   }
 
-  async clickContactName() {
-    const name = this.page.locator("//div[@class='contact-name']");
-    await this.helpers.click(name, "Contact Name");
+  private toXPathLiteral(value: string) {
+    const parts = value.split("'");
+    if (parts.length === 1) return `'${value}'`;
+    return `concat(${parts.map(part => `'${part}'`).join(`, "'", `)})`;
+  }
+
+  async getFirstContactNameFromTable(contactName: string) {
+    this.logger.info("Getting searched contact name");
+    return this.helpers.getText(this.contactNameLink(contactName));
+  }
+
+  async clickContactName(contactName: string) {
+    await this.helpers.click(this.contactNameLink(contactName), "Contact Name");
   }
 
   async getNoRecordFoundMessage() {
-    const emptyRecord = this.page.locator("//div[@class='contact-grid']/div[@class='empty-cell']");
+    const emptyRecord = this.page.locator("//main//div[@class='empty-cell']");
     const text = await this.helpers.getText(emptyRecord);
     this.logger.info(text);
     return text;
+  }
+
+  private contactCreateRequests = 0;
+
+  async observeContactCreation() {
+    // This page object is single-use per test; its request listener ends with the page.
+    this.page.on('request', request => {
+      if (request.method() === 'POST' && new URL(request.url()).pathname === '/api/contacts') {
+        this.contactCreateRequests++;
+      }
+    });
+  }
+
+  async getContactCreateRequestCount() {
+    return this.contactCreateRequests;
+  }
+
+  async assertAccessibleEmptyForm() {
+    const form = this.page.getByTestId('contact-form-page');
+    await this.helpers.assertVisible(form);
+    for (const name of CONTACT_FORM.labels) {
+      const input = form.getByRole('textbox', { name });
+      await this.helpers.assertVisible(input);
+      await this.helpers.assertEmpty(input);
+    }
+  }
+
+  async assertEmptySubmitErrorsAndFocus() {
+    const form = this.page.getByTestId('contact-form-page');
+    const name = form.getByRole('textbox', { name: CONTACT_FORM.labels[0] });
+    const email = form.getByRole('textbox', { name: CONTACT_FORM.labels[1] });
+    await this.helpers.assertVisible(form.getByText(CONTACT_FORM.nameError, { exact: true }));
+    await this.helpers.assertVisible(form.getByText(CONTACT_FORM.emailError, { exact: true }));
+    await this.helpers.assertAttribute(name, 'aria-invalid', 'true');
+    await this.helpers.assertAttribute(email, 'aria-invalid', 'true');
+    await this.helpers.assertAccessibleDescription(name, CONTACT_FORM.nameError);
+    await this.helpers.assertAccessibleDescription(email, CONTACT_FORM.emailError);
+    await this.helpers.assertFocused(name);
+    await this.helpers.assertURL(/\/contacts\/new(?:\?|$)/);
+    await this.helpers.assertVisible(form);
   }
 
   async chooseLayout(layoutName: string) {

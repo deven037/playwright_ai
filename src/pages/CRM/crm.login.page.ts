@@ -43,6 +43,11 @@ export class CrmLoginPage extends BasePage {
         return this.page.getByRole('checkbox', { name: 'Remember me' });
     }
 
+    async assertLoginFormVisible() {
+        await this.helpers.assertVisible(this.emailInput, 'Login email input');
+        await this.helpers.assertVisible(this.loginButton, 'Login button');
+    }
+
     async enterEmail(){
         const email = this.env.newAppEmail?.trim();
         if (!email) {
@@ -66,15 +71,15 @@ export class CrmLoginPage extends BasePage {
     async loginWithDefaultCredentials() {
         await this.enterEmail();
         await this.enterPassword();
-        await this.remeberMeCheckbox.uncheck();
-        await this.loginButton.click();
+        await this.helpers.setChecked(this.remeberMeCheckbox, false, 'Remember me');
+        await this.helpers.click(this.loginButton, 'Login');
     }
 
-    async loginWithCustomCredentials(email: string) {
+    async loginWithCustomCredentials(email: string, remember = false) {
         await this.helpers.fill(this.emailInput, email, "Email");
         await this.enterPassword();
-        await this.remeberMeCheckbox.uncheck();
-        await this.loginButton.click();
+        await this.helpers.setChecked(this.remeberMeCheckbox, remember, 'Remember me');
+        await this.helpers.click(this.loginButton, 'Login');
     }
 
     async loginAsRole(role: 'admin' | 'rep' | 'viewer') {

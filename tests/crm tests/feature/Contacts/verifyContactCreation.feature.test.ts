@@ -7,7 +7,6 @@ test('@feature @smoke @regression Verify Contact Creation', async ({
 }) => {
 
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await dashboardPage.assertProfileIconVisible();
 
@@ -21,5 +20,5 @@ test('@feature @smoke @regression Verify Contact Creation', async ({
     await contactsPage.gotoContacts();
     await contactsPage.searchInContactsTable(contactName);
 
-    expect(await contactsPage.getFirstContactNameFromTable()).toBe(contactName);
+    expect(await contactsPage.getFirstContactNameFromTable(contactName)).toBe(contactName);
 })
