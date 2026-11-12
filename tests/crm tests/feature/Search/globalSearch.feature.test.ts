@@ -5,7 +5,6 @@ import { searchScenarioNames } from '../../../../src/data/search.data';
 test.describe('Global search @regression', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage }) => {
         await crmLoginPage.goto();
-        await crmLoginPage.loginWithDefaultCredentials();
         await dashboardPage.waitForDashBoardPage();
     });
 

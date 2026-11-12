@@ -5,7 +5,6 @@ test('AIO-T32: Bank profile unavailable shows fallback message and Retry sends a
     dashboardPage
 }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     // Step 1: /api/bootstrap answers 200 with bankProfile:null

@@ -6,7 +6,6 @@ test('AIO-T120: Admin can open conversion from a non-converted lead record @smok
     leadsPage,
 }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForPageLoad();
     await dashboardPage.assertProfileIconVisible();
 

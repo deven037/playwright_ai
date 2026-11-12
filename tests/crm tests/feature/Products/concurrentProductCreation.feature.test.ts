@@ -12,7 +12,6 @@ test('AIO-T165: Concurrent product creation in two sessions opens each session\'
 
     // Step 1: sign in as admin in two independent sessions and open the New product form
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await secondSession.crmLoginPage.goto();
     await secondSession.crmLoginPage.loginWithDefaultCredentials();
     await productsPage.gotoNewProductForm();

@@ -58,29 +58,16 @@ const logger = Logger.getInstance();
  */
 export type CrmTestRole = CrmRole | 'anonymous';
 
-/** Warm-up runs before auth setup. Other entries still use form login until AIO-284 migrates them. */
+/**
+ * Specs that must start signed out: warm-up runs before auth setup, themeVariables checks the login page,
+ * and the viewer/search-role specs sign in with custom credentials. Every other spec uses the admin state.
+ */
 const FORM_LOGIN_SPECS = [
-  'Accounts/accountEditRejectedSave.feature.test.ts',
-  'Accounts/accountFormValidation.feature.test.ts',
-  'Leads/verifyLeadRecordConvertAction.feature.test.ts',
   'Leads/verifyViewerLeadsHideContactFields.feature.test.ts',
-  'Leads/verifyLeadsKeyboardAccessibility.feature.test.ts',
   'Shell/themeVariables.feature.test.ts',
   'WarmUp/warmUp.feature.test.ts',
   'WarmUp/warmUpLive.feature.test.ts',
-  'Assignment Rule/verifyAssignmentRuleCreationOnLead.feature.test.ts',
-  'Assignment Rule/AssignmentRuleTriggerLead.feature.test.ts',
-  'Assignment Rule/VerifyAssignmentRuleCreationOnDeals.feature.test.ts',
-  'Shell/bankProfileFallback.feature.test.ts',
-  'Tickets/verifyTicketWorkflowAndDeletion.feature.test.ts',
-  'Dashboard/dashboardActivityLink.feature.test.ts',
-  'Notifications/notificationsZeroUnread.feature.test.ts',
-  'Search/seeAllRefreshesList.feature.test.ts',
-  'Search/searchErrorEscape.feature.test.ts',
-  'Search/globalSearch.feature.test.ts',
   'Search/searchApiRoles.feature.test.ts',
-  'Users/verifyUserCreation.feature.test.ts',
-  'Contacts/contactFormAccessibility.feature.test.ts',
 ];
 
 export type CRMPageFixtures = {

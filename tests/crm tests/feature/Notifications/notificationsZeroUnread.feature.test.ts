@@ -6,7 +6,6 @@ test('AIO-T36: Notifications panel remains available when unread count is zero @
     notificationsPage
 }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     // Step 1: Mark all notifications read and verify the unread count reaches zero.

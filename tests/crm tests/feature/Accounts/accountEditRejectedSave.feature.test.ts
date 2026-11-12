@@ -7,7 +7,6 @@ test('AIO-T149: Account edit: rejected save (HTTP 500) shows an error and keeps 
     accountsPage
 }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
 
     try {

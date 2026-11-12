@@ -6,7 +6,6 @@ test('AIO-T79: Escape closes search from focused error actions and restores head
     searchPage
 }) => {
     await crmLoginPage.goto();
-    await crmLoginPage.loginWithDefaultCredentials();
     await dashboardPage.waitForDashBoardPage();
     await searchPage.failSearchRequests();
     await searchPage.openErrorSearchWithShortcut();
