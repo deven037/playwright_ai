@@ -1,7 +1,6 @@
 import { test, expect } from '@fixtures/CrmFixtures';
 
 test.describe('Global search', () => {
-    test.use({ trace: 'on-first-retry' });
     test.beforeEach(async ({ crmLoginPage, dashboardPage }) => {
         await crmLoginPage.goto();
         await dashboardPage.waitForDashBoardPage();
