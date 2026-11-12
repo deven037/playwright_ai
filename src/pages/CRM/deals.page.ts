@@ -180,6 +180,14 @@ export class DealsPage extends BasePage {
     await this.helpers.assertFocused(this.moveSelect(deal), `Move ${deal} to… menu`);
   }
 
+  /** The column's header count equals the cards it shows. Holds while other specs add or delete deals
+   *  on the shared staging data (an exact before/after delta did not: run 43233538273). */
+  async assertStageCountMatchesCards(stage: string) {
+    const column = this.stageColumn(stage);
+    await expect.poll(async () => (await this.getStageCount(stage)) - (await column.locator('.kanban-card-title').count()),
+      { message: `${stage} header count equals its cards` }).toBe(0);
+  }
+
   async assertStageCount(stage: string, count: number) {
     await expect.poll(() => this.getStageCount(stage)).toBe(count);
   }
