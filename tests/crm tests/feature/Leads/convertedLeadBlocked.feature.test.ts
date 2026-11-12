@@ -1,5 +1,5 @@
 import { test, expect } from '@fixtures/CrmFixtures';
-import { CONVERTED_LEAD_STATUS, NON_CONVERTED_LEAD_STATUS } from '@data/leads.data';
+import { CONVERTED_LEAD_STATUS, NON_CONVERTED_LEAD_STATUS } from '../../../../src/data/leads.data';
 
 test.use({ role: 'admin', trace: 'retain-on-failure' });
 test.describe.configure({ retries: 0 });

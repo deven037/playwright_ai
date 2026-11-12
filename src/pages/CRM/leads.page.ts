@@ -1,7 +1,7 @@
 import { BasePage } from "@core/BasePage";
 import { expect, Locator, Page } from "@playwright/test";
 
-import { ALREADY_CONVERTED_MESSAGE, CONVERTED_LEAD_STATUS } from '@data/leads.data';
+import { ALREADY_CONVERTED_MESSAGE, CONVERTED_LEAD_STATUS } from '../../data/leads.data';
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
