@@ -10,7 +10,7 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env'), override: !process.en
 
 /**
  * EnvManager - Singleton class for centralized environment configuration.
- * Reads from .env and exposes typed accessors.
+ * Reads from .env file and exposes typed accessors.
  * Never hardcodes credentials.
  *
  * NOTE: Uses APP_USERNAME / APP_PASSWORD keys to avoid collision with
@@ -34,7 +34,7 @@ export class EnvManager implements IEnvConfig {
 
   // --- New application (SCAFFOLD) ------------------------------------------
   // Rename NEWAPP_* once the real app name is known. Blank by default until
-  // the URL and role credentials are configured.
+  // NEWAPP_BASE_URL etc. are added to .env.
   private readonly _newAppBaseUrl: string;
   private readonly _newAppEmail: string;
   private readonly _newAppRepEmail: string;
@@ -57,7 +57,7 @@ export class EnvManager implements IEnvConfig {
     this._baseUrl   = process.env.BASE_URL      ?? '';
     this._apiBaseUrl = process.env.API_BASE_URL ?? '';
     this._authApi   = process.env.AUTH_API     ?? '';
-    this._username  = process.env.APP_USERNAME  ?? '';
+    this._username  = process.env.APP_USERNAME  ?? '';  // APP_USERNAME avoids Windows USERNAME collision
     this._password  = process.env.APP_PASSWORD  ?? '';
     this._headless  = process.env.HEADLESS      === 'true';
     this._browser   = process.env.BROWSER       ?? 'chromium';
@@ -68,8 +68,9 @@ export class EnvManager implements IEnvConfig {
 
     this._newAppBaseUrl  = process.env.NEWAPP_BASE_URL ?? '';
     this._newAppEmail = process.env.NEWAPP_EMAIL ?? '';
-    this._newAppRepEmail = process.env.NEWAPP_REP_EMAIL ?? '';
-    this._newAppViewerEmail = process.env.NEWAPP_VIEWER_EMAIL ?? '';
+    // Rep and Viewer are the CRM README's public demo accounts; they share NEWAPP_PASSWORD.
+    this._newAppRepEmail = process.env.NEWAPP_REP_EMAIL?.trim() || 'rep@crm.com';
+    this._newAppViewerEmail = process.env.NEWAPP_VIEWER_EMAIL?.trim() || 'viewer@crm.com';
     this._newAppPassword = process.env.NEWAPP_PASSWORD ?? '';
     this._newAppBaseAPI = process.env.NEWAPP_BASE_API ?? '';
 
@@ -99,7 +100,7 @@ export class EnvManager implements IEnvConfig {
   get baseUrl():  string  { return this._baseUrl;  }
   get apiBaseUrl(): string { return this._apiBaseUrl; }
   get authApi(): string { return this._authApi; }
-  get username(): string  { return this._username;  }
+  get username(): string  { return this._username; }
   get password(): string  { return this._password; }
   get headless(): boolean { return this._headless; }
   get browser():  string  { return this._browser;  }
@@ -108,13 +109,13 @@ export class EnvManager implements IEnvConfig {
   get retries():  number  { return this._retries;  }
   get workers():  number  { return this._workers;  }
 
-  // New application (SCAFFOLD) — rename once the application name is known
+  // New application (SCAFFOLD) — rename once the real app name is known
   get newAppBaseUrl():  string { return this._newAppBaseUrl;  }
   get newAppEmail(): string { return this._newAppEmail; }
   get newAppRepEmail(): string { return this._newAppRepEmail; }
   get newAppViewerEmail(): string { return this._newAppViewerEmail; }
   get newAppPassword(): string { return this._newAppPassword; }
-  get newAppBaseAPI(): string { return this._newAppBaseAPI; }
+  get newAppBaseAPI(): string {return this._newAppBaseAPI; }
 
   // AI self-healing locators
   get aiHealingEnabled(): boolean { return this._aiHealingEnabled; }

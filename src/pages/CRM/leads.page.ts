@@ -1,5 +1,5 @@
 import { BasePage } from "@core/BasePage";
-import { Locator, Page } from "@playwright/test";
+import { expect, Locator, Page } from "@playwright/test";
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -90,22 +90,72 @@ export class LeadsPage extends BasePage {
         return leadName;
     }
     
-    async searchInLeadsTable(leadName: string) {
+    private searchedLeadName = '';
+
+    // Rows of the leads table whose name cell is exactly the searched lead
+    private searchedLeadRows(): Locator {
+        if (!this.searchedLeadName) {
+            throw new Error('searchedLeadRows: call searchInLeadsTable(leadName) first; an empty name would match every row');
+        }
+        return this.page
+            .locator("//tr[contains(@class,'row-clickable')]")
+            .filter({ has: this.page.locator('td:nth-child(2)', { hasText: this.searchedLeadName }) });
+    }
+
+    // expectResult = false filters without waiting for a row (use before assertSearchedLeadAbsent)
+    async searchInLeadsTable(leadName: string, expectResult: boolean = true) {
+        this.searchedLeadName = leadName;
         const searchInput = this.page.locator("//div[@class='toolbar']/input");
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
+        if (expectResult) {
+            // Lead names are timestamped, so unique per run
+            await this.helpers.waitForElement(this.searchedLeadRows().first(), 'visible', `Row for ${leadName}`);
+        }
+    }
+
+    async assertSearchedLeadAbsent() {
+        await expect(this.searchedLeadRows(), `No row for ${this.searchedLeadName}`).toHaveCount(0);
     }
 
     async getFirstLeadNameFromTable() {
         this.logger.info("Getting top lead name")
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.waitForElement(name, 'visible');
         return await this.helpers.getText(name);
     }
 
     async clickLeadName() {
-        const name = this.page.locator("(//tr[contains(@class,'row-clickable')]/td)[2]");
+        const name = this.searchedLeadRows().locator('td').nth(1);
         await this.helpers.click(name, "Lead Name");
+    }
+
+    async openFirstNonConvertedLead(): Promise<{ name: string; status: string }> {
+        const nextPage = this.page.getByRole('button', { name: 'Next page' });
+
+        while (true) {
+            const rows = this.page.locator("//tr[contains(@class,'row-clickable')]");
+            const rowCount = await rows.count();
+
+            for (let index = 0; index < rowCount; index += 1) {
+                const row = rows.nth(index);
+                const nameCell = row.locator('td').nth(1);
+                const name = (await this.helpers.getText(nameCell)).trim();
+                const status = (await this.helpers.getText(row.locator('td').nth(5))).trim();
+
+                if (status !== 'Converted') {
+                    await this.helpers.click(nameCell, 'Non-converted lead');
+                    const detailPage = this.page.locator("//div[@data-testid='lead-detail-page']");
+                    await this.helpers.waitForElement(detailPage, 'visible');
+                    return { name, status };
+                }
+            }
+
+            if (!(await nextPage.isEnabled())) break;
+            await this.helpers.click(nextPage, 'Next leads page');
+        }
+
+        throw new Error('No non-converted lead is available in the leads list.');
     }
 
     async editlead() {
@@ -160,6 +210,40 @@ export class LeadsPage extends BasePage {
         return name;
     }
 
+    async assertConvertLeadActionVisible(): Promise<void> {
+        const convertButton = this.page.getByRole('button', { name: 'Convert lead…', exact: true });
+        await this.helpers.assertVisible(convertButton, 'Convert lead action');
+    }
+
+    // Assumes the Convert lead button sits immediately before the Edit button in tab order.
+    async assertConvertLeadActionKeyboardReachable(): Promise<void> {
+        const convertButton = this.page.getByRole('button', { name: 'Convert lead…', exact: true });
+        await this.page.getByTestId('edit-lead-btn').focus();
+        await this.page.keyboard.press('Shift+Tab');
+        await expect(convertButton).toBeFocused();
+    }
+
+    async openConvertWizardFromLeadRecord(): Promise<void> {
+        const convertButton = this.page.getByRole('button', { name: 'Convert lead…', exact: true });
+        await this.helpers.click(convertButton, 'Convert lead action');
+    }
+
+    async assertConversionWizardStepOne(): Promise<void> {
+        const wizard = this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
+        await this.helpers.assertVisible(wizard, 'Convert wizard step 1');
+    }
+
+    async assertConversionWizardClosed(): Promise<void> {
+        const wizard = this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
+        await this.helpers.waitForElement(wizard, 'hidden', 'Convert wizard step 1');
+    }
+
+    async closeConversionWizard(): Promise<void> {
+        const wizard = this.page.getByRole('dialog', { name: 'Convert lead — Step 1 of 3', exact: true });
+        const closeButton = wizard.getByRole('button', { name: 'Close dialog', exact: true });
+        await this.helpers.click(closeButton, 'Close conversion wizard');
+    }
+
     async getLeadAssignTo() {
         await this.page.waitForLoadState('domcontentloaded');
         const detailPage = this.page.locator("//div[@data-testid='lead-detail-page']");
@@ -192,7 +276,8 @@ export class LeadsPage extends BasePage {
     }
 
     async getStatusFromTable() {
-        const column = this.page.locator("//tr[@class='row-clickable']/td[6]/span");
+        const column = this.searchedLeadRows().locator('td:nth-child(6) > span');
+        await this.helpers.waitForElement(column, 'visible');
         const status = await this.helpers.getText(column);
         return status;
     }
@@ -267,64 +352,93 @@ export class LeadsPage extends BasePage {
         await this.helpers.assertVisible(toast, 'Converted toast');
     }
 
+    async assertLeadsTableLoaded() {
+        const firstRow = this.page.locator('tbody tr.row-clickable').first();
+        await this.helpers.assertVisible(firstRow, 'First lead row');
+    }
+
+    async getColumnHeaders(): Promise<string[]> {
+        const headers = this.page.locator('table.table thead th');
+        await this.helpers.waitForElement(headers.first(), 'visible');
+        return (await headers.allInnerTexts()).map((t) => t.trim());
+    }
+
+    async getFirstRowCellTexts(): Promise<string[]> {
+        const cells = this.page.locator('tbody tr.row-clickable').first().locator('td');
+        await this.helpers.waitForElement(cells.first(), 'visible');
+        return (await cells.allInnerTexts()).map((t) => t.trim());
+    }
+
     async chooseLayout(layoutName: string) {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
     }
 
-    private get leadsTable() {
-        return this.page.getByRole('table');
+    private get leadRows() { return this.page.locator('tbody tr.row-clickable'); }
+    private get focusedLeadRows() { return this.page.locator('tbody tr.row-clickable:focus'); }
+    private get nameHeader() { return this.page.locator('th[tabindex="0"]').filter({ hasText: /^\s*Name/ }); }
+
+    async assertLeadRowsVisible() {
+        await expect(this.leadRows.first()).toBeVisible();
     }
 
-    async getLeadTableHeaders(): Promise<string[]> {
-        await this.helpers.waitForElement(this.leadsTable, 'visible', 'Leads table');
-        const headers = await this.leadsTable.locator('thead th').allInnerTexts();
-        return headers.map((header) => header.replace(/[▲▼]/g, '').trim()).filter(Boolean);
+    async assertFirstRowKeyboardReachable() {
+        await expect(this.leadRows.first()).toHaveAttribute('tabindex', '0');
     }
 
-    async getLeadTableColumnCount(): Promise<number> {
-        return this.leadsTable.locator('thead th').count();
-    }
-
-    async getFirstLeadContactValues(): Promise<{ email: string; phone: string }> {
-        const headers = await this.leadsTable.locator('thead th').allInnerTexts();
-        const getHeaderName = (header: string) => header.replace(/[▲▼]/g, '').trim();
-        const emailIndex = headers.findIndex((header) => getHeaderName(header) === 'Email');
-        const phoneIndex = headers.findIndex((header) => getHeaderName(header) === 'Phone');
-        if (emailIndex < 0 || phoneIndex < 0) {
-            throw new Error('The Leads table does not expose both contact columns.');
+    async tabToLeadRow() {
+        await this.helpers.clickAt(this.page.locator('body'), { x: 0, y: 0 }, 'Page body');
+        let focused = false;
+        for (let i = 0; i < 80 && !focused; i++) {
+            await this.helpers.pressPageKey('Tab');
+            focused = await this.helpers.isElementPresent(this.focusedLeadRows);
         }
-
-        const row = this.leadsTable.locator('tbody tr.row-clickable').first();
-        await this.helpers.waitForElement(row, 'visible', 'First lead row');
-        const cells = row.getByRole('cell');
-        return {
-            email: await this.helpers.getText(cells.nth(emailIndex)),
-            phone: await this.helpers.getText(cells.nth(phoneIndex)),
-        };
+        expect(focused, 'a lead row receives keyboard focus via Tab').toBe(true);
     }
 
-    async getLeadVisibleRowTexts(): Promise<string[]> {
-        return this.leadsTable.locator('tbody tr.row-clickable').allInnerTexts();
+    async pressEnter() {
+        await this.helpers.pressPageKey('Enter');
     }
 
-    async searchLeads(query: string): Promise<void> {
-        const searchInput = this.page.getByPlaceholder('Search name, company, email…');
-        await this.helpers.fill(searchInput, query, 'Leads search');
-        await this.helpers.waitForElement(
-            this.leadsTable.getByRole('cell', { name: 'No leads match the current filters.', exact: true }),
-            'visible',
-            'Empty search results',
-        );
+    async assertLeadDetailOpen() {
+        await this.helpers.assertURL(/\/leads\/[^/]+$/);
+        await expect(this.page.getByTestId('lead-detail-page')).toBeVisible();
     }
 
-    async getLeadEmptyStateColumnSpan(): Promise<number> {
-        const emptyCell = this.leadsTable.getByRole('cell', { name: 'No leads match the current filters.', exact: true });
-        await this.helpers.waitForElement(emptyCell, 'visible', 'Empty search results');
-        const span = await this.helpers.getAttributeValue(emptyCell, 'colspan');
-        if (span === null) {
-            throw new Error('The Leads empty-state cell has no colspan attribute.');
+    async goBackToLeadsList() {
+        await this.helpers.goBack();
+        await this.assertLeadRowsVisible();
+    }
+
+    async assertFirstRowHasVisibleConvertButton() {
+        const convertButtons = this.leadRows.first().getByRole('button', { name: /convert/i });
+        await expect(convertButtons).toHaveCount(1);
+        await expect(convertButtons).toBeVisible();
+    }
+
+    async focusNameHeader() {
+        await expect(this.nameHeader).toHaveCount(1);
+        await this.helpers.focus(this.nameHeader, 'Name column header');
+        await expect(this.nameHeader).toBeFocused();
+    }
+
+    async assertNameHeaderSort(direction: 'ascending' | 'descending') {
+        await expect(this.nameHeader).toHaveAttribute('aria-sort', direction);
+    }
+
+    async openStatusFilter() {
+        await this.helpers.click(this.page.getByTestId('filters-toggle'), 'Filters');
+        const filterPanel = this.page.getByTestId('filter-panel');
+        await expect(filterPanel).toBeVisible();
+        await this.helpers.click(filterPanel.getByRole('button', { name: 'Any status' }), 'Any status');
+    }
+
+    async assertStatusFilterOptions(baseline: string[], addedStatus: string) {
+        const options = this.page.getByRole('listbox').getByRole('option');
+        await expect(options).toHaveCount(baseline.length + 1);
+        await expect(options.filter({ hasText: addedStatus })).toHaveCount(1);
+        for (const status of baseline) {
+            await expect(options.filter({ hasText: status }).first()).toBeVisible();
         }
-        return Number(span);
     }
 }
