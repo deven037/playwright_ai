@@ -2,6 +2,10 @@ import { defineConfig, devices } from '@playwright/test';
 import { EnvManager } from './src/utils/EnvManager';
 
 const env = EnvManager.getInstance();
+// Full-collection snapshots must finish before any parallel CRM writer starts.
+const snapshotSpec = '**/Accounts/accountDeleteRecovery.feature.test.ts';
+const snapshotSuite = !process.env.TEST_SUITE || ['regression', 'all'].includes(process.env.TEST_SUITE);
+const isolateSnapshots = snapshotSuite && process.env.TARGET_ENV !== 'production';
 
 export default defineConfig({
   testDir: './tests',
@@ -54,8 +58,19 @@ export default defineConfig({
   },
 
   projects: [
+    ...(isolateSnapshots ? [{
+      name: 'account-delete-snapshot',
+      testMatch: snapshotSpec,
+      fullyParallel: false,
+      workers: 1,
+      use: { ...devices['Desktop Chrome'] },
+    }] : []),
     {
       name: 'chromium',
+      ...(isolateSnapshots ? {
+        dependencies: ['account-delete-snapshot'],
+        testIgnore: snapshotSpec,
+      } : {}),
       use: { ...devices['Desktop Chrome'] },
     }
   ],
