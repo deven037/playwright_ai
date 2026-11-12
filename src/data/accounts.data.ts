@@ -42,3 +42,16 @@ export const INDUSTRY_SEARCH_PADDED = '  Finance ';
 export const INDUSTRY_SEARCH_ACCOUNTS = ['Nimbus Tech', 'PixelForge'] as const;
 export const NAME_SEARCH_UPPERCASE = 'ZENITH';
 export const NAME_SEARCH_ACCOUNTS = ['Zenith Corp'] as const;
+
+
+// AIO-300: seeded delete regression preconditions.
+export const ACCOUNT_DELETE = {
+  blockedId: 'account-5',
+  emptyId: 'account-6',
+  collections: ['accounts', 'contacts', 'deals', 'quotes'],
+  cascadeModes: [false, true],
+  roles: ['admin', 'rep'],
+  rejectedBody: { error: { code: 'controlled_failure', message: 'Controlled delete failure for AIO-T199' } },
+  blockedGuidance: /Close or reassign these .* open deal\(s\) first/,
+  recoveryError: 'Account couldn’t be deleted. Some related records may have changed. Reload the page and check before you try again.',
+} as const;
