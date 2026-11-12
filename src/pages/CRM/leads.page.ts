@@ -24,7 +24,7 @@ export class LeadsPage extends BasePage {
     }
 
     async createNewLead() {
-        const newLeadBtn = this.page.locator("//div[@class='page-actions']/button").nth(1);
+        const newLeadBtn = this.page.getByRole('button', { name: '+ New Lead', exact: true });
         await this.helpers.click(newLeadBtn, 'New Lead');
         await this.page.waitForLoadState('networkidle');
     }
