@@ -81,4 +81,18 @@ export class CrmLoginPage extends BasePage {
         await this.helpers.setChecked(this.remeberMeCheckbox, remember, 'Remember me');
         await this.helpers.click(this.loginButton, 'Login');
     }
+    async validateEmailFormat(email: string): Promise<void> {
+        await this.helpers.fill(this.emailInput, email, 'Login email');
+        await this.helpers.focus(this.passwordInput, 'Password to blur email');
+    }
+
+    async assertEmailAccepted(): Promise<void> {
+        await this.helpers.assertAttribute(this.emailInput, 'aria-invalid', 'false');
+        await this.helpers.assertAccessibleDescription(this.emailInput, '');
+    }
+
+    async assertEmailRejected(message: string): Promise<void> {
+        await this.helpers.assertAttribute(this.emailInput, 'aria-invalid', 'true');
+        await this.helpers.assertAccessibleDescription(this.emailInput, message);
+    }
 }
