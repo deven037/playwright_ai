@@ -81,19 +81,4 @@ export class CrmLoginPage extends BasePage {
         await this.helpers.setChecked(this.remeberMeCheckbox, remember, 'Remember me');
         await this.helpers.click(this.loginButton, 'Login');
     }
-
-    async loginAsRole(role: 'admin' | 'rep' | 'viewer') {
-        const emails = {
-            admin: this.env.newAppEmail,
-            rep: this.env.newAppRepEmail,
-            viewer: this.env.newAppViewerEmail,
-        };
-        const email = emails[role]?.trim();
-        if (!email) {
-            const variable = role === 'admin' ? 'NEWAPP_EMAIL' : `NEWAPP_${role.toUpperCase()}_EMAIL`;
-            throw new Error(`${variable} is not configured. Set it in .env or CI environment variables.`);
-        }
-
-        await this.loginWithCustomCredentials(email);
-    }
 }

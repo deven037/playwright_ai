@@ -369,6 +369,26 @@ export class LeadsPage extends BasePage {
         return (await cells.allInnerTexts()).map((t) => t.trim());
     }
 
+    async assertViewerContactFieldsHidden(columnCount = 9) {
+        const headers = await this.getColumnHeaders();
+        expect(headers).toHaveLength(columnCount);
+        expect(headers.some(h => /^(Email|Phone)\b/i.test(h))).toBe(false);
+        for (const row of await this.leadRows.all()) {
+            expect(await row.innerText()).not.toMatch(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/);
+            await expect(row.locator('td')).toHaveCount(columnCount);
+        }
+    }
+
+    async assertContactFieldsVisible(columns: string[] = ['Email', 'Phone']) {
+        const headers = await this.getColumnHeaders();
+        const cells = this.leadRows.first().locator('td');
+        for (const column of columns) {
+            const index = headers.findIndex(h => new RegExp(`^${column}\\b`, 'i').test(h));
+            expect(index, `${column} header exists`).toBeGreaterThanOrEqual(0);
+            await expect(cells.nth(index)).not.toHaveText('');
+        }
+    }
+
     async chooseLayout(layoutName: string) {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
