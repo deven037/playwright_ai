@@ -141,4 +141,38 @@ export class Product extends BasePage {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
     }
+
+    async gotoNewProductForm() {
+        const baseUrl = this.env.newAppBaseUrl?.trim();
+        await this.page.goto(`${baseUrl}/products/new`);
+        const nameInput = this.page.getByTestId('product-name');
+        const defaultLayout = this.page.locator("//span[@class='layout-picker-item-name' and text()='Default']");
+        await nameInput.or(defaultLayout).first().waitFor({ state: 'visible' });
+        if (await defaultLayout.isVisible()) {
+            await this.helpers.click(defaultLayout, "Default Layout");
+        }
+        await this.helpers.waitForElement(nameInput, 'visible', 'Product name input');
+    }
+
+    async fillNameAndPrice(productName: string, price: number) {
+        await this.helpers.fill(this.page.getByTestId('product-name'), productName, 'Product Name');
+        await this.helpers.fill(this.page.getByTestId('product-price'), price.toString(), 'Product Price');
+    }
+
+    async clickCreateProduct() {
+        await this.helpers.click(this.page.getByRole('button', { name: 'Create product' }), 'Create product');
+    }
+
+    async assertOnProductDetailPage() {
+        await this.helpers.assertURL(/\/products\/(?!new$)[^/]+$/);
+        await this.helpers.waitForElement(this.page.getByTestId('product-detail-page'), 'visible', 'Product detail page');
+    }
+
+    async getProductIdFromUrl() {
+        return new URL(await this.getCurrentUrl()).pathname.split('/').pop() ?? '';
+    }
+
+    async assertDetailHeading(productName: string) {
+        await this.helpers.assertText(this.page.locator("//div[@class='page-header']/h1"), productName);
+    }
 }
