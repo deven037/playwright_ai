@@ -626,7 +626,7 @@ export class SearchPage extends BasePage {
                     expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width);
                     expect(bounds!.y).toBeGreaterThanOrEqual(0);
                     expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(800);
-                    await selected.scrollIntoViewIfNeeded();
+                    await search.helpers.scrollToElement(selected);
                     await expect(selected).toBeInViewport();
                     await search.helpers.pressKey(search.input, 'Escape');
                 }
