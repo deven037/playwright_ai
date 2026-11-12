@@ -1,3 +1,6 @@
+import { AuthManager } from '../../utils/AuthManager';
+import { Helpers } from '../../utils/Helpers';
+import { ACCOUNT_DELETE } from '../../data/accounts.data';
 import { BasePage } from "@core/BasePage";
 import { Page, Route, errors, expect } from "@playwright/test";
 import { ACCOUNT_FORM_ACCESSIBLE_NAMES, ACCOUNT_FORM_LABELS, ACCOUNT_FORM_VIEWPORTS, NEW_ACCOUNT_PATH, EDIT_ACCOUNT, REJECTED_SAVE_BODY, RETRY_ACCOUNT_NAME_PREFIX, SAVE_ACCOUNT_ERROR } from "../../data/accounts.data";
@@ -340,5 +343,150 @@ export class AccountsPage extends BasePage {
     await this.openAccount(accountName);
     await this.deleteAccount();
     await this.confirmDelete();
+  }
+  // AIO-300: full API-visible snapshots, including every collection page.
+  private deleteApiBase() {
+    const base = this.env.newAppBaseAPI.replace(/\/$/, '');
+    expect(new URL(base).hostname, 'Delete regressions run only on staging').toBe('crm-practice-api.onrender.com');
+    return base;
+  }
+
+  private async deleteHeaders(page: Page = this.page) {
+    const token = await page.evaluate(() => sessionStorage.getItem('crm.token') ?? localStorage.getItem('crm.token'));
+    expect(token, 'Authenticated role token').toBeTruthy();
+    return { Authorization: `Bearer ${token}` };
+  }
+
+  private async deleteCollection(page: Page, collection: string, headers: Record<string, string>) {
+    const rows: any[] = [];
+    let totalPages = 1;
+    for (let number = 1; number <= totalPages; number++) {
+      const response = await page.request.get(`${this.deleteApiBase()}/api/${collection}?pageSize=100&page=${number}`, { headers });
+      expect(response.status(), `GET ${collection} page ${number}: ${await response.text()}`).toBe(200);
+      const body = await response.json();
+      expect(Array.isArray(body.data), `${collection} list envelope`).toBe(true);
+      expect(Number.isInteger(body.totalPages)).toBe(true);
+      totalPages = body.totalPages;
+      rows.push(...body.data);
+    }
+    return rows.sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  }
+
+  private async deleteSnapshot(page: Page, audit: boolean) {
+    const headers = await this.deleteHeaders(page);
+    const snapshot: Record<string, any[]> = {};
+    for (const collection of [...ACCOUNT_DELETE.collections, ...(audit ? ['audit'] : [])]) {
+      snapshot[collection] = await this.deleteCollection(page, collection, headers);
+    }
+    return snapshot;
+  }
+
+  async assertOpenDealDeleteHasNoWritesForBothRoles() {
+    // Complete both modes for Admin before repeating with the saved Rep session.
+    for (const role of ACCOUNT_DELETE.roles) {
+      const context = role === 'admin' ? undefined : await this.page.context().browser()!.newContext({
+        storageState: AuthManager.getInstance().getAuthFilePath(role),
+      });
+      const page = context ? await context.newPage() : this.page;
+      try {
+        if (context) await new Helpers(page).navigateTo(this.env.newAppBaseUrl);
+        const before = await this.deleteSnapshot(page, role === 'admin');
+        expect(before.accounts.some(row => row.id === ACCOUNT_DELETE.blockedId), `${role} seeded account exists`).toBe(true);
+        const openDeals = before.deals.filter(row => row.accountId === ACCOUNT_DELETE.blockedId && !row.stage.startsWith('Closed'));
+        expect(openDeals.length, `${role} seeded open deals precondition`).toBeGreaterThan(0);
+        const headers = await this.deleteHeaders(page);
+        for (const cascade of ACCOUNT_DELETE.cascadeModes) {
+          const response = await page.request.delete(`${this.deleteApiBase()}/api/accounts/${ACCOUNT_DELETE.blockedId}?cascade=${cascade}`, { headers });
+          expect(response.status(), `${role} cascade=${cascade}: ${await response.text()}`).toBe(409);
+          expect(await response.json()).toMatchObject({ error: { code: 'open_deals' } });
+          const after = await this.deleteSnapshot(page, role === 'admin');
+          // The audit log is shared and capped, so parallel tests append and rotate rows; only rows this delete could write count.
+          const { audit: auditBefore = [], ...dataBefore } = before;
+          const { audit: auditAfter = [], ...dataAfter } = after;
+          expect(dataAfter, `${role} cascade=${cascade} has no API-visible writes`).toEqual(dataBefore);
+          const knownIds = new Set(auditBefore.map(row => row.id));
+          const accountName = before.accounts.find(row => row.id === ACCOUNT_DELETE.blockedId).name;
+          const deleteRows = auditAfter.filter(row => !knownIds.has(row.id)
+            && (/^(account|deal)\./.test(String(row.action)) || String(row.detail ?? '').includes(accountName)));
+          expect(deleteRows, `${role} cascade=${cascade} wrote no account audit entry`).toEqual([]);
+        }
+      } finally {
+        await context?.close();
+      }
+    }
+  }
+
+  async openDeleteRegressionAccount(id: string) {
+    expect(new URL(this.env.newAppBaseUrl).hostname).toBe('automation-crm-7qil.onrender.com');
+    await this.helpers.navigateTo(`${this.env.newAppBaseUrl.replace(/\/$/, '')}/accounts/${id}`);
+    await this.helpers.assertVisible(this.page.getByTestId('account-detail-page'));
+  }
+
+  private deleteDialog() { return this.page.getByRole('dialog'); }
+
+  async assertOpenDealDeleteBlocked() {
+    const snapshot = await this.deleteSnapshot(this.page, false);
+    const openDeals = snapshot.deals.filter(row => row.accountId === ACCOUNT_DELETE.blockedId && !row.stage.startsWith('Closed'));
+    expect(openDeals.length, 'Seed account has open deals').toBeGreaterThan(0);
+    await this.deleteAccount();
+    await expect(this.page.getByTestId('delete-blocked-banner')).toContainText(ACCOUNT_DELETE.blockedGuidance);
+    await expect(this.deleteDialog().getByRole('link')).toHaveCount(openDeals.length);
+    for (const deal of openDeals) {
+      await expect(this.deleteDialog().getByRole('link', { name: deal.name, exact: true })).toHaveAttribute('href', `/deals/${deal.id}`);
+    }
+    await this.helpers.click(this.deleteDialog().getByRole('button', { name: 'Close', exact: true }), 'Close blocked deletion');
+    await expect(this.deleteDialog()).toHaveCount(0);
+    await this.assertAccountDetailShown(snapshot.accounts.find(row => row.id === ACCOUNT_DELETE.blockedId).name);
+    await this.helpers.assertURL(new RegExp(`/accounts/${ACCOUNT_DELETE.blockedId}$`));
+  }
+
+  private rejectedDeleteRequests = 0;
+  private readonly rejectDeleteRoute = async (route: Route) => {
+    if (route.request().method() !== 'DELETE') return route.continue();
+    this.rejectedDeleteRequests++;
+    await route.fulfill({ status: 500, json: ACCOUNT_DELETE.rejectedBody });
+  };
+
+  async rejectEmptyAccountDeletes() {
+    const snapshot = await this.deleteSnapshot(this.page, false);
+    expect(snapshot.accounts.some(row => row.id === ACCOUNT_DELETE.emptyId), 'Empty seed account exists').toBe(true);
+    for (const collection of ['contacts', 'deals', 'quotes']) {
+      expect(snapshot[collection].filter(row => row.accountId === ACCOUNT_DELETE.emptyId), `Empty seed has no ${collection}`).toEqual([]);
+    }
+    this.rejectedDeleteRequests = 0;
+    await this.page.route(`**/api/accounts/${ACCOUNT_DELETE.emptyId}`, this.rejectDeleteRoute);
+  }
+
+  async openEmptyAccountDeleteDialog() {
+    await this.deleteAccount();
+    // With no related records this mode makes no unrelated collection updates.
+    await this.helpers.setChecked(this.deleteDialog().getByRole('radio', { name: 'Delete the related contacts and closed deals too' }), true);
+  }
+
+  async confirmRejectedAccountDelete() {
+    await this.helpers.click(this.page.getByTestId('confirm-delete-btn'), 'Delete account');
+  }
+
+  async assertRejectedDeleteRecovery(count: number) {
+    await expect.poll(() => this.rejectedDeleteRequests).toBe(count);
+    await expect(this.deleteDialog().getByRole('alert')).toHaveText(ACCOUNT_DELETE.recoveryError);
+    await expect(this.page.getByTestId('confirm-delete-btn')).toHaveText('Delete account');
+    await expect(this.page.getByTestId('confirm-delete-btn')).toBeEnabled();
+    await expect(this.deleteDialog().getByRole('button', { name: 'Cancel', exact: true })).toBeEnabled();
+    await this.helpers.assertURL(new RegExp(`/accounts/${ACCOUNT_DELETE.emptyId}$`));
+    await this.helpers.assertVisible(this.page.getByTestId('account-detail-page').getByRole('heading', { level: 1 }));
+  }
+
+  async cancelRejectedAccountDelete() {
+    const name = await this.getAccountNameFromDetailsPage();
+    await this.helpers.click(this.deleteDialog().getByRole('button', { name: 'Cancel', exact: true }), 'Cancel deletion');
+    await expect(this.deleteDialog()).toHaveCount(0);
+    await this.assertAccountDetailShown(name);
+    const snapshot = await this.deleteSnapshot(this.page, false);
+    expect(snapshot.accounts.find(row => row.id === ACCOUNT_DELETE.emptyId)?.name).toBe(name);
+  }
+
+  async stopRejectingAccountDeletes() {
+    await this.page.unroute(`**/api/accounts/${ACCOUNT_DELETE.emptyId}`, this.rejectDeleteRoute);
   }
 }
