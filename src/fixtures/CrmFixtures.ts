@@ -1,5 +1,6 @@
 import { WarmUpPage } from '@pages/CRM/warmUp.page';
 import { SearchPage } from '@pages/CRM/search.page';
+import { NotificationsPage } from '@pages/CRM/notifications.page';
 import { CrmLoginPage } from '@pages/CRM/crm.login.page';
 import { test as base } from './BaseFixtures';
 import { DashboardPage } from '@pages/CRM/dashboard.page';
@@ -48,6 +49,7 @@ import { ThemePage } from '@pages/CRM/theme.page';
 export type CRMPageFixtures = {
   warmUpPage: WarmUpPage;
   searchPage: SearchPage;
+  notificationsPage: NotificationsPage;
   crmLoginPage: CrmLoginPage;
   dashboardPage: DashboardPage;
   leadsPage: LeadsPage;
@@ -66,6 +68,10 @@ export const test = base.extend<CRMPageFixtures>({
   searchPage: async ({ page }, use) => {
     const searchPage = new SearchPage(page);
     try { await use(searchPage); } finally { await searchPage.cleanupFixtures(); }
+  },
+  notificationsPage: async ({ page }, use) => {
+    const notificationsPage = new NotificationsPage(page);
+    await use(notificationsPage);
   },
   crmLoginPage: async ({ page }, use) => {
     const crmLoginPage = new CrmLoginPage(page);

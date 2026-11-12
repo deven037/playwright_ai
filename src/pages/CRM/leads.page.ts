@@ -350,4 +350,72 @@ export class LeadsPage extends BasePage {
         const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
         await this.helpers.click(layout, "Layout");
     }
+
+    private get leadRows() { return this.page.locator('tbody tr.row-clickable'); }
+    private get focusedLeadRows() { return this.page.locator('tbody tr.row-clickable:focus'); }
+    private get nameHeader() { return this.page.locator('th[tabindex="0"]').filter({ hasText: /^\s*Name/ }); }
+
+    async assertLeadRowsVisible() {
+        await expect(this.leadRows.first()).toBeVisible();
+    }
+
+    async assertFirstRowKeyboardReachable() {
+        await expect(this.leadRows.first()).toHaveAttribute('tabindex', '0');
+    }
+
+    async tabToLeadRow() {
+        await this.helpers.clickAt(this.page.locator('body'), { x: 0, y: 0 }, 'Page body');
+        let focused = false;
+        for (let i = 0; i < 80 && !focused; i++) {
+            await this.helpers.pressPageKey('Tab');
+            focused = await this.helpers.isElementPresent(this.focusedLeadRows);
+        }
+        expect(focused, 'a lead row receives keyboard focus via Tab').toBe(true);
+    }
+
+    async pressEnter() {
+        await this.helpers.pressPageKey('Enter');
+    }
+
+    async assertLeadDetailOpen() {
+        await this.helpers.assertURL(/\/leads\/[^/]+$/);
+        await expect(this.page.getByTestId('lead-detail-page')).toBeVisible();
+    }
+
+    async goBackToLeadsList() {
+        await this.helpers.goBack();
+        await this.assertLeadRowsVisible();
+    }
+
+    async assertFirstRowHasVisibleConvertButton() {
+        const convertButtons = this.leadRows.first().getByRole('button', { name: /convert/i });
+        await expect(convertButtons).toHaveCount(1);
+        await expect(convertButtons).toBeVisible();
+    }
+
+    async focusNameHeader() {
+        await expect(this.nameHeader).toHaveCount(1);
+        await this.helpers.focus(this.nameHeader, 'Name column header');
+        await expect(this.nameHeader).toBeFocused();
+    }
+
+    async assertNameHeaderSort(direction: 'ascending' | 'descending') {
+        await expect(this.nameHeader).toHaveAttribute('aria-sort', direction);
+    }
+
+    async openStatusFilter() {
+        await this.helpers.click(this.page.getByTestId('filters-toggle'), 'Filters');
+        const filterPanel = this.page.getByTestId('filter-panel');
+        await expect(filterPanel).toBeVisible();
+        await this.helpers.click(filterPanel.getByRole('button', { name: 'Any status' }), 'Any status');
+    }
+
+    async assertStatusFilterOptions(baseline: string[], addedStatus: string) {
+        const options = this.page.getByRole('listbox').getByRole('option');
+        await expect(options).toHaveCount(baseline.length + 1);
+        await expect(options.filter({ hasText: addedStatus })).toHaveCount(1);
+        for (const status of baseline) {
+            await expect(options.filter({ hasText: status }).first()).toBeVisible();
+        }
+    }
 }

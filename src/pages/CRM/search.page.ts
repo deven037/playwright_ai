@@ -468,7 +468,7 @@ export class SearchPage extends BasePage {
     }
 
     async openErrorSearchWithShortcut() {
-        await this.opener(this.page).focus();
+        await this.helpers.focus(this.opener(this.page), 'Global search');
         await this.helpers.pressKey(this.opener(this.page), 'Control+k');
         await this.helpers.assertFocused(this.input);
         await this.helpers.fill(this.input, SEARCH_ERROR.term);
@@ -501,7 +501,7 @@ export class SearchPage extends BasePage {
 
     async assertEscapeFromCloseRestoresFocus() {
         const close = this.panel.getByRole('button', { name: 'Close', exact: true });
-        await close.focus();
+        await this.helpers.focus(close, 'Close search');
         await this.helpers.pressKey(close, 'Escape');
         await expect(this.panel).toHaveCount(0);
         await this.helpers.assertFocused(this.opener(this.page));
