@@ -31,6 +31,10 @@ export const RETRY_ACCOUNT_NAME_PREFIX = 'Account_Retry_';
 export const REJECTED_CREATE_BODY = { message: 'Controlled create failure for AIO-T150' };
 export const INVALID_CREATE_BODY = { message: 'Controlled validation failure for AIO-T151' };
 
+// AIO-337 / AIO-T200: rejected create and inline save keep the draft and recover the controls.
+export const DRAFT_ACCOUNT_NAME = 'QA Draft Account';
+export const SERVER_ERROR_BODY = { error: { code: 'server_error', message: 'Simulated save failure' } };
+
 export const ACCOUNT_FORM_VIEWPORTS = [
   { width: 375, height: 800 },
   { width: 768, height: 1024 },
