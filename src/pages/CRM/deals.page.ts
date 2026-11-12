@@ -1,6 +1,6 @@
 import { BasePage } from "@core/BasePage";
 import { Page, expect } from "@playwright/test";
-import { DEALS_VIEWPORT_HEIGHT, DEAL_STAGES, LIST_COLUMNS } from "../../data/deals.data";
+import { DEALS_VIEWPORT_HEIGHT, LIST_COLUMNS } from "../../data/deals.data";
 
 export class DealsPage extends BasePage {
 
@@ -119,7 +119,8 @@ export class DealsPage extends BasePage {
 
   async openBoard() {
     await this.gotoPath('/deals');
-    await this.helpers.assertVisible(this.stageColumn(DEAL_STAGES[0]), 'Deals board');
+    await this.helpers.click(this.page.getByRole('button', { name: 'Board', exact: true }), 'Deals Board view');
+    await this.helpers.assertVisible(this.page.getByTestId('kanban-board'), 'Deals board');
   }
 
   async openList() {
@@ -136,7 +137,7 @@ export class DealsPage extends BasePage {
     await this.helpers.refreshPage();
   }
 
-  async setViewportWidth(width: number) {
+  async setViewport(width: number) {
     await this.helpers.setViewport({ width, height: DEALS_VIEWPORT_HEIGHT });
   }
 

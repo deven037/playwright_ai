@@ -20,5 +20,7 @@ export const NEGOTIATION_COUNT = 5;
 export const SEARCH_TERM = 'pilot';
 export const NO_MATCH_TERM = 'zzzz';
 
-export const DEALS_WIDTHS = [375, 768, 1440];
+// Deals board must not widen the page (AIO-394 / AIO-T197); shared with AIO-T195.
+export const DEALS_BOARD_WIDTHS = [375, 768];
 export const DEALS_VIEWPORT_HEIGHT = 900;
+export const DEALS_DESKTOP_WIDTH = 1440;

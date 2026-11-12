@@ -1,6 +1,6 @@
 import { test } from '@fixtures/CrmFixtures';
 import {
-    CARD_ACCOUNT, CARD_AMOUNT, CARD_CLOSE, CARD_DEAL, CARD_DEAL_URL, CARD_PROBABILITY, DEALS_WIDTHS, DEAL_STAGES,
+    CARD_ACCOUNT, CARD_AMOUNT, CARD_CLOSE, CARD_DEAL, CARD_DEAL_URL, CARD_PROBABILITY, DEALS_BOARD_WIDTHS, DEALS_DESKTOP_WIDTH, DEAL_STAGES,
     LIST_COLUMNS, LIST_ROW_COUNT, MOVE_DEAL, MOVE_FROM_STAGE, MOVE_TO_STAGE, NEGOTIATION_COUNT, NEGOTIATION_STAGE,
     NO_MATCH_TERM, SEARCH_TERM, SMALLEST_AMOUNT,
 } from '../../../../src/data/deals.data';
@@ -109,8 +109,8 @@ test.describe('Deals Harbor redesign (AIO-392)', () => {
 
     test('AIO-T195: Deals board and list at 375, 768 and 1440 px @regression', async ({ crmLoginPage, dealsPage }) => {
         await crmLoginPage.goto();
-        for (const width of DEALS_WIDTHS) {
-            await dealsPage.setViewportWidth(width);
+        for (const width of [...DEALS_BOARD_WIDTHS, DEALS_DESKTOP_WIDTH]) {
+            await dealsPage.setViewport(width);
 
             // Step 1: the board scrolls inside its container, the page does not get wider
             await dealsPage.openBoard();
