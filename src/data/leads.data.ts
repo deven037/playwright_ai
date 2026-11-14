@@ -6,6 +6,11 @@ export const EMAIL_VALUE_PATTERN = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 // Whole-cell match: a phone cell is only digits, spaces, dashes and an optional +, so names like "Lead_1794384305536" don't match.
 export const PHONE_VALUE_PATTERN = /^\+?\d[\d\s-]{6,}\d$/;
 
+// AIO-395 / AIO-T203: shared expected status and block message.
+export const CONVERTED_LEAD_STATUS = 'Converted';
+export const NON_CONVERTED_LEAD_STATUS = 'New';
+export const ALREADY_CONVERTED_MESSAGE = 'This lead is already converted.';
+
 // AIO-125 / AIO-T101: 75 seeded leads, 10 per page (AC4 reach every page, AC5 filter-empty state).
 // Other specs add leads on shared staging, so the total is read from the page and must be at least the seed.
 export const SEEDED_LEAD_COUNT = 75;
@@ -24,8 +29,3 @@ export const LEAD_FORM_ACCESSIBILITY = {
     emailError: 'Enter a valid email.',
     statuses: ['New', 'Contacted', 'Qualified', 'Unqualified', 'Converted'],
 } as const;
-
-// AIO-395 / AIO-T203: shared expected status and block message.
-export const CONVERTED_LEAD_STATUS = 'Converted';
-export const NON_CONVERTED_LEAD_STATUS = 'New';
-export const ALREADY_CONVERTED_MESSAGE = 'This lead is already converted.';

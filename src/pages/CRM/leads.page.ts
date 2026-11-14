@@ -1,6 +1,7 @@
-import { ALREADY_CONVERTED_MESSAGE, CONVERTED_LEAD_STATUS, LEAD_FORM_ACCESSIBILITY } from '../../data/leads.data';
+import { LEAD_FORM_ACCESSIBILITY } from '../../data/leads.data';
 import { BasePage } from "@core/BasePage";
 import { expect, Locator, Page } from "@playwright/test";
+import { ALREADY_CONVERTED_MESSAGE, CONVERTED_LEAD_STATUS } from '../../data/leads.data';
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -353,6 +354,44 @@ export class LeadsPage extends BasePage {
         await this.helpers.assertVisible(toast, 'Converted toast');
     }
 
+    // AIO-395 / AIO-T203: converted-lead block, by exact lead name.
+    private namedLeadRow(leadName: string): Locator {
+        return this.page.getByRole('row').filter({
+            has: this.page.getByRole('cell', { name: leadName, exact: true }),
+        });
+    }
+
+    async assertNamedLeadStatus(leadName: string, status: string) {
+        const row = this.namedLeadRow(leadName);
+        await expect(row).toHaveCount(1);
+        await this.helpers.assertVisible(row.getByRole('cell', { name: status, exact: true }), 'Lead status');
+    }
+
+    async assertConvertedRowCannotOpenWizard(leadName: string) {
+        const row = this.namedLeadRow(leadName);
+        const convert = row.getByRole('button', { name: 'Convert', exact: true });
+        await this.assertNamedLeadStatus(leadName, CONVERTED_LEAD_STATUS);
+        await expect(convert).toBeDisabled();
+        await this.helpers.assertAttribute(convert, 'title', ALREADY_CONVERTED_MESSAGE);
+        // Bypass Playwright's enabled check to exercise the disabled browser control.
+        await this.helpers.click(convert, 'Disabled Convert button', { force: true });
+        await this.assertConversionWizardClosed();
+        await this.helpers.assertVisible(this.page.getByTestId('leads-page'), 'Leads list stays open');
+    }
+
+    async assertConvertedContextMenuBlocked(leadName: string) {
+        await this.helpers.click(this.namedLeadRow(leadName), 'Converted row context menu', { button: 'right' });
+        await this.helpers.click(this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true }), 'Convert lead menu item');
+        await expect(this.page.getByTestId('toast').filter({ hasText: ALREADY_CONVERTED_MESSAGE })).toBeVisible();
+        await this.assertConversionWizardClosed();
+    }
+
+    async openConversionForLead(leadName: string) {
+        const convert = this.namedLeadRow(leadName).getByRole('button', { name: 'Convert', exact: true });
+        await expect(convert).toBeEnabled();
+        await this.helpers.click(convert, 'Convert non-converted lead');
+    }
+
     async assertLeadsTableLoaded() {
         const firstRow = this.page.locator('tbody tr.row-clickable').first();
         await this.helpers.assertVisible(firstRow, 'First lead row');
@@ -562,43 +601,5 @@ export class LeadsPage extends BasePage {
         for (const status of LEAD_FORM_ACCESSIBILITY.statuses) {
             await this.helpers.assertVisible(this.page.getByRole('option', { name: status, exact: true }));
         }
-    }
-
-    // AIO-395 / AIO-T203: converted-lead block, by exact lead name.
-    private namedLeadRow(leadName: string): Locator {
-        return this.page.getByRole('row').filter({
-            has: this.page.getByRole('cell', { name: leadName, exact: true }),
-        });
-    }
-
-    async assertNamedLeadStatus(leadName: string, status: string) {
-        const row = this.namedLeadRow(leadName);
-        await expect(row).toHaveCount(1);
-        await this.helpers.assertVisible(row.getByRole('cell', { name: status, exact: true }), 'Lead status');
-    }
-
-    async assertConvertedRowCannotOpenWizard(leadName: string) {
-        const row = this.namedLeadRow(leadName);
-        const convert = row.getByRole('button', { name: 'Convert', exact: true });
-        await this.assertNamedLeadStatus(leadName, CONVERTED_LEAD_STATUS);
-        await expect(convert).toBeDisabled();
-        await this.helpers.assertAttribute(convert, 'title', ALREADY_CONVERTED_MESSAGE);
-        // Bypass Playwright's enabled check to exercise the disabled browser control.
-        await this.helpers.click(convert, 'Disabled Convert button', { force: true });
-        await this.assertConversionWizardClosed();
-        await this.helpers.assertVisible(this.page.getByTestId('leads-page'), 'Leads list stays open');
-    }
-
-    async assertConvertedContextMenuBlocked(leadName: string) {
-        await this.helpers.click(this.namedLeadRow(leadName), 'Converted row context menu', { button: 'right' });
-        await this.helpers.click(this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true }), 'Convert lead menu item');
-        await expect(this.page.getByTestId('toast').filter({ hasText: ALREADY_CONVERTED_MESSAGE })).toBeVisible();
-        await this.assertConversionWizardClosed();
-    }
-
-    async openConversionForLead(leadName: string) {
-        const convert = this.namedLeadRow(leadName).getByRole('button', { name: 'Convert', exact: true });
-        await expect(convert).toBeEnabled();
-        await this.helpers.click(convert, 'Convert non-converted lead');
     }
 }
