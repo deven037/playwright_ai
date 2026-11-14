@@ -14,6 +14,17 @@ export const PAGE_BUTTON_WINDOW_SIZE = 7;
 export const NO_MATCH_SEARCH_TEXT = 'zzz-no-such-lead';
 export const NO_MATCH_MESSAGE = 'No leads match the current filters.';
 
+export const LEAD_FORM_ACCESSIBILITY = {
+    labels: [
+        'Full name *', 'Company', 'Email *', 'Phone', 'Status', 'Source',
+        'Interested product', 'Campaign', 'Owner', 'Estimated value ($)',
+    ],
+    fullName: 'AIO-T204 label regression',
+    invalidEmail: 'bad',
+    emailError: 'Enter a valid email.',
+    statuses: ['New', 'Contacted', 'Qualified', 'Unqualified', 'Converted'],
+} as const;
+
 // AIO-395 / AIO-T203: shared expected status and block message.
 export const CONVERTED_LEAD_STATUS = 'Converted';
 export const NON_CONVERTED_LEAD_STATUS = 'New';

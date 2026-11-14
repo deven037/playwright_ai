@@ -1,7 +1,6 @@
+import { ALREADY_CONVERTED_MESSAGE, CONVERTED_LEAD_STATUS, LEAD_FORM_ACCESSIBILITY } from '../../data/leads.data';
 import { BasePage } from "@core/BasePage";
 import { expect, Locator, Page } from "@playwright/test";
-
-import { ALREADY_CONVERTED_MESSAGE, CONVERTED_LEAD_STATUS } from '../../data/leads.data';
 
 export class LeadsPage extends BasePage {
     waitForPageLoad(): Promise<void> {
@@ -24,7 +23,7 @@ export class LeadsPage extends BasePage {
     }
 
     async createNewLead() {
-        const newLeadBtn = this.page.getByRole('button', { name: '+ New Lead', exact: true });
+        const newLeadBtn = this.page.locator("//div[@class='page-actions']/button").nth(1);
         await this.helpers.click(newLeadBtn, 'New Lead');
         await this.page.waitForLoadState('networkidle');
     }
@@ -512,6 +511,60 @@ export class LeadsPage extends BasePage {
     async assertEmptyLeadsMessage(message: string) {
         await expect(this.page.locator('td.empty-cell')).toHaveText(message);
     }
+
+    async assertLeadFormLabelAssociations() {
+        const form = this.page.getByTestId('lead-form-page');
+        await this.helpers.assertVisible(form, 'New lead form');
+        for (const name of LEAD_FORM_ACCESSIBILITY.labels) {
+            const label = form.locator('label').filter({ hasText: name });
+            await expect(label).toHaveCount(1);
+            await expect(label).toHaveText(name);
+            await expect(label).toHaveAttribute('for', /.+/);
+            const id = await this.helpers.getAttributeValue(label, 'for');
+            const control = form.getByLabel(name, { exact: true });
+            await expect(control).toBeVisible();
+            await this.helpers.assertAttribute(control, 'id', id!);
+            await expect(control.locator('xpath=self::input | self::button')).toHaveCount(1);
+            await expect(control).toHaveAccessibleName(name);
+        }
+    }
+
+    async fillInvalidLeadEmail(fullName: string, email: string) {
+        const form = this.page.getByTestId('lead-form-page');
+        await this.helpers.fill(form.getByLabel(LEAD_FORM_ACCESSIBILITY.labels[0], { exact: true }), fullName, 'Full name');
+        await this.helpers.fill(form.getByLabel(LEAD_FORM_ACCESSIBILITY.labels[2], { exact: true }), email, 'Email');
+    }
+
+    async submitNewLeadForm() {
+        await this.helpers.click(
+            this.page.getByTestId('lead-form-page').getByRole('button', { name: 'Create lead', exact: true }),
+            'Create lead',
+        );
+    }
+
+    async assertInvalidLeadEmailRejected() {
+        const form = this.page.getByTestId('lead-form-page');
+        await this.helpers.assertVisible(form.getByText(LEAD_FORM_ACCESSIBILITY.emailError, { exact: true }));
+        await this.helpers.assertURL(/\/leads\/new(?:\?.*)?$/);
+        await this.helpers.assertVisible(form, 'New lead form remains open');
+    }
+
+    async openLeadFormStatus() {
+        await this.helpers.click(
+            this.page.getByTestId('lead-form-page').getByLabel('Status', { exact: true }),
+            'Status dropdown',
+        );
+    }
+
+    async assertLeadFormStatusOptions() {
+        const options = this.page.getByRole('listbox').getByRole('option');
+        await expect(options).toHaveCount(LEAD_FORM_ACCESSIBILITY.statuses.length);
+        for (const status of LEAD_FORM_ACCESSIBILITY.statuses) {
+            await this.helpers.assertVisible(this.page.getByRole('option', { name: status, exact: true }));
+        }
+    }
+
+    // AIO-395 / AIO-T203: converted-lead block, by exact lead name.
     private namedLeadRow(leadName: string): Locator {
         return this.page.getByRole('row').filter({
             has: this.page.getByRole('cell', { name: leadName, exact: true }),
@@ -548,5 +601,4 @@ export class LeadsPage extends BasePage {
         await expect(convert).toBeEnabled();
         await this.helpers.click(convert, 'Convert non-converted lead');
     }
-
 }
