@@ -17,9 +17,9 @@ test.describe('Leads list keyboard accessibility (AIO-61 AC3)', () => {
         await leadsPage.pressEnter();
         await leadsPage.assertLeadDetailOpen();
 
-        // Step 2: a visible Convert button on each row, no right-click needed
+        // Step 2: a visible Convert menu action, opened through the row Actions button
         await leadsPage.goBackToLeadsList();
-        await leadsPage.assertFirstRowHasVisibleConvertButton();
+        await leadsPage.assertFirstRowHasVisibleConvertAction();
 
         // Step 3: focus Name header, Enter sorts and aria-sort is exposed
         await leadsPage.focusNameHeader();

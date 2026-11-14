@@ -7,7 +7,7 @@ export type SearchModule = typeof SEARCH_MODULES[number];
 export const SEARCH_MATCH_COUNT = 12;
 export const LEADS_PAGE_SIZE = 10;
 export const seeAllLabel = (module: SearchModule) => `See all ${SEARCH_MATCH_COUNT} ${module}`;
-export const LEADS_PAGINATION_LABEL = `${SEARCH_MATCH_COUNT} lead(s) · page 1 of ${Math.ceil(SEARCH_MATCH_COUNT / LEADS_PAGE_SIZE)}`;
+export const LEADS_PAGINATION_LABEL = `${SEARCH_MATCH_COUNT} leads, page 1 of ${Math.ceil(SEARCH_MATCH_COUNT / LEADS_PAGE_SIZE)}`;
 
 // Browser-local GET fixtures: no shared staging records are created or modified.
 export const SEARCH_RECORDS = Object.fromEntries(SEARCH_MODULES.map(module => [module,

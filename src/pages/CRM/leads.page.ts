@@ -24,7 +24,7 @@ export class LeadsPage extends BasePage {
     }
 
     async createNewLead() {
-        const newLeadBtn = this.page.locator("//div[@class='page-actions']/button").nth(1);
+        const newLeadBtn = this.page.getByRole('button', { name: '+ New Lead', exact: true });
         await this.helpers.click(newLeadBtn, 'New Lead');
         await this.page.waitForLoadState('networkidle');
     }
@@ -107,7 +107,7 @@ export class LeadsPage extends BasePage {
     // expectResult = false filters without waiting for a row (use before assertSearchedLeadAbsent)
     async searchInLeadsTable(leadName: string, expectResult: boolean = true) {
         this.searchedLeadName = leadName;
-        const searchInput = this.page.locator("//div[@class='toolbar']/input");
+        const searchInput = this.page.getByTestId('leads-page').getByRole('searchbox', { name: 'Search leads', exact: true });
         await this.helpers.fill(searchInput, leadName, 'Search Input');
         await this.page.waitForLoadState('domcontentloaded');
         if (expectResult) {
@@ -369,25 +369,31 @@ export class LeadsPage extends BasePage {
 
     async assertConvertedRowCannotOpenWizard(leadName: string) {
         const row = this.namedLeadRow(leadName);
-        const convert = row.getByRole('button', { name: 'Convert', exact: true });
         await this.assertNamedLeadStatus(leadName, CONVERTED_LEAD_STATUS);
+        await this.helpers.click(row.getByRole('button', { name: `Actions for ${leadName}`, exact: true }), 'Converted row actions');
+        const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
         await expect(convert).toBeDisabled();
         await this.helpers.assertAttribute(convert, 'title', ALREADY_CONVERTED_MESSAGE);
         // Bypass Playwright's enabled check to exercise the disabled browser control.
         await this.helpers.click(convert, 'Disabled Convert button', { force: true });
         await this.assertConversionWizardClosed();
         await this.helpers.assertVisible(this.page.getByTestId('leads-page'), 'Leads list stays open');
+        await this.helpers.pressPageKey('Escape');
     }
 
     async assertConvertedContextMenuBlocked(leadName: string) {
         await this.helpers.click(this.namedLeadRow(leadName), 'Converted row context menu', { button: 'right' });
-        await this.helpers.click(this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true }), 'Convert lead menu item');
-        await expect(this.page.getByTestId('toast').filter({ hasText: ALREADY_CONVERTED_MESSAGE })).toBeVisible();
+        const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
+        await expect(convert).toBeDisabled();
+        await this.helpers.assertAttribute(convert, 'title', ALREADY_CONVERTED_MESSAGE);
+        await this.helpers.click(convert, 'Disabled context-menu Convert', { force: true });
         await this.assertConversionWizardClosed();
+        await this.helpers.pressPageKey('Escape');
     }
 
     async openConversionForLead(leadName: string) {
-        const convert = this.namedLeadRow(leadName).getByRole('button', { name: 'Convert', exact: true });
+        await this.helpers.click(this.namedLeadRow(leadName).getByRole('button', { name: `Actions for ${leadName}`, exact: true }), 'Lead row actions');
+        const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
         await expect(convert).toBeEnabled();
         await this.helpers.click(convert, 'Convert non-converted lead');
     }
@@ -470,10 +476,12 @@ export class LeadsPage extends BasePage {
         await this.assertLeadRowsVisible();
     }
 
-    async assertFirstRowHasVisibleConvertButton() {
-        const convertButtons = this.leadRows.first().getByRole('button', { name: /convert/i });
-        await expect(convertButtons).toHaveCount(1);
-        await expect(convertButtons).toBeVisible();
+    async assertFirstRowHasVisibleConvertAction() {
+        await this.helpers.click(this.leadRows.first().getByRole('button', { name: /^Actions for / }), 'Lead row actions');
+        const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
+        await expect(convert).toHaveCount(1);
+        await this.helpers.assertVisible(convert, 'Convert action');
+        await this.helpers.pressPageKey('Escape');
     }
 
     async focusNameHeader() {
@@ -502,16 +510,16 @@ export class LeadsPage extends BasePage {
         }
     }
 
-    // AIO-125 / AIO-T101: pagination footer, e.g. "75 lead(s) · page 1 of 8"
+    // AIO-125 / AIO-T101: direct summary span excludes the Rows control label.
     async assertPaginationFooter(total: number, page: number, totalPages: number) {
-        const footer = this.page.getByTestId('pagination').locator('span.muted');
-        await expect(footer).toHaveText(`${total} lead(s) · page ${page} of ${totalPages}`);
+        const footer = this.page.getByTestId('pagination').locator(':scope > span.muted');
+        await expect(footer).toHaveText(`${total} ${total === 1 ? 'lead' : 'leads'}, page ${page} of ${totalPages}`);
     }
 
     // Other specs create leads on shared staging, so the total is read from the footer, not hardcoded.
     async getLeadsTotal(): Promise<number> {
-        const footer = this.page.getByTestId('pagination').locator('span.muted');
-        await expect(footer).toHaveText(/^\d+ lead\(s\) · page 1 of \d+$/);
+        const footer = this.page.getByTestId('pagination').locator(':scope > span.muted');
+        await expect(footer).toHaveText(/^\d+ leads?, page 1 of \d+$/);
         const text = (await footer.textContent()) ?? '';
         return Number(text.match(/^(\d+) lead/)![1]);
     }
@@ -543,7 +551,7 @@ export class LeadsPage extends BasePage {
     }
 
     async searchLeadsList(text: string) {
-        const searchInput = this.page.locator("//div[@class='toolbar']/input");
+        const searchInput = this.page.getByTestId('leads-page').getByRole('searchbox', { name: 'Search leads', exact: true });
         await this.helpers.fill(searchInput, text, 'Search Input');
     }
 

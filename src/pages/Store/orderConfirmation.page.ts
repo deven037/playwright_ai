@@ -7,13 +7,17 @@ export class OrderConfirmationPage extends BasePage {
         super(page);
     }
 
+    private get orderMessage() {
+        return this.page.locator('#maincontainer p').filter({ hasText: /order.*#\s*\d+/i });
+    }
+
     async waitForPageLoad(): Promise<void> {
-        this.page.locator('#maincontainer > div > div > div > div > section > p:nth-child(3)');
+        await this.helpers.waitForElement(this.orderMessage, 'visible', 'Order confirmation number');
         this.logger.info("Order Confirmation Page loaded successfully.");
     }
 
     async getOrderID(): Promise<string> {
-        const locator = this.page.locator('#maincontainer > div > div > div > div > section > p:nth-child(3)');
+        const locator = this.orderMessage;
         const orderMsg = await this.helpers.getText(locator);
         const orderNumber = orderMsg.split('#')[1]?.match(/\d+/)?.[0];
 

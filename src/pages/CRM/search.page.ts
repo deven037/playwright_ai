@@ -198,7 +198,7 @@ export class SearchPage extends BasePage {
     private filterChip(module: Locator, label: string) { return module.getByRole('button', { name: label, exact: true }); }
     private kanbanTitles(module: Locator) { return module.locator('.kanban-card-title'); }
     private searchbox(module: Locator) { return module.getByRole('searchbox'); }
-    private rowText(module: Locator, name: string) { return module.getByText(name, { exact: true }); }
+    private rowText(module: Locator, name: string) { return module.getByRole('cell', { name, exact: true }); }
     private statusRegion(page: Page) { return this.globalPanel(page).getByRole('status'); }
     private fulfill(route: Route, body: unknown) {
         return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });

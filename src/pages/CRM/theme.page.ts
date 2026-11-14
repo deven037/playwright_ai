@@ -16,7 +16,7 @@ export class ThemePage extends BasePage {
     }
 
     private get leadRows() {
-        return this.page.locator('tr.row-clickable');
+        return this.page.getByTestId('leads-page').locator('tr.row-clickable:visible, ul.lead-cards:visible > li.lead-card');
     }
 
     // Names of every custom property declared in a :root rule, one entry per declaration across all :root rules.
