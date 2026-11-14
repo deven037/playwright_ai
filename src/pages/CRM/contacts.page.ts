@@ -189,6 +189,19 @@ export class ContactsPage extends BasePage {
     await this.helpers.assertVisible(form);
   }
 
+  private recentlyAccessedEntry(contactName: string) {
+    return this.page.getByTestId('toolbox-panel').getByRole('link').filter({ hasText: contactName });
+  }
+
+  async assertContactsListShown() {
+    await this.helpers.assertURL(/\/contacts\/?$/);
+    await this.helpers.assertVisible(this.page.getByTestId('toolbox-panel'), 'Recently Accessed panel is visible');
+  }
+
+  async assertContactNotInRecentlyAccessed(contactName: string) {
+    await this.helpers.waitForElement(this.recentlyAccessedEntry(contactName), 'detached', 'Deleted contact in Recently Accessed');
+  }
+
   async chooseLayout(layoutName: string) {
     const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
     await this.helpers.click(layout, "Layout");
