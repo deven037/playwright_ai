@@ -383,6 +383,17 @@ export class AccountsPage extends BasePage {
     return snapshot;
   }
 
+  private blockedAccountScope(snapshot: Record<string, any[]>) {
+    const id = ACCOUNT_DELETE.blockedId;
+    const dealIds = new Set(snapshot.deals.filter(row => row.accountId === id).map(row => row.id));
+    return {
+      accounts: snapshot.accounts.filter(row => row.id === id),
+      contacts: snapshot.contacts.filter(row => row.accountId === id),
+      deals: snapshot.deals.filter(row => row.accountId === id),
+      quotes: snapshot.quotes.filter(row => row.accountId === id || dealIds.has(row.dealId)),
+    };
+  }
+
   async assertOpenDealDeleteHasNoWritesForBothRoles() {
     // Complete both modes for Admin before repeating with the saved Rep session.
     for (const role of ACCOUNT_DELETE.roles) {
@@ -405,7 +416,8 @@ export class AccountsPage extends BasePage {
           // The audit log is shared and capped, so parallel tests append and rotate rows; only rows this delete could write count.
           const { audit: auditBefore = [], ...dataBefore } = before;
           const { audit: auditAfter = [], ...dataAfter } = after;
-          expect(dataAfter, `${role} cascade=${cascade} has no API-visible writes`).toEqual(dataBefore);
+          // Staging is shared: parallel specs create other accounts, so compare only records tied to the blocked account.
+          expect(this.blockedAccountScope(dataAfter), `${role} cascade=${cascade} has no API-visible writes`).toEqual(this.blockedAccountScope(dataBefore));
           const knownIds = new Set(auditBefore.map(row => row.id));
           const accountName = before.accounts.find(row => row.id === ACCOUNT_DELETE.blockedId).name;
           const deleteRows = auditAfter.filter(row => !knownIds.has(row.id)

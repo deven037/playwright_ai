@@ -468,7 +468,9 @@ export class SearchPage extends BasePage {
         // Flush the browser fetch/React work before checking retained results.
         await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
         await expect(this.emptyState(page)).toContainText(searchText.empty(searchTerms.newer));
-        await expect(this.globalPanel(page)).not.toContainText(searchTerms.older);
+        // The older term 'an' is a substring of the empty-state guidance ("company"), so check the older result row instead.
+        await expect(this.result(page, 'leads')).toHaveCount(0);
+        await expect(this.input).toHaveValue(searchTerms.newer);
     }
 
     private searchErrorRequests = 0;
