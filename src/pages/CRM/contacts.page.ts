@@ -1,5 +1,5 @@
 import { Page } from "@playwright/test";
-import { CONTACT_FORM } from '../../data/contacts.data';
+import { CONTACT_FORM, VIEWER_CONTACT } from '../../data/contacts.data';
 import { BasePage } from "../../core/BasePage";
 
 export class ContactsPage extends BasePage {
@@ -187,6 +187,33 @@ export class ContactsPage extends BasePage {
     await this.helpers.assertFocused(name);
     await this.helpers.assertURL(/\/contacts\/new(?:\?|$)/);
     await this.helpers.assertVisible(form);
+  }
+
+  async openViewerContactRecord() {
+    const crmUrl = this.env.newAppBaseUrl.trim();
+    if (!crmUrl) throw new Error('NEWAPP_BASE_URL is not configured.');
+    await this.helpers.navigateTo(new URL(VIEWER_CONTACT.path, crmUrl).toString());
+  }
+
+  async assertViewerContactRecordLoaded() {
+    const record = this.page.getByTestId('contact-detail-page');
+    await this.helpers.assertVisible(record);
+    await this.helpers.assertVisible(record.getByRole('heading', { name: VIEWER_CONTACT.name, exact: true }));
+    await this.helpers.assertVisible(record.getByRole('heading', { name: 'Contact details', exact: true }));
+    await this.helpers.assertURL(/\/contacts\/contact-2(?:[?#]|$)/);
+  }
+
+  async getAvailableContactWriteActions() {
+    const available: string[] = [];
+    const record = this.page.getByTestId('contact-detail-page');
+    for (const action of VIEWER_CONTACT.writeActions) {
+      const control = record.getByTestId(action.testId);
+      // Check rendered visibility, not the hidden attribute: CSS can override hidden.
+      if (await control.isVisible() && !(await control.isDisabled())) {
+        available.push(action.name);
+      }
+    }
+    return available;
   }
 
   async chooseLayout(layoutName: string) {
