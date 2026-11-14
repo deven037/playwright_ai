@@ -341,6 +341,8 @@ export class AccountsPage extends BasePage {
       throw error;
     }
     await this.openAccount(accountName);
+    // Delete only once the detail page of this account is loaded, so the click cannot hit a stale page.
+    await this.assertAccountDetailShown(accountName);
     await this.deleteAccount();
     await this.confirmDelete();
   }

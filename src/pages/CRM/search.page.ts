@@ -432,6 +432,8 @@ export class SearchPage extends BasePage {
         await helpers.pressKey(this.globalInput(page), 'ArrowDown', 'Search globalInput');
         await helpers.pressKey(this.globalInput(page), 'Enter', 'Search globalInput');
         await expect(page).toHaveURL(new RegExp(`/leads/${searchText.controlledId}$`));
+        // Selecting a result closes the panel; its overlay must not cover the header for the next step.
+        await expect(this.globalPanel(page)).toHaveCount(0);
     }
 
     async assertLoadingErrorRetryAndEmpty() {
