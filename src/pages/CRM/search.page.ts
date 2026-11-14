@@ -7,7 +7,7 @@ import {
     SEARCH_ERROR, LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
     SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel, SEARCH_API_GROUPS, SEARCH_GROUPING_TERM,
     SEARCH_LIVE_PATHS, SEARCH_PER_TYPE_LIMIT, SearchApiBody, formatPhoneWithSeparators,
-    SEARCH_ROLE_EMAILS, SearchRole, SEARCH_SEEDED_LEAD,
+    SEARCH_ROLE_EMAILS, SearchRole, SEARCH_SEEDED_LEAD, SEARCH_ENTER_SELECTION,
     searchTypes, searchRoles, searchText, searchTerms, searchFixtures, emptySearchResponse, controlledSearchResponse,
 } from '../../data/search.data';
 
@@ -507,6 +507,31 @@ export class SearchPage extends BasePage {
         await this.helpers.pressKey(close, 'Escape');
         await expect(this.panel).toHaveCount(0);
         await this.helpers.assertFocused(this.opener(this.page));
+    }
+
+    async openSearchWithShortcut() {
+        await this.helpers.focus(this.opener(this.page), 'Global search');
+        await this.helpers.pressKey(this.opener(this.page), 'Control+k');
+        await this.helpers.assertFocused(this.input);
+    }
+
+    async openSearchFromHeader() {
+        await this.helpers.click(this.opener(this.page));
+        await this.helpers.assertFocused(this.input);
+    }
+
+    async assertEnterOnHighlightedResultLeavesPanelClosed() {
+        await this.helpers.fill(this.input, SEARCH_ENTER_SELECTION.term);
+        const result = this.result(this.page, 'leads');
+        await expect(result).toBeVisible();
+        await expect(this.input).toHaveAttribute('aria-busy', 'false');
+        await this.helpers.pressKey(this.input, 'ArrowDown');
+        await expect(result.first()).toHaveAttribute('aria-selected', 'true');
+        await this.helpers.pressKey(this.input, 'Enter');
+        await this.helpers.assertURL(new RegExp(`/leads/${SEARCH_ENTER_SELECTION.leadId}$`));
+        // The defect reopened the panel after navigation settled, so let the page go idle before asserting.
+        await this.page.waitForLoadState('networkidle');
+        await expect(this.panel).toHaveCount(0);
     }
 
     async assertEscapeFromInputRestoresFocus() {

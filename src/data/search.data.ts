@@ -96,4 +96,7 @@ export const searchScenarioNames = [
     "An older delayed response cannot replace a newer result"
 ] as const;
 
+// AIO-400: staging seed lead "Kabir Menon" (lead-5), opened by the highlighted search result.
+export const SEARCH_ENTER_SELECTION = { term: 'kabir', leadId: 'lead-5' } as const;
+
 export const SEARCH_ERROR = { term: 'an', heading: 'Search did not finish', response: { message: 'Controlled search failure for AIO-T79' } } as const;
