@@ -9,7 +9,8 @@ export const CARD_DEAL = 'Zenith Expansion';
 export const CARD_ACCOUNT = 'Solaris Systems';
 export const CARD_AMOUNT = '$114,000';
 export const CARD_PROBABILITY = '80%';
-export const CARD_CLOSE = 'Close: Feb 4, 2027';
+// The seed sets close dates relative to the moment of the last reset (daysFromNow), so only the format is stable.
+export const CARD_CLOSE = /Close: [A-Z][a-z]{2} \d{1,2}, \d{4}/;
 export const CARD_DEAL_URL = /\/deals\/deal-1$/;
 
 export const LIST_COLUMNS = ['Deal', 'Account', 'Stage', 'Amount', 'Probability', 'Expected close', 'Owner'];
