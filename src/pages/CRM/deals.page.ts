@@ -171,6 +171,27 @@ export class DealsPage extends BasePage {
     await this.helpers.selectOption(this.moveSelect(deal), stage, `Move ${deal} to…`);
   }
 
+  async openStagingBoardInNewTab() {
+    expect(new URL(this.env.newAppBaseUrl).hostname).toBe('automation-crm-7qil.onrender.com');
+    await this.helpers.navigateTo(this.env.newAppBaseUrl);
+    await this.openBoard();
+  }
+
+  async moveDealAndAssertSaved(deal: string, id: string, stage: string) {
+    const [response] = await Promise.all([
+      this.page.waitForResponse(response =>
+        new URL(response.url()).pathname === `/api/deals/${id}`
+        && response.request().method() === 'PUT'),
+      this.moveDeal(deal, stage),
+    ]);
+    expect(response.status(), await response.text()).toBe(200);
+    await this.assertDealInStage(deal, stage);
+  }
+
+  async assertDealNotInStage(deal: string, stage: string) {
+    await expect(this.stageColumn(stage).getByRole('group', { name: deal, exact: true })).toHaveCount(0);
+  }
+
   async assertMoveToast(deal: string, stage: string) {
     const toast = this.page.getByRole('alert').or(this.page.getByRole('status'))
       .filter({ hasText: `"${deal}" moved to ${stage}.` });

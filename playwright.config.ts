@@ -2,8 +2,11 @@ import { defineConfig, devices } from '@playwright/test';
 import { EnvManager } from './src/utils/EnvManager';
 
 const env = EnvManager.getInstance();
-// Full-collection snapshots must finish before any parallel CRM writer starts.
-const snapshotSpec = '**/Accounts/accountDeleteRecovery.feature.test.ts';
+// Snapshot and shared-seed regressions finish before parallel CRM writers start.
+const snapshotSpec = [
+  '**/Accounts/accountDeleteRecovery.feature.test.ts',
+  '**/Accounts/accountUnlinkConcurrentStage.feature.test.ts',
+];
 const snapshotSuite = !process.env.TEST_SUITE || ['regression', 'all'].includes(process.env.TEST_SUITE);
 const isolateSnapshots = snapshotSuite && process.env.TARGET_ENV !== 'production';
 

@@ -85,6 +85,7 @@ export type CRMPageFixtures = {
   contactsPage: ContactsPage;
   assignmentRulesPage: AssignmentRulePage;
   dealsPage: DealsPage;
+  dealsTab: DealsPage;
   accountsPage: AccountsPage;
   ticketsPage: TicketsPage;
   themePage: ThemePage;
@@ -162,6 +163,15 @@ export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
   dealsPage: async ({page}, use) => {
     const dealsPage = new DealsPage(page);
     await use(dealsPage);
+  },
+
+  dealsTab: async ({ context }, use) => {
+    const page = await context.newPage();
+    try {
+      await use(new DealsPage(page));
+    } finally {
+      await page.close();
+    }
   },
 
   accountsPage: async ({page}, use) => {

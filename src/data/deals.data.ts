@@ -25,3 +25,5 @@ export const NO_MATCH_TERM = 'zzzz';
 export const DEALS_BOARD_WIDTHS = [375, 768];
 export const DEALS_VIEWPORT_HEIGHT = 900;
 export const DEALS_DESKTOP_WIDTH = 1440;
+
+export const MOVE_DEAL_ID = 'deal-21';

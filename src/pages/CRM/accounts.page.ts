@@ -422,6 +422,42 @@ export class AccountsPage extends BasePage {
     await this.helpers.assertVisible(this.page.getByTestId('account-detail-page'));
   }
 
+  async assertStagingForConcurrentDelete() {
+    expect(new URL(this.env.newAppBaseUrl).hostname).toBe('automation-crm-7qil.onrender.com');
+  }
+
+  async deleteUnrelatedAccountAndAssertOnlyDelete() {
+    const accountPath = new URL(this.page.url()).pathname;
+    expect(accountPath).toMatch(new RegExp('^/accounts/[^/]+$'));
+    await this.deleteAccount();
+    await expect(this.deleteDialog().getByRole('radio', {
+      name: 'Keep them, but unlink from this account', exact: true,
+    })).toBeChecked();
+    const writes: { method: string; path: string; search: string }[] = [];
+    const recordWrite = (request: import('@playwright/test').Request) => {
+      const url = new URL(request.url());
+      if (url.pathname.startsWith('/api/') && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(request.method())) {
+        writes.push({ method: request.method(), path: url.pathname, search: url.search });
+      }
+    };
+    this.page.on('request', recordWrite);
+    try {
+      const [response] = await Promise.all([
+        this.page.waitForResponse(response =>
+          new URL(response.url()).pathname === `/api${accountPath}`
+          && response.request().method() === 'DELETE'),
+        this.confirmDelete(),
+      ]);
+      expect(response.ok(), await response.text()).toBe(true);
+      await this.waitForPageLoad();
+      expect(writes, 'Unlink deletion sends only the account DELETE, with no deal PUTs').toEqual([
+        { method: 'DELETE', path: `/api${accountPath}`, search: '' },
+      ]);
+    } finally {
+      this.page.off('request', recordWrite);
+    }
+  }
+
   private deleteDialog() { return this.page.getByRole('dialog'); }
 
   async assertOpenDealDeleteBlocked() {
