@@ -11,6 +11,8 @@ export class NotificationsPage extends BasePage {
     private get markAllReadButton() { return this.panel.getByRole('button', { name: 'Mark all read' }); }
     private get items() { return this.panel.locator('.notif-item'); }
     private get unreadItems() { return this.panel.locator('.notif-item.unread'); }
+    private get avatarButton() { return this.page.getByTestId('avatar-menu'); }
+    private get logOutButton() { return this.page.getByRole('button', { name: 'Log out' }); }
 
     async waitForPageLoad() {
         await this.helpers.waitForElement(this.bellButton);
@@ -22,6 +24,14 @@ export class NotificationsPage extends BasePage {
 
     async markAllRead() {
         await this.helpers.click(this.markAllReadButton, 'Mark all read');
+    }
+
+    async openUserMenu() {
+        await this.helpers.click(this.avatarButton, 'User menu');
+    }
+
+    async pressEscape() {
+        await this.helpers.pressPageKey('Escape');
     }
 
     async openNavLink(name: NavLink) {
@@ -50,6 +60,18 @@ export class NotificationsPage extends BasePage {
 
     async assertPanelClosed() {
         await expect(this.panel).toHaveCount(0);
+    }
+
+    async assertUserMenuOpen() {
+        await expect(this.logOutButton).toBeVisible();
+    }
+
+    async assertUserMenuClosed() {
+        await expect(this.logOutButton).toBeHidden();
+    }
+
+    async assertMarkAllReadHidden() {
+        await expect(this.markAllReadButton).toBeHidden();
     }
 
     async assertItemCount(count: number) {
