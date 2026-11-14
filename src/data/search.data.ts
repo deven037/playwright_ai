@@ -98,3 +98,5 @@ export const searchScenarioNames = [
 ] as const;
 
 export const SEARCH_ERROR = { term: 'an', heading: 'Search did not finish', response: { message: 'Controlled search failure for AIO-T79' } } as const;
+
+export const SEARCH_RETRY_TERM = 'kabir';
