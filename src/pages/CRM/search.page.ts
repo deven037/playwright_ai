@@ -8,7 +8,7 @@ import {
     HEADER_SEARCH_CHECKS, SEARCH_ERROR, LEADS_PAGE_SIZE, LEADS_PAGINATION_LABEL, SEARCH_LABEL, SEARCH_MATCH_COUNT, SEARCH_MODULES, SEARCH_RECORDS,
     SEARCH_TERMS, SearchModule, searchResponse, seeAllLabel, SEARCH_API_GROUPS, SEARCH_GROUPING_TERM,
     SEARCH_LIVE_PATHS, SEARCH_PER_TYPE_LIMIT, SearchApiBody, formatPhoneWithSeparators,
-    SEARCH_ROLE_EMAILS, SearchRole, SEARCH_SEEDED_LEAD,
+    SEARCH_ROLE_EMAILS, SearchRole, SEARCH_SEEDED_LEAD, LIST_LOAD_TIMEOUT,
     searchTypes, searchRoles, searchText, searchTerms, searchFixtures, emptySearchResponse, controlledSearchResponse,
 } from '../../data/search.data';
 
@@ -361,7 +361,8 @@ export class SearchPage extends BasePage {
                     expect((await this.kanbanTitles(module).allTextContents()).sort()).toEqual(records.deals.map(row => row.name).sort());
                 } else {
                     await expect(this.searchbox(module)).toHaveValue(term);
-                    for (const row of records[type]) await expect(this.rowText(module, row.name)).toBeVisible();
+                    // The list fetches every page of the module (300-1200 ms simulated latency per call), so allow more than the default 10 s.
+                    for (const row of records[type]) await expect(this.rowText(module, row.name)).toBeVisible({ timeout: LIST_LOAD_TIMEOUT });
                 }
               }
                 await helpers.click(this.opener(page));

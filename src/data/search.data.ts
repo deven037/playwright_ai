@@ -50,7 +50,8 @@ export type SearchApiBody = { term: string } & Record<typeof SEARCH_API_GROUPS[n
 export const formatPhoneWithSeparators = (digits: string) =>
     `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 
-export const searchTypes = ['leads', 'contacts', 'accounts', 'deals'] as const;
+export const LIST_LOAD_TIMEOUT = 30_000;
+export const searchTypes =['leads', 'contacts', 'accounts', 'deals'] as const;
 export const searchRoles = ['admin', 'rep', 'viewer'] as const;
 export const searchText = {
     subtitle: 'Controlled response',

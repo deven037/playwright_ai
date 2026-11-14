@@ -152,12 +152,13 @@ export class DealsPage extends BasePage {
     await expect(this.page.getByRole('group', { name: /, \d+ cards?$/ })).toHaveCount(stages.length);
   }
 
-  async assertCardDetails(deal: string, account: string, amount: string, probability: string, close: string) {
+  async assertCardDetails(deal: string, account: string, amount: string, probability: string, close: RegExp) {
     const card = this.boardCard(deal);
     await this.helpers.assertVisible(card, `${deal} card`);
-    for (const text of [deal, account, amount, probability, close]) {
+    for (const text of [deal, account, amount, probability]) {
       await this.helpers.assertText(card, text);
     }
+    await expect(card).toContainText(close);
     await this.helpers.assertVisible(this.moveSelect(deal), `Move ${deal} to…`);
   }
 
@@ -178,6 +179,14 @@ export class DealsPage extends BasePage {
 
   async assertMoveMenuFocused(deal: string) {
     await this.helpers.assertFocused(this.moveSelect(deal), `Move ${deal} to… menu`);
+  }
+
+  /** The column's header count equals the cards it shows. Holds while other specs add or delete deals
+   *  on the shared staging data (an exact before/after delta did not: run 43233538273). */
+  async assertStageCountMatchesCards(stage: string) {
+    const column = this.stageColumn(stage);
+    await expect.poll(async () => (await this.getStageCount(stage)) - (await column.locator('.kanban-card-title').count()),
+      { message: `${stage} header count equals its cards` }).toBe(0);
   }
 
   async assertStageCount(stage: string, count: number) {
