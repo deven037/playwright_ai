@@ -17,13 +17,14 @@ test.describe('Deals Harbor redesign (AIO-392)', () => {
         await dealsPage.assertCardDetails(CARD_DEAL, CARD_ACCOUNT, CARD_AMOUNT, CARD_PROBABILITY, CARD_CLOSE);
 
         try {
-            // Step 3: moving Marble Pilot to Proposal toasts, updates both counts and keeps focus on the menu
-            const fromCount = await dealsPage.getStageCount(MOVE_FROM_STAGE);
-            const toCount = await dealsPage.getStageCount(MOVE_TO_STAGE);
+            // Step 3: moving Marble Pilot to Proposal toasts, updates both counts and keeps focus on the menu.
+            // Other specs create and delete deals on the same staging data in parallel, so the counts are
+            // checked against the cards each column shows, not as an exact before/after delta.
             await dealsPage.moveDeal(MOVE_DEAL, MOVE_TO_STAGE);
             await dealsPage.assertMoveToast(MOVE_DEAL, MOVE_TO_STAGE);
-            await dealsPage.assertStageCount(MOVE_FROM_STAGE, fromCount - 1);
-            await dealsPage.assertStageCount(MOVE_TO_STAGE, toCount + 1);
+            await dealsPage.assertDealInStage(MOVE_DEAL, MOVE_TO_STAGE);
+            await dealsPage.assertStageCountMatchesCards(MOVE_FROM_STAGE);
+            await dealsPage.assertStageCountMatchesCards(MOVE_TO_STAGE);
             await dealsPage.assertMoveMenuFocused(MOVE_DEAL);
 
             // Step 4: the move survives a reload
@@ -33,8 +34,8 @@ test.describe('Deals Harbor redesign (AIO-392)', () => {
             // Step 5: moving back restores the seed state
             await dealsPage.moveDeal(MOVE_DEAL, MOVE_FROM_STAGE);
             await dealsPage.assertDealInStage(MOVE_DEAL, MOVE_FROM_STAGE);
-            await dealsPage.assertStageCount(MOVE_FROM_STAGE, fromCount);
-            await dealsPage.assertStageCount(MOVE_TO_STAGE, toCount);
+            await dealsPage.assertStageCountMatchesCards(MOVE_FROM_STAGE);
+            await dealsPage.assertStageCountMatchesCards(MOVE_TO_STAGE);
         } finally {
             await dealsPage.restoreDealStage(MOVE_DEAL, MOVE_FROM_STAGE);
         }

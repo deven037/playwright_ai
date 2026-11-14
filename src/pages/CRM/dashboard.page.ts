@@ -1,7 +1,9 @@
 import { BasePage } from '../../core/BasePage';
 import { Page, expect } from "@playwright/test";
 import {
+    BOOTSTRAP_FAILURE_STATUS,
     BOOTSTRAP_URL_PATTERN,
+    DEFAULT_SHELL_NAME,
     PROFILE_FALLBACK_DETAIL,
     PROFILE_FALLBACK_MESSAGE
 } from '../../data/bankProfile.data';
@@ -10,6 +12,7 @@ export class DashboardPage extends BasePage {
 
     private bootstrapRequests = 0;
     private bootstrapRequestsBeforeRetry = 0;
+    private bootstrapFailing = false;
 
     async waitForPageLoad(): Promise<void> {
         await  this.page.waitForLoadState('networkidle');
@@ -72,6 +75,10 @@ export class DashboardPage extends BasePage {
         return this.page.getByRole('button', { name: 'Retry', exact: true });
     }
 
+    private get defaultShellName() {
+        return this.page.getByText(DEFAULT_SHELL_NAME, { exact: true }).first();
+    }
+
     async assertViewAllActivityIsLink() {
         await expect(this.viewAllActivityLink).toBeVisible();
         await expect(this.page.getByRole('link', { name: /view all activity/i })).toHaveAttribute('href', '/activity');
@@ -109,6 +116,47 @@ export class DashboardPage extends BasePage {
             });
         });
         await this.page.reload();
+    }
+
+    // Bootstrap request failure (AIO-398 / AIO-T202): answer /api/bootstrap with HTTP 500 while it is failing,
+    // pass it through once allowed, and count every request either way.
+    async failBootstrapRequests() {
+        this.bootstrapRequests = 0;
+        this.bootstrapFailing = true;
+        await this.page.route(BOOTSTRAP_URL_PATTERN, async route => {
+            this.bootstrapRequests++;
+            if (this.bootstrapFailing) {
+                await route.fulfill({ status: BOOTSTRAP_FAILURE_STATUS, contentType: 'application/json', body: '{}' });
+            } else {
+                await route.continue();
+            }
+        });
+    }
+
+    async allowBootstrapRequests() {
+        this.bootstrapFailing = false;
+    }
+
+    async openLeadsPage() {
+        const baseUrl = this.env.newAppBaseUrl?.trim();
+        if (!baseUrl) {
+            throw new Error('NEWAPP_BASE_URL is not configured. Set it in .env or CI environment variables.');
+        }
+        await this.page.goto(`${baseUrl.replace(/\/+$/, '')}/leads`);
+    }
+
+    async assertStillOnLeads() {
+        await expect(this.page).toHaveURL(/\/leads$/);
+    }
+
+    async assertDefaultShellWithFallback() {
+        await expect(this.defaultShellName).toBeVisible();
+        await this.assertProfileFallbackMessage();
+    }
+
+    async assertProfileFallbackGone() {
+        await expect(this.profileFallbackMessage).toBeHidden();
+        await expect(this.profileFallbackRetryButton).toBeHidden();
     }
 
     async assertProfileFallbackMessage() {

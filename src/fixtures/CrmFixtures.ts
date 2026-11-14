@@ -1,5 +1,6 @@
 import { WarmUpPage } from '@pages/CRM/warmUp.page';
 import { SearchPage } from '@pages/CRM/search.page';
+import { SearchApiPage } from '@pages/CRM/searchApi.page';
 import { NotificationsPage } from '@pages/CRM/notifications.page';
 import { CrmLoginPage } from '@pages/CRM/crm.login.page';
 import { test as base } from './BaseFixtures';
@@ -74,6 +75,7 @@ const FORM_LOGIN_SPECS = [
 export type CRMPageFixtures = {
   warmUpPage: WarmUpPage;
   searchPage: SearchPage;
+  searchApiPage: SearchApiPage;
   notificationsPage: NotificationsPage;
   crmLoginPage: CrmLoginPage;
   dashboardPage: DashboardPage;
@@ -117,6 +119,7 @@ export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
     const searchPage = new SearchPage(page);
     try { await use(searchPage); } finally { await searchPage.cleanupFixtures(); }
   },
+  searchApiPage: async ({ page }, use) => { await use(new SearchApiPage(page)); },
   notificationsPage: async ({ page }, use) => {
     const notificationsPage = new NotificationsPage(page);
     await use(notificationsPage);
