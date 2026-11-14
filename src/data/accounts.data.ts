@@ -20,6 +20,8 @@ export const ACCOUNT_FORM_LABELS = [
 
 /** Controls whose accessible name must match their label. */
 export const ACCOUNT_FORM_ACCESSIBLE_NAMES = [
+  { controlId: 'account-employees-input', name: 'Employees' },
+  { controlId: 'account-revenue-input', name: 'Annual revenue' },
   { controlId: 'account-industry-input', name: 'Industry' },
   { controlId: 'account-owner-input', name: 'Owner' },
   { controlId: 'account-phone-input', name: 'Phone' },
@@ -59,3 +61,6 @@ export const ACCOUNT_DELETE = {
   blockedGuidance: /Close or reassign these .* open deal\(s\) first/,
   recoveryError: 'Account couldn’t be deleted. Some related records may have changed. Reload the page and check before you try again.',
 } as const;
+
+// AIO-324 / AIO-T144: invalid draft must remain entirely client-side.
+export const NEGATIVE_ACCOUNT_DRAFT = { employees: '-5', revenue: '-10' } as const;

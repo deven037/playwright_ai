@@ -114,7 +114,7 @@ export class AccountsPage extends BasePage {
     await expect(this.page.getByTestId(`account-${field}`)).not.toHaveAttribute('aria-invalid', 'true');
   }
 
-  async assertFieldValue(field: 'employees' | 'revenue', value: string) {
+  async assertFieldValue(field: 'name' | 'employees' | 'revenue', value: string) {
     await expect(this.page.getByTestId(`account-${field}`)).toHaveValue(value);
   }
 
