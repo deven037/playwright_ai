@@ -29,3 +29,15 @@ export const LEAD_FORM_ACCESSIBILITY = {
     emailError: 'Enter a valid email.',
     statuses: ['New', 'Contacted', 'Qualified', 'Unqualified', 'Converted'],
 } as const;
+
+export const UX_LEADS = Array.from({ length: 80 }, (_, i) => ({
+    id: `aio66-lead-${i}`, name: `AIO66 Lead ${String(i).padStart(2, '0')}`,
+    company: `AIO66 Company ${i}`, email: `aio66-${i}@example.com`,
+    phone: '+15555550123', status: 'New', source: 'Event', ownerId: '',
+    value: i, createdAt: '2026-01-01T00:00:00.000Z',
+}));
+export const UX_STATUSES = ['New', 'Contacted', 'Qualified', 'Unqualified', 'Converted', 'AIO66 Custom'];
+export const UX_VALID_CONTACT = { name: 'AIO66 Contact', email: 'aio66-contact@example.com', account: 'AIO66 Account' };
+export const UX_INVALID_EMAIL = 'not-an-email';
+export const NO_LEADS_MESSAGE = 'No leads yet.';
+export const UX_VALIDATION = { name: 'Contact name is required.', email: 'Enter a valid contact email.' };

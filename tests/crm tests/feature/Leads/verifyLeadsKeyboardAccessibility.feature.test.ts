@@ -1,4 +1,8 @@
-import { test } from "@fixtures/CrmFixtures";
+import { test, expect } from "@fixtures/CrmFixtures";
+
+test.describe.configure({ retries: 0 });
+
+test.use({ trace: 'on-first-retry' });
 
 test.describe('Leads list keyboard accessibility (AIO-61 AC3)', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage, leadsPage }) => {
@@ -8,7 +12,7 @@ test.describe('Leads list keyboard accessibility (AIO-61 AC3)', () => {
         await leadsPage.goToLeads();
     });
 
-    test('@regression AIO-T22: Leads keyboard rows, Convert action and aria-sort', async ({ leadsPage }) => {
+    test('AIO-T14: Leads keyboard rows, Convert action and aria-sort @smoke', async ({ leadsPage }) => {
         await leadsPage.assertLeadRowsVisible();
 
         // Step 1: Tab until a lead row is focused, Enter opens the lead detail
@@ -25,7 +29,9 @@ test.describe('Leads list keyboard accessibility (AIO-61 AC3)', () => {
         await leadsPage.focusNameHeader();
         await leadsPage.pressEnter();
         await leadsPage.assertNameHeaderSort('ascending');
+        await leadsPage.assertNameRowsSorted('ascending');
         await leadsPage.pressEnter();
         await leadsPage.assertNameHeaderSort('descending');
+        await leadsPage.assertNameRowsSorted('descending');
     });
 });

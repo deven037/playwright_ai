@@ -126,17 +126,6 @@ export class Helpers {
     await locator.setInputFiles(filePath);
   }
 
-  /** Presses a key on the page keyboard (shortcuts such as Control+k). */
-  async pressPageKey(key: string): Promise<void> {
-    this.logger.step(`Press page key: ${key}`);
-    await this.page.keyboard.press(key);
-  }
-
-  async focus(locator: Locator, description = ''): Promise<void> {
-    this.logger.step(`Focus: ${description || locator.toString()}`);
-    await locator.focus();
-  }
-
   // --- Waits ----------------------------------------------------------------
 
   async waitForElement(locator: Locator, state: WaitStrategy = 'visible', description = ''): Promise<void> {

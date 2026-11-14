@@ -1,4 +1,4 @@
-import { LEAD_FORM_ACCESSIBILITY } from '../../data/leads.data';
+import { UX_LEADS, UX_STATUSES, UX_VALIDATION, LEAD_FORM_ACCESSIBILITY } from '../../data/leads.data';
 import { BasePage } from "@core/BasePage";
 import { expect, Locator, Page } from "@playwright/test";
 import { ALREADY_CONVERTED_MESSAGE, CONVERTED_LEAD_STATUS } from '../../data/leads.data';
@@ -602,4 +602,106 @@ export class LeadsPage extends BasePage {
             await this.helpers.assertVisible(this.page.getByRole('option', { name: status, exact: true }));
         }
     }
+
+    // Browser-only fixtures: no shared staging collection is changed.
+    private uxRows = UX_LEADS.map(row => ({ ...row }));
+    private uxWrites: Record<string, Record<string, unknown>[]> = { accounts: [], contacts: [], leads: [] };
+
+    async mockUxLeads(empty = false) {
+        this.uxRows = empty ? [] : UX_LEADS.map(row => ({ ...row }));
+        await this.page.route('**/api/leads?*', async route => {
+            if (route.request().method() !== 'GET') return route.fallback();
+            await route.fulfill({ json: { data: this.uxRows, total: this.uxRows.length, page: 1, pageSize: 100, totalPages: 1 } });
+        });
+    }
+
+    async mockConversionWrites() {
+        await this.page.route(/\/api\/(accounts|contacts|leads)(\/[^/?]+)?$/, async route => {
+            const request = route.request();
+            if (!['POST', 'PUT'].includes(request.method())) return route.fallback();
+            const collection = new URL(request.url()).pathname.split('/')[2];
+            const body = request.postDataJSON();
+            this.uxWrites[collection].push(body);
+            if (collection === 'leads') this.uxRows = this.uxRows.map(row => row.id === body.id ? body : row);
+            await route.fulfill({ status: request.method() === 'POST' ? 201 : 200, json: body });
+        });
+    }
+
+    async mockConfiguredStatuses() {
+        await this.page.route('**/api/bootstrap', async route => {
+            const response = await route.fetch();
+            const payload = await response.json();
+            payload.statusCodeSets = [
+                ...(payload.statusCodeSets ?? []).filter((set: { module: string; field: string }) => set.module !== 'leads' || set.field !== 'status'),
+                { id: 'aio66-status', module: 'leads', field: 'status', name: 'Lead Status', options: UX_STATUSES },
+            ];
+            await route.fulfill({ response, json: payload });
+        });
+    }
+
+    async assertConfiguredStatusOptions() {
+        await expect(this.page.getByRole('listbox').getByRole('option')).toHaveText(UX_STATUSES);
+    }
+
+    async selectFirstTwoLeads() {
+        for (const row of [this.leadRows.nth(0), this.leadRows.nth(1)]) {
+            await this.helpers.setChecked(row.getByRole('checkbox'), true, 'Select lead');
+        }
+        await expect(this.page.getByTestId('bulk-bar')).toContainText('2 selected');
+    }
+
+    async assertSelectionCleared() {
+        await expect(this.page.getByTestId('bulk-bar')).toHaveCount(0);
+        await expect(this.leadRows.getByRole('checkbox', { checked: true })).toHaveCount(0);
+    }
+
+    async chooseStatus(status: string) {
+        await this.openStatusFilter();
+        await this.helpers.click(this.page.getByRole('option', { name: status, exact: true }), 'Status option');
+        await this.helpers.click(this.page.getByTestId('filter-panel').getByText('Status', { exact: true }), 'Close status options');
+    }
+
+    async clearListFilters() {
+        await this.helpers.click(this.page.getByRole('button', { name: 'Clear filters', exact: true }), 'Clear filters');
+    }
+
+    async goToNumberedPage(number: number) {
+        await this.helpers.click(this.page.getByTestId('pagination').getByRole('button', { name: String(number), exact: true }), 'Numbered leads page');
+        await expect(this.page.getByTestId('pagination')).toContainText(`page ${number} of`);
+    }
+
+    async setConversionContact(name: string, email: string) {
+        await this.helpers.fill(this.page.getByLabel('Contact name', { exact: true }), name, 'Contact name');
+        await this.helpers.fill(this.page.getByLabel('Email', { exact: true }), email, 'Contact email');
+    }
+
+    async assertConversionValidation(field: 'name' | 'email') {
+        await this.assertConversionWizardStepOne();
+        const control = this.page.getByLabel(field === 'name' ? 'Contact name' : 'Email', { exact: true });
+        await expect(control).toHaveAttribute('aria-invalid', 'true');
+        await expect(control).toHaveAccessibleDescription(UX_VALIDATION[field]);
+    }
+
+    async finishConversionTwice() {
+        await this.helpers.click(this.page.getByTestId('wizard-finish'), 'Finish twice rapidly', { clickCount: 2 });
+    }
+
+    async assertSingleConversion() {
+        await expect.poll(() => this.uxWrites.leads.length).toBe(1);
+        expect(this.uxWrites.contacts).toHaveLength(1);
+        expect(this.uxWrites.accounts).toHaveLength(1);
+        expect(this.uxWrites.contacts[0].accountId).toBe(this.uxWrites.accounts[0].id);
+        expect(this.uxWrites.leads[0].status).toBe('Converted');
+    }
+
+    async assertExportUnavailable() {
+        await expect(this.page.getByTestId('export-csv-btn')).toHaveCount(0);
+    }
+
+    async assertNameRowsSorted(direction: 'ascending' | 'descending') {
+        const names = await this.leadRows.locator('td:nth-child(2)').allTextContents();
+        const sorted = [...names].sort((a, b) => a.localeCompare(b));
+        expect(names).toEqual(direction === 'ascending' ? sorted : sorted.reverse());
+    }
+
 }
