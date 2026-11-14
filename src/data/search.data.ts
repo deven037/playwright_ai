@@ -104,3 +104,5 @@ export const HEADER_SEARCH_CHECKS = {
     timingTerms: Array.from({ length: 5 }, () => ['an', 'ro', 'ka', 'me']).flat(),
     widths: [375, 768, 1440], themes: ['light', 'dark'],
 } as const;
+
+export const SEARCH_RETRY_TERM = 'kabir';

@@ -492,11 +492,12 @@ export class SearchPage extends BasePage {
         await this.helpers.assertFocused(this.retryButton(this.page));
     }
 
-    async openErrorSearchFromHeader() {
+    async openErrorSearchFromHeader(term: string = SEARCH_ERROR.term) {
         await this.helpers.click(this.opener(this.page));
         // Opening resets query/status and schedules input focus; wait before filling.
         await this.helpers.assertFocused(this.input);
-        await this.helpers.fill(this.input, SEARCH_ERROR.term);
+        await this.helpers.fill(this.input, term);
+        await this.helpers.assertVisible(this.panel.getByText(SEARCH_ERROR.heading, { exact: true }));
         await this.helpers.assertFocused(this.retryButton(this.page));
     }
 
@@ -530,6 +531,27 @@ export class SearchPage extends BasePage {
         await expect(this.panel).toHaveCount(0);
         await this.helpers.assertFocused(this.opener(this.page));
     }
+
+    async restoreSearchRequestsAndAssertSuccessfulRetry(term: string) {
+        await this.page.unroute('**/api/search?**', this.errorRoute);
+        const response = this.page.waitForResponse(r => r.request().method() === 'GET'
+            && new URL(r.url()).pathname === SEARCH_LIVE_PATHS.search
+            && new URL(r.url()).searchParams.get('q') === term);
+        await this.helpers.click(this.retryButton(this.page));
+        expect((await response).status()).toBe(200);
+        await this.helpers.assertAttribute(this.input, 'aria-busy', 'false');
+        await expect(this.input).toHaveValue(term);
+        await expect(this.retryButton(this.page)).toHaveCount(0);
+        await expect(this.panel.getByTestId('search-result-leads').first()).toBeVisible();
+    }
+
+    async assertEscapeFromCurrentFocusRestoresOpener() {
+        // Keep the focus left by the successful retry: focusing an input would hide AIO-399.
+        await this.helpers.pressPageKey('Escape');
+        await expect(this.panel).toHaveCount(0);
+        await this.helpers.assertFocused(this.opener(this.page));
+    }
+
 
     async assertHeaderButtonAndShortcut() {
         await expect(this.page.getByTestId('topbar').getByTestId('global-search')).toHaveCount(1);
