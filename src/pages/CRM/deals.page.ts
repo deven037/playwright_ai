@@ -152,12 +152,13 @@ export class DealsPage extends BasePage {
     await expect(this.page.getByRole('group', { name: /, \d+ cards?$/ })).toHaveCount(stages.length);
   }
 
-  async assertCardDetails(deal: string, account: string, amount: string, probability: string, close: string) {
+  async assertCardDetails(deal: string, account: string, amount: string, probability: string, close: RegExp) {
     const card = this.boardCard(deal);
     await this.helpers.assertVisible(card, `${deal} card`);
-    for (const text of [deal, account, amount, probability, close]) {
+    for (const text of [deal, account, amount, probability]) {
       await this.helpers.assertText(card, text);
     }
+    await expect(card).toContainText(close);
     await this.helpers.assertVisible(this.moveSelect(deal), `Move ${deal} to…`);
   }
 
