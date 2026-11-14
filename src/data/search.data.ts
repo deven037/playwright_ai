@@ -64,7 +64,7 @@ export const searchText = {
     seeAll: (total: number, type: string) => `See all ${total} ${type}`,
     filteredBy: (term: string) => `Filtered by "${term}" · Clear`,
 };
-export const searchTerms = { minimum: 'q', initial: 'qa', debounced: 'qab', empty: 'no-match', older: 'older', newer: 'newer' };
+export const searchTerms = { minimum: 'q', initial: 'qa', debounced: 'qab', empty: 'no-match', older: 'an', newer: 'zzzzqq' };
 export const emptySearchResponse = (term: string) => ({
     term, ...Object.fromEntries(searchTypes.map(type => [type, { items: [], total: 0 }]))
 });
@@ -98,5 +98,11 @@ export const searchScenarioNames = [
 ] as const;
 
 export const SEARCH_ERROR = { term: 'an', heading: 'Search did not finish', response: { message: 'Controlled search failure for AIO-T79' } } as const;
+
+export const HEADER_SEARCH_CHECKS = {
+    short: 'a', term: 'an', absent: 'zzzzqq',
+    timingTerms: Array.from({ length: 5 }, () => ['an', 'ro', 'ka', 'me']).flat(),
+    widths: [375, 768, 1440], themes: ['light', 'dark'],
+} as const;
 
 export const SEARCH_RETRY_TERM = 'kabir';
