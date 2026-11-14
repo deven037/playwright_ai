@@ -1,27 +1,30 @@
 import { test, expect } from '@fixtures/CrmFixtures';
-import { searchScenarioNames } from '../../../../src/data/search.data';
 
-// AC13 p95 is gated by message #441; controlled clocks verify debounce only.
-test.describe('Global search @regression', () => {
+test.describe('Global search', () => {
     test.beforeEach(async ({ crmLoginPage, dashboardPage }) => {
         await crmLoginPage.goto();
         await dashboardPage.waitForDashBoardPage();
     });
 
-    test(searchScenarioNames[0], async ({ searchPage }, testInfo) => {
-        test.setTimeout(180000);
-        await searchPage.assertKnownRecordsAndRolePermissions(testInfo.workerIndex);
+    test('AIO-T80: header button and Ctrl+K open labelled search @smoke', async ({ searchPage }) => {
+        await searchPage.assertHeaderButtonAndShortcut();
     });
 
-    test(searchScenarioNames[1], async ({ searchPage }) => {
+    test('AIO-T81: minimum term, grouped totals, See all and record navigation @smoke', async ({ searchPage }) => {
+        await searchPage.assertMinimumAndLiveGroupedNavigation();
+    });
+
+    test('AIO-T82: keyboard, loading, empty, error, retry and Escape @regression', async ({ searchPage }) => {
         await searchPage.assertMinimumDebounceAndKeyboard();
-    });
-
-    test(searchScenarioNames[2], async ({ searchPage }) => {
         await searchPage.assertLoadingErrorRetryAndEmpty();
+        await searchPage.assertEscapeAfterError();
     });
 
-    test(searchScenarioNames[3], async ({ searchPage }) => {
+    test('AIO-T96: roles, matching, stale responses, timing and responsive themes @regression', async ({ searchPage }, testInfo) => {
+        test.setTimeout(300000);
+        await searchPage.assertKnownRecordsAndRolePermissions(testInfo.workerIndex);
+        await searchPage.assertMinimumDebounceAndKeyboard();
         await searchPage.assertNewerResponseIsRetained();
+        await searchPage.assertLiveTimingAndResponsiveThemes();
     });
 });
