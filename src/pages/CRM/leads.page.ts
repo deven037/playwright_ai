@@ -372,10 +372,8 @@ export class LeadsPage extends BasePage {
         await this.assertNamedLeadStatus(leadName, CONVERTED_LEAD_STATUS);
         await this.helpers.click(row.getByRole('button', { name: `Actions for ${leadName}`, exact: true }), 'Converted row actions');
         const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
-        await expect(convert).toBeDisabled();
-        await this.helpers.assertAttribute(convert, 'title', ALREADY_CONVERTED_MESSAGE);
-        // Bypass Playwright's enabled check to exercise the disabled browser control.
-        await this.helpers.click(convert, 'Disabled Convert button', { force: true });
+        await this.helpers.click(convert, 'Convert lead menu item');
+        await this.helpers.assertVisible(this.page.getByText(ALREADY_CONVERTED_MESSAGE, { exact: true }), 'Already converted toast');
         await this.assertConversionWizardClosed();
         await this.helpers.assertVisible(this.page.getByTestId('leads-page'), 'Leads list stays open');
         await this.helpers.pressPageKey('Escape');
@@ -384,9 +382,8 @@ export class LeadsPage extends BasePage {
     async assertConvertedContextMenuBlocked(leadName: string) {
         await this.helpers.click(this.namedLeadRow(leadName), 'Converted row context menu', { button: 'right' });
         const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
-        await expect(convert).toBeDisabled();
-        await this.helpers.assertAttribute(convert, 'title', ALREADY_CONVERTED_MESSAGE);
-        await this.helpers.click(convert, 'Disabled context-menu Convert', { force: true });
+        await this.helpers.click(convert, 'Context-menu Convert lead');
+        await this.helpers.assertVisible(this.page.getByText(ALREADY_CONVERTED_MESSAGE, { exact: true }), 'Already converted toast');
         await this.assertConversionWizardClosed();
         await this.helpers.pressPageKey('Escape');
     }
