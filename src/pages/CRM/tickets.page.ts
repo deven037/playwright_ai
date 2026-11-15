@@ -80,7 +80,7 @@ export class TicketsPage extends BasePage {
     await this.waitForPageLoad();
   }
 
-  // "Recently Accessed" keeps the deleted subject, so list checks are scoped to the inbox.
+  // Inbox assertions are separate from Recently Accessed assertions.
   private inboxRow(subject: string) {
     return this.page.getByTestId('ticket-inbox').getByRole('button').filter({ hasText: subject });
   }
@@ -97,6 +97,35 @@ export class TicketsPage extends BasePage {
   async openTicketFromList(subject: string) {
     await this.helpers.click(this.inboxRow(subject).first(), 'Ticket in inbox');
     await this.page.getByTestId('ticket-reading-pane').waitFor({ state: 'visible' });
+  }
+
+
+  private recentlyAccessedEntry(subject: string) {
+    return this.page.getByTestId('toolbox-panel').getByRole('link').filter({ hasText: subject });
+  }
+
+  async assertTicketInRecentlyAccessed(subject: string) {
+    await this.helpers.assertVisible(this.recentlyAccessedEntry(subject), 'Ticket in Recently Accessed');
+  }
+
+  async openTicketFromRecentlyAccessed(subject: string) {
+    await this.helpers.click(this.recentlyAccessedEntry(subject), 'Recently Accessed ticket');
+    await this.helpers.assertVisible(this.page.getByTestId('ticket-detail-page'), 'Ticket detail');
+  }
+
+  async assertTicketsListShown() {
+    await this.helpers.assertURL(/\/tickets\/?$/);
+    await this.waitForPageLoad();
+    await this.helpers.assertVisible(this.page.getByTestId('toolbox-panel'), 'Recently Accessed panel');
+  }
+
+  async assertTicketNotInRecentlyAccessed(subject: string) {
+    await this.helpers.waitForElement(this.recentlyAccessedEntry(subject), 'detached', 'Deleted ticket in Recently Accessed');
+  }
+
+  async reloadTickets() {
+    await this.helpers.refreshPage();
+    await this.assertTicketsListShown();
   }
 
   /** Cleanup: closes then removes the ticket if it is still listed; does nothing if already deleted. */
