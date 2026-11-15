@@ -296,6 +296,23 @@ export class ContactsPage extends BasePage {
       .getByText('Layout: ' + CONTACT_HARBOR.layoutName, { exact: true }));
   }
 
+  async openDefaultContactForm() {
+    await this.helpers.navigateTo(new URL(CONTACT_HARBOR.newFormPath, this.env.newAppBaseUrl).href);
+    await this.helpers.assertVisible(this.page.getByTestId('contact-form-page'));
+  }
+
+  async assertTagsFieldAfterAccount() {
+    const form = this.page.getByTestId('contact-form-page');
+    const tags = form.getByTestId('contact-tags');
+    await expect(tags).toHaveCount(1);
+    await this.helpers.assertVisible(tags);
+    const account = form.getByTestId('contact-account');
+    expect(await account.evaluate(
+      (accountEl, tagsEl) => Boolean(accountEl.compareDocumentPosition(tagsEl) & Node.DOCUMENT_POSITION_FOLLOWING),
+      await tags.elementHandle(),
+    )).toBe(true);
+  }
+
   async assertHarborFormAtWidth(width: number) {
     await this.helpers.setViewport({ width, height: 900 });
     await this.assertAccessibleEmptyForm();

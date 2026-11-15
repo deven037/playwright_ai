@@ -9,6 +9,7 @@ export const CONTACT_HARBOR = {
   recordPath: '/contacts/contact-1',
   layoutId: 'layout-default-contacts',
   layoutName: 'Default',
+  newFormPath: '/contacts/new?layout=layout-default-contacts',
   factLabels: ['Email', 'Phone', 'Account', 'Created'],
   tabNames: [/^Overview$/, /^Activity$/, /^Notes \(\d+\)$/, /^Files \(\d+\)$/],
   widths: [1440, 768, 375],
