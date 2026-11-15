@@ -381,6 +381,31 @@ export class AccountsPage extends BasePage {
     return snapshot;
   }
 
+  /** Rows tied to the blocked account: the account, its contacts and deals, and quotes of the account or its deals. */
+  private scopeToBlockedAccount(data: Record<string, any[]>) {
+    const id = ACCOUNT_DELETE.blockedId;
+    const dealIds = new Set(data.deals.filter(row => row.accountId === id).map(row => row.id));
+    return {
+      accounts: data.accounts.filter(row => row.id === id),
+      contacts: data.contacts.filter(row => row.accountId === id),
+      deals: data.deals.filter(row => row.accountId === id),
+      quotes: data.quotes.filter(row => row.accountId === id || dealIds.has(row.dealId)),
+    };
+  }
+
+  /** Audit rows carry only action and free-text detail (no entity id), so match the account name, its deal names and its quote numbers. */
+  private auditRowIsAbout(row: any, before: Record<string, any[]>) {
+    const id = ACCOUNT_DELETE.blockedId;
+    const scoped = this.scopeToBlockedAccount(before);
+    const names = [
+      scoped.accounts[0].name,
+      ...scoped.deals.map(deal => deal.name),
+      ...scoped.quotes.map(quote => quote.quoteNumber),
+    ].filter(Boolean);
+    const detail = String(row.detail ?? '');
+    return detail.includes(id) || names.some(name => detail.includes(name));
+  }
+
   async assertOpenDealDeleteHasNoWritesForBothRoles() {
     // Complete both modes for Admin before repeating with the saved Rep session.
     for (const role of ACCOUNT_DELETE.roles) {
@@ -400,15 +425,14 @@ export class AccountsPage extends BasePage {
           expect(response.status(), `${role} cascade=${cascade}: ${await response.text()}`).toBe(409);
           expect(await response.json()).toMatchObject({ error: { code: 'open_deals' } });
           const after = await this.deleteSnapshot(page, role === 'admin');
-          // The audit log is shared and capped, so parallel tests append and rotate rows; only rows this delete could write count.
+          // Staging is shared: compare only rows tied to the blocked account, and count only audit rows that name it.
           const { audit: auditBefore = [], ...dataBefore } = before;
           const { audit: auditAfter = [], ...dataAfter } = after;
-          expect(dataAfter, `${role} cascade=${cascade} has no API-visible writes`).toEqual(dataBefore);
+          expect(this.scopeToBlockedAccount(dataAfter), `${role} cascade=${cascade} has no API-visible writes`)
+            .toEqual(this.scopeToBlockedAccount(dataBefore));
           const knownIds = new Set(auditBefore.map(row => row.id));
-          const accountName = before.accounts.find(row => row.id === ACCOUNT_DELETE.blockedId).name;
-          const deleteRows = auditAfter.filter(row => !knownIds.has(row.id)
-            && (/^(account|deal)\./.test(String(row.action)) || String(row.detail ?? '').includes(accountName)));
-          expect(deleteRows, `${role} cascade=${cascade} wrote no account audit entry`).toEqual([]);
+          const deleteRows = auditAfter.filter(row => !knownIds.has(row.id) && this.auditRowIsAbout(row, before));
+          expect(deleteRows, `${role} cascade=${cascade} wrote no audit entry about the account or its deals`).toEqual([]);
         }
       } finally {
         await context?.close();
