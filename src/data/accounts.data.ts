@@ -7,6 +7,9 @@ export const EDITED_PHONE = '5559876543';
 export const NEGATIVE_EMPLOYEES_MESSAGE = 'Employees can’t be negative.';
 export const NEGATIVE_REVENUE_MESSAGE = 'Annual revenue can’t be negative.';
 
+// AIO-403 / AIO-T208: a blank name is rejected and keyboard focus moves to the name field.
+export const NAME_REQUIRED_MESSAGE = 'Account name is required.';
+
 export const NEW_ACCOUNT_PATH = /\/accounts\/new/;
 
 /** Labels of the new-account form and the id of the control each one must focus. */

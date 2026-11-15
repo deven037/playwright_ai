@@ -1,6 +1,7 @@
 import { expect, test } from "@fixtures/CrmFixtures";
 import {
     ACCOUNT_FORM_VIEWPORTS,
+    NAME_REQUIRED_MESSAGE,
     NEGATIVE_EMPLOYEES_MESSAGE,
     NEGATIVE_REVENUE_MESSAGE,
 } from "../../../../src/data/accounts.data";
@@ -55,4 +56,19 @@ test('@feature @regression AIO-T154: New account: all 7 labels are tied to their
     await accountsPage.setEmployees('-5');
     await accountsPage.createAccount();
     await accountsPage.assertErrorsVisibleWithoutOverflow(ACCOUNT_FORM_VIEWPORTS);
+});
+
+test('@feature @regression AIO-T208: Account validation moves keyboard focus to first invalid field', async ({
+    accountsPage
+}) => {
+    await accountsPage.assertAccountNameBlank();
+    await accountsPage.setEmployees('0');
+    await accountsPage.setRevenue('0');
+    await accountsPage.assertFieldValue('employees', '0');
+    await accountsPage.assertFieldValue('revenue', '0');
+
+    await accountsPage.submitWithKeyboard();
+
+    await accountsPage.assertNameErrorAndFocus(NAME_REQUIRED_MESSAGE);
+    await accountsPage.assertStillOnNewAccountForm();
 });

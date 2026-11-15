@@ -95,6 +95,29 @@ export class AccountsPage extends BasePage {
     await this.helpers.click(createBtn, 'Create Account Button');
   }
 
+  // --- AIO-403 / AIO-T208: keyboard submit moves focus to the first invalid field ---
+
+  async assertAccountNameBlank() {
+    await expect(this.page.getByTestId('account-name')).toHaveValue('');
+  }
+
+  /** Focuses Create account and submits with Enter, as a keyboard user does. */
+  async submitWithKeyboard() {
+    const createBtn = this.page.getByRole('button', { name: 'Create account' });
+    await this.helpers.focus(createBtn, 'Create Account Button');
+    await this.helpers.assertFocused(createBtn, 'Create Account Button');
+    await this.helpers.pressPageKey('Enter');
+  }
+
+  /** Name error is shown, tied to the name input, and the name input holds keyboard focus. */
+  async assertNameErrorAndFocus(message: string) {
+    const input = this.page.getByTestId('account-name');
+    await expect(this.page.locator('#account-name-error')).toHaveText(message);
+    await expect(input).toHaveAttribute('aria-invalid', 'true');
+    await expect(input).toHaveAttribute('aria-describedby', 'account-name-error');
+    await this.helpers.assertFocused(input, 'Account Name Input');
+  }
+
   async assertStillOnNewAccountForm() {
     await expect(this.page).toHaveURL(NEW_ACCOUNT_PATH);
     await expect(this.page.getByTestId('account-form-page')).toBeVisible();
