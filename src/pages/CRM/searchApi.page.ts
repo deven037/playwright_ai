@@ -100,9 +100,9 @@ export class SearchApiPage extends BasePage {
 
     async assertRoleVisibilityOfEmailAndPhone() {
         const results: Record<SearchApiRole, SearchApiResult> = {
-            admin: await this.search(SEARCH_API.term, 'admin'),
-            rep: await this.search(SEARCH_API.term, 'rep'),
-            viewer: await this.search(SEARCH_API.term, 'viewer'),
+            admin: await this.search(SEARCH_API.seededName, 'admin'),
+            rep: await this.search(SEARCH_API.seededName, 'rep'),
+            viewer: await this.search(SEARCH_API.seededName, 'viewer'),
         };
         expect(SearchApiPage.totals(results.rep), 'rep totals equal admin').toEqual(SearchApiPage.totals(results.admin));
         expect(SearchApiPage.totals(results.viewer), 'viewer totals equal admin').toEqual(SearchApiPage.totals(results.admin));

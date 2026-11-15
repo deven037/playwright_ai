@@ -1,5 +1,5 @@
-import { Page } from "@playwright/test";
-import { CONTACT_FORM } from '../../data/contacts.data';
+import { Page, expect } from "@playwright/test";
+import { CONTACT_FORM, CONTACT_HARBOR } from '../../data/contacts.data';
 import { BasePage } from "../../core/BasePage";
 
 export class ContactsPage extends BasePage {
@@ -205,5 +205,121 @@ export class ContactsPage extends BasePage {
   async chooseLayout(layoutName: string) {
     const layout = this.page.locator(`//span[@class='layout-picker-item-name' and text()='${layoutName}']`);
     await this.helpers.click(layout, "Layout");
+  }
+
+  async openHarborRecord() {
+    await this.helpers.navigateTo(new URL(CONTACT_HARBOR.recordPath, this.env.newAppBaseUrl).href);
+    await this.helpers.assertVisible(this.page.getByTestId('contact-detail-page'));
+  }
+
+  async assertHarborRecord() {
+    const record = this.page.getByTestId('contact-detail-page');
+    const heading = record.getByRole('heading', { level: 1 });
+    await this.helpers.assertVisible(heading);
+    const name = (await this.helpers.getText(heading)).trim();
+    expect(name).not.toBe('');
+    const avatar = record.locator('.contact-avatar-lg');
+    const monogram = name.split(' ').map(part => part[0]).slice(0, 2).join('').toUpperCase();
+    await expect(avatar).toHaveText(monogram);
+    // Resolve the active bank token in the same inherited theme as the avatar.
+    expect(await avatar.evaluate(element => {
+      const probe = document.createElement('span');
+      probe.style.backgroundColor = 'var(--bank-primary)';
+      element.appendChild(probe);
+      const expected = getComputedStyle(probe).backgroundColor;
+      probe.remove();
+      return expected !== 'rgba(0, 0, 0, 0)' && getComputedStyle(element).backgroundColor === expected;
+    })).toBe(true);
+
+    const facts = record.locator('.key-info-strip');
+    await expect(facts.locator('.key-info-label')).toHaveText([...CONTACT_HARBOR.factLabels]);
+    for (const label of CONTACT_HARBOR.factLabels) {
+      const fact = facts.locator('.key-info-item').filter({
+        has: this.page.getByText(label, { exact: true }),
+      });
+      await this.helpers.assertVisible(fact.locator('.key-info-value'));
+      await expect(fact.locator('.key-info-value')).not.toHaveText('');
+    }
+    const created = facts.locator('.key-info-item').filter({
+      has: this.page.getByText('Created', { exact: true }),
+    }).locator('.key-info-value');
+    const createdText = await this.helpers.getText(created);
+    const tabs = record.getByTestId('contact-tabs');
+    await expect(tabs.getByRole('tab')).toHaveCount(CONTACT_HARBOR.tabNames.length);
+    for (const tabName of CONTACT_HARBOR.tabNames) {
+      await this.helpers.assertVisible(tabs.getByRole('tab', { name: tabName }));
+    }
+    // The design has four tabs; Notes and Files carry numeric counts.
+    for (const area of ['Notes', 'Files'] as const) {
+      const tab = tabs.getByRole('tab', { name: new RegExp('^' + area + ' \\(\\d+\\)$') });
+      const count = Number((await this.helpers.getText(tab)).match(/\((\d+)\)/)![1]);
+      await this.helpers.click(tab, area);
+      await this.helpers.assertAttribute(tab, 'aria-selected', 'true');
+      const panel = tabs.getByRole('tabpanel');
+      if (area === 'Notes') {
+        await expect(panel.locator('.note-item')).toHaveCount(count);
+      } else {
+        await expect(panel.getByRole('button', { name: 'Remove', exact: true })).toHaveCount(count);
+      }
+    }
+    await this.helpers.click(tabs.getByRole('tab', { name: 'Overview', exact: true }), 'Overview');
+    await this.helpers.click(record.getByTestId('edit-contact-btn'), 'Edit contact');
+    await this.helpers.assertVisible(record.getByTestId('save-contact-btn'));
+    await expect(record.getByRole('textbox', { name: 'Created', exact: true })).toHaveCount(0);
+    await this.helpers.click(record.getByRole('button', { name: 'Cancel', exact: true }), 'Cancel edit');
+    await expect(created).toHaveText(createdText);
+    const headerBox = await heading.boundingBox();
+    const factsBox = await facts.boundingBox();
+    const tabsBox = await tabs.getByRole('tablist').boundingBox();
+    expect(headerBox).not.toBeNull();
+    expect(factsBox).not.toBeNull();
+    expect(tabsBox).not.toBeNull();
+    expect(headerBox!.y + headerBox!.height).toBeLessThanOrEqual(factsBox!.y);
+    expect(factsBox!.y + factsBox!.height).toBeLessThanOrEqual(tabsBox!.y);
+  }
+
+  async openHarborContactForm() {
+    // Breadcrumb navigation avoids the collapsed sidebar on narrow viewports.
+    await this.helpers.click(
+      this.page.getByTestId('contact-detail-page').getByRole('link', { name: 'Contacts', exact: true }),
+      'Contacts breadcrumb',
+    );
+    await this.helpers.click(this.page.getByRole('button', { name: '+ New Contact', exact: true }), 'New Contact');
+    const picker = this.page.getByTestId('layout-picker-panel');
+    await this.helpers.assertVisible(picker);
+    await this.helpers.click(
+      picker.getByTestId('layout-picker-item-' + CONTACT_HARBOR.layoutId),
+      CONTACT_HARBOR.layoutName + ' layout',
+    );
+    await this.helpers.assertURL(new RegExp('/contacts/new\\?layout=' + CONTACT_HARBOR.layoutId + '$'));
+    await this.helpers.assertVisible(this.page.getByTestId('contact-form-page')
+      .getByText('Layout: ' + CONTACT_HARBOR.layoutName, { exact: true }));
+  }
+
+  async assertHarborFormAtWidth(width: number) {
+    await this.helpers.setViewport({ width, height: 900 });
+    await this.assertAccessibleEmptyForm();
+    const form = this.page.getByTestId('contact-form-page');
+    await this.helpers.assertVisible(form.getByRole('button', { name: 'Account', exact: true }));
+    await this.helpers.assertVisible(form.getByRole('button', { name: 'Tags', exact: true }));
+    const name = form.getByRole('textbox', { name: CONTACT_FORM.labels[0] });
+    const email = form.getByRole('textbox', { name: CONTACT_FORM.labels[1] });
+    await expect.poll(async () => {
+      const first = await name.boundingBox();
+      const second = await email.boundingBox();
+      if (!first || !second) return false;
+      return width > 780
+        ? Math.abs(first.y - second.y) <= 1 && first.x + first.width <= second.x
+        : Math.abs(first.x - second.x) <= 1 && first.y + first.height < second.y;
+    }, { message: 'Labelled fields use two desktop columns and stack at phone/tablet widths' }).toBe(true);
+    expect(await this.helpers.getHorizontalOverflow()).toBeLessThanOrEqual(1);
+  }
+
+  async assertRequiredErrorsAnnounced() {
+    const form = this.page.getByTestId('contact-form-page');
+    const liveRegion = form.locator('[aria-live="polite"]');
+    await this.helpers.assertVisible(liveRegion.getByText(CONTACT_FORM.nameError, { exact: true }));
+    await this.helpers.assertVisible(liveRegion.getByText(CONTACT_FORM.emailError, { exact: true }));
+    await this.assertEmptySubmitErrorsAndFocus();
   }
 }

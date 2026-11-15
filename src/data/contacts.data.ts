@@ -4,3 +4,12 @@ export const CONTACT_FORM = {
   nameError: 'Name is required.',
   emailError: 'Enter a valid email.',
 } as const;
+
+export const CONTACT_HARBOR = {
+  recordPath: '/contacts/contact-1',
+  layoutId: 'layout-default-contacts',
+  layoutName: 'Default',
+  factLabels: ['Email', 'Phone', 'Account', 'Created'],
+  tabNames: [/^Overview$/, /^Activity$/, /^Notes \(\d+\)$/, /^Files \(\d+\)$/],
+  widths: [1440, 768, 375],
+} as const;
