@@ -6,6 +6,7 @@ import { CrmLoginPage } from '@pages/CRM/crm.login.page';
 import { test as base } from './BaseFixtures';
 import { DashboardPage } from '@pages/CRM/dashboard.page';
 import { LeadsPage } from '@pages/CRM/leads.page';
+import { LeadsHarborPage } from '@pages/CRM/leadsHarbor.page';
 import { Product } from '@pages/CRM/product.page';
 import { Admin } from '@pages/CRM/admin.page';
 import { ContactsPage } from '@pages/CRM/contacts.page';
@@ -80,6 +81,7 @@ export type CRMPageFixtures = {
   crmLoginPage: CrmLoginPage;
   dashboardPage: DashboardPage;
   leadsPage: LeadsPage;
+  leadsHarborPage: LeadsHarborPage;
   productsPage: Product;
   adminPage: Admin;
   contactsPage: ContactsPage;
@@ -137,6 +139,10 @@ export const test = base.extend<CRMPageFixtures & CRMRoleOptions>({
   leadsPage: async ({ page }, use) => {
     const leadsPage = new LeadsPage(page);
     await use(leadsPage);
+  },
+
+  leadsHarborPage: async ({ page }, use) => {
+    await use(new LeadsHarborPage(page));
   },
 
   productsPage: async ({page}, use) => {
