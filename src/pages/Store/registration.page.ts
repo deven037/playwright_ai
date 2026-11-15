@@ -69,7 +69,7 @@ export class RegistrationPage extends BasePage {
     await this.page.locator('#AccountFrm_password').fill(user.password);
     await this.page.locator('#AccountFrm_confirm').fill(user.password);
     await this.page.locator('#AccountFrm_agree').check();
-    await this.helpers.click(this.registrationForm.getByRole('button', { name: 'Continue', exact: true }), 'Continue Registration', { noWaitAfter: true });
+    await this.helpers.click(this.page.getByRole('button', { name: /Continue/ }), 'Continue Registration', { noWaitAfter: true });
     await this.page.waitForURL(/account\/success/, { waitUntil: 'domcontentloaded', timeout: 15000 });
   }
 

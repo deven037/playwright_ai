@@ -198,7 +198,9 @@ export class SearchPage extends BasePage {
     private filterChip(module: Locator, label: string) { return module.getByRole('button', { name: label, exact: true }); }
     private kanbanTitles(module: Locator) { return module.locator('.kanban-card-title'); }
     private searchbox(module: Locator) { return module.getByRole('searchbox'); }
-    private rowText(module: Locator, name: string) { return module.getByRole('cell', { name, exact: true }); }
+    private rowText(module: Locator, name: string, type: string) {
+        return type === 'contacts' ? module.getByRole('link', { name, exact: true }) : module.getByRole('cell', { name, exact: true });
+    }
     private statusRegion(page: Page) { return this.globalPanel(page).getByRole('status'); }
     private fulfill(route: Route, body: unknown) {
         return route.fulfill({ contentType: 'application/json', body: JSON.stringify(body) });
@@ -356,6 +358,7 @@ export class SearchPage extends BasePage {
                 await expect(page).toHaveURL(url => url.pathname === `/${type}` && url.searchParams.get(searchTerms.minimum) === term);
                 const module = this.modulePage(page, type);
                 await expect(module).toBeVisible();
+                if (type === 'contacts') await helpers.click(module.getByRole('button', { name: 'List view', exact: true }), 'Contacts list view');
                 if (type === 'deals') {
                     await expect(this.filterChip(module, searchText.filteredBy(term))).toBeVisible();
                     await expect(this.kanbanTitles(module)).toHaveCount(4);
@@ -363,7 +366,7 @@ export class SearchPage extends BasePage {
                 } else {
                     await expect(this.searchbox(module)).toHaveValue(term);
                     // The list fetches every page of the module (300-1200 ms simulated latency per call), so allow more than the default 10 s.
-                    for (const row of records[type]) await expect(this.rowText(module, row.name)).toBeVisible({ timeout: LIST_LOAD_TIMEOUT });
+                    for (const row of records[type]) await expect(this.rowText(module, row.name, type)).toBeVisible({ timeout: LIST_LOAD_TIMEOUT });
                 }
               }
                 await helpers.click(this.opener(page));

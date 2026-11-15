@@ -372,8 +372,9 @@ export class LeadsPage extends BasePage {
         await this.assertNamedLeadStatus(leadName, CONVERTED_LEAD_STATUS);
         await this.helpers.click(row.getByRole('button', { name: `Actions for ${leadName}`, exact: true }), 'Converted row actions');
         const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
-        await this.helpers.click(convert, 'Convert lead menu item');
-        await this.helpers.assertVisible(this.page.getByText(ALREADY_CONVERTED_MESSAGE, { exact: true }), 'Already converted toast');
+        await expect(convert).toBeDisabled();
+        await expect(convert).toHaveAttribute('title', ALREADY_CONVERTED_MESSAGE);
+        await expect(convert).toHaveAttribute('aria-description', ALREADY_CONVERTED_MESSAGE);
         await this.assertConversionWizardClosed();
         await this.helpers.assertVisible(this.page.getByTestId('leads-page'), 'Leads list stays open');
         await this.helpers.pressPageKey('Escape');
@@ -382,8 +383,9 @@ export class LeadsPage extends BasePage {
     async assertConvertedContextMenuBlocked(leadName: string) {
         await this.helpers.click(this.namedLeadRow(leadName), 'Converted row context menu', { button: 'right' });
         const convert = this.page.getByRole('menuitem', { name: 'Convert lead…', exact: true });
-        await this.helpers.click(convert, 'Context-menu Convert lead');
-        await this.helpers.assertVisible(this.page.getByText(ALREADY_CONVERTED_MESSAGE, { exact: true }), 'Already converted toast');
+        await expect(convert).toBeDisabled();
+        await expect(convert).toHaveAttribute('title', ALREADY_CONVERTED_MESSAGE);
+        await expect(convert).toHaveAttribute('aria-description', ALREADY_CONVERTED_MESSAGE);
         await this.assertConversionWizardClosed();
         await this.helpers.pressPageKey('Escape');
     }
@@ -495,15 +497,14 @@ export class LeadsPage extends BasePage {
         await this.helpers.click(this.page.getByTestId('filters-toggle'), 'Filters');
         const filterPanel = this.page.getByTestId('filter-panel');
         await expect(filterPanel).toBeVisible();
-        await this.helpers.click(filterPanel.getByRole('button', { name: 'Any status' }), 'Any status');
+        await this.helpers.assertVisible(filterPanel.getByRole('group', { name: 'Status', exact: true }), 'Status filters');
     }
 
     async assertStatusFilterOptions(baseline: string[], addedStatus: string) {
-        const options = this.page.getByRole('listbox').getByRole('option');
-        await expect(options).toHaveCount(baseline.length + 1);
-        await expect(options.filter({ hasText: addedStatus })).toHaveCount(1);
-        for (const status of baseline) {
-            await expect(options.filter({ hasText: status }).first()).toBeVisible();
+        const group = this.page.getByTestId('filter-panel').getByRole('group', { name: 'Status', exact: true });
+        await expect(group.getByRole('checkbox')).toHaveCount(baseline.length + 1);
+        for (const status of [...baseline, addedStatus]) {
+            await expect(group.getByRole('checkbox', { name: status, exact: true })).toBeVisible();
         }
     }
 
