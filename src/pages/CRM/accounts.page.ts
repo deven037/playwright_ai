@@ -513,4 +513,62 @@ export class AccountsPage extends BasePage {
   async stopRejectingAccountDeletes() {
     await this.page.unroute(`**/api/accounts/${ACCOUNT_DELETE.emptyId}`, this.rejectDeleteRoute);
   }
+
+  // --- AIO-424 / AIO-T236: delete dialog focus management ------------------
+
+  private get deleteTrigger() { return this.page.getByTestId('delete-account-btn'); }
+
+  private async isFocusInsideDialog() {
+    return this.deleteDialog().evaluate(dialog => dialog.contains(document.activeElement));
+  }
+
+  /** Focuses Delete and opens the dialog with the keyboard; returns the account name shown. */
+  async openDeleteDialogWithKeyboard() {
+    const name = await this.getAccountNameFromDetailsPage();
+    await this.helpers.focus(this.deleteTrigger, 'Delete Account Button');
+    await this.helpers.pressKey(this.deleteTrigger, 'Enter', 'Delete Account Button');
+    await this.helpers.assertVisible(this.deleteDialog(), 'Delete dialog');
+    return name;
+  }
+
+  async assertFocusInsideDeleteDialog() {
+    await expect.poll(() => this.isFocusInsideDialog(), { message: 'focus is inside the dialog' }).toBe(true);
+  }
+
+  /** Presses Tab (or Shift+Tab) `count` times; focus must stay inside the dialog after every press. */
+  async assertTabKeepsFocusInDeleteDialog(count: number, backwards = false) {
+    for (let press = 1; press <= count; press++) {
+      await this.helpers.pressPageKey(backwards ? 'Shift+Tab' : 'Tab');
+      expect(await this.isFocusInsideDialog(), `focus inside dialog after ${backwards ? 'Shift+Tab' : 'Tab'} ${press}`).toBe(true);
+    }
+  }
+
+  async assertDeleteDialogDescribedByBody() {
+    const dialog = this.deleteDialog();
+    await expect(dialog).toHaveAttribute('aria-describedby', /.+/);
+    const id = await this.helpers.getAttributeValue(dialog, 'aria-describedby');
+    await expect(dialog.locator(`[id="${id}"]`)).toHaveText(/\S/);
+  }
+
+  /** Dismisses the dialog with Escape, Cancel or the Close (×) button. */
+  async dismissDeleteDialog(how: 'Escape' | 'Cancel' | 'Close') {
+    if (how === 'Escape') {
+      await this.helpers.pressPageKey('Escape');
+    } else {
+      const name = how === 'Cancel' ? 'Cancel' : 'Close dialog';
+      await this.helpers.click(this.deleteDialog().getByRole('button', { name, exact: true }), `${how} button`);
+    }
+    await this.helpers.waitForElement(this.deleteDialog(), 'hidden', 'Delete dialog');
+  }
+
+  async reopenDeleteDialog() {
+    await this.helpers.click(this.deleteTrigger, 'Delete Account Button');
+    await this.helpers.assertVisible(this.deleteDialog(), 'Delete dialog');
+  }
+
+  async assertFocusReturnedToDeleteTrigger(accountId: string, name: string) {
+    await this.helpers.assertFocused(this.deleteTrigger, 'Delete Account Button');
+    await this.helpers.assertURL(new RegExp(`/accounts/${accountId}$`));
+    await this.assertAccountDetailShown(name);
+  }
 }

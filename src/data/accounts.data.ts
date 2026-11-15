@@ -48,6 +48,9 @@ export const NAME_SEARCH_UPPERCASE = 'ZENITH';
 export const NAME_SEARCH_ACCOUNTS = ['Zenith Corp'] as const;
 
 
+// AIO-424 / AIO-T236: delete dialog focus checks run on account-1.
+export const DELETE_DIALOG_FOCUS = { accountId: 'account-1', tabPresses: 8, dismissals: ['Escape', 'Cancel', 'Close'] } as const;
+
 // AIO-300: seeded delete regression preconditions.
 export const ACCOUNT_DELETE = {
   blockedId: 'account-5',
